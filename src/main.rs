@@ -3,8 +3,56 @@ extern crate glium;
 
 use conrod::backend::glium::glium::Surface;
 use glium::DisplayBuild;
+use std::io::prelude::*;
+
+struct Redpitaya {
+    socket: std::net::TcpStream,
+}
+
+impl Redpitaya {
+    pub fn new(ip: &str, port: u16) -> Redpitaya {
+        let socket = match std::net::TcpStream::connect((ip, port)) {
+            Ok(socket) => socket,
+            Err(_) => panic!("Unable to connect to {}:{}", ip, port),
+        };
+
+        Redpitaya {
+            socket: socket,
+        }
+    }
+
+    pub fn aquire_start(&mut self) {
+        self.send("ACQ:START");
+    }
+
+    pub fn aquire_stop(&mut self) {
+        self.send("ACQ:STOP");
+    }
+
+    pub fn aquire_reset(&mut self) {
+        self.send("ACQ:RST");
+    }
+
+    fn send(&mut self, command: &str) {
+        self.socket.write(
+            format!("{}\r\n", command).as_bytes()
+        );
+    }
+
+    fn receive(&mut self) -> String {
+        let mut message = String::new();
+        let mut reader = std::io::BufReader::new(self.socket.try_clone().unwrap());
+
+        reader.read_line(&mut message);
+
+        message.trim_right_matches("\r\n")
+            .into()
+    }
+}
 
 fn main() {
+    let redpitaya = Redpitaya::new("192.168.1.5", 5000);
+
     let display = glium::glutin::WindowBuilder::new()
         .with_title("Redpitaya")
         .build_glium()
