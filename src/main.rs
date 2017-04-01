@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate conrod;
 extern crate glium;
 
@@ -93,16 +94,25 @@ impl EventLoop {
     }
 }
 
+widget_ids! {
+    struct Ids {
+        canvas,
+        toggle,
+    }
+}
+
 struct Application {
+    started: bool,
 }
 
 impl Application {
     pub fn new() -> Application {
         Application {
+            started: false,
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         let display = glium::glutin::WindowBuilder::new()
             .with_title("Redpitaya")
             .build_glium()
@@ -110,6 +120,11 @@ impl Application {
 
         let mut ui = conrod::UiBuilder::new([400.0, 200.0])
             .build();
+
+        ui.fonts.insert_from_file("assets/fonts/NotoSans/NotoSans-Regular.ttf")
+            .unwrap();
+
+        let ids = Ids::new(ui.widget_id_generator());
 
         let mut renderer = conrod::backend::glium::Renderer::new(&display)
             .unwrap();
@@ -130,6 +145,8 @@ impl Application {
                 }
             }
 
+            self.set_widgets(ui.set_widgets(), &ids);
+
             if let Some(primitives) = ui.draw_if_changed() {
                 renderer.fill(&display, primitives, &image_map);
                 let mut target = display.draw();
@@ -139,6 +156,34 @@ impl Application {
                 target.finish()
                     .unwrap();
             }
+        }
+    }
+
+    fn set_widgets(&mut self, ref mut ui: conrod::UiCell, ids: &Ids) {
+        use conrod::{Sizeable, Positionable, Colorable, Labelable, Widget};
+
+        let bg_color = conrod::color::rgb(0.2, 0.35, 0.45);
+
+        conrod::widget::Canvas::new()
+            .pad(30.0)
+            .color(bg_color)
+            .set(ids.canvas, ui);
+
+        let label = match self.started {
+            true => "Stop",
+            false => "Run",
+        };
+
+        let toggle = conrod::widget::Toggle::new(self.started)
+            .w_h(200.0, 50.0)
+            .mid_right_of(ids.canvas)
+            .color(bg_color.plain_contrast())
+            .label(label)
+            .label_color(bg_color)
+            .set(ids.toggle, ui);
+
+        if let Some(value) = toggle.last() {
+            self.started = value;
         }
     }
 }
