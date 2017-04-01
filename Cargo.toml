@@ -8,4 +8,4 @@ glium = "0.16.0"
 
 [dependencies.conrod]
 version="0.51"
-features=["glium"]
+features=["glium", "winit"]
