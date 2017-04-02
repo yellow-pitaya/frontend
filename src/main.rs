@@ -120,6 +120,7 @@ widget_ids! {
     struct Ids {
         canvas,
         toggle,
+        plot,
     }
 }
 
@@ -203,7 +204,7 @@ impl Application {
         };
 
         let toggle = conrod::widget::Toggle::new(self.started)
-            .w_h(200.0, 50.0)
+            .w_h(100.0, 50.0)
             .mid_right_of(ids.canvas)
             .color(bg_color.plain_contrast())
             .label(label)
@@ -223,7 +224,35 @@ impl Application {
         if self.started {
             self.tx.send("oscillo/data".into());
             if let Ok(message) = self.rx.recv() {
-                println!("{}", message);
+                let data: Vec<f64> = message
+                    .trim_matches(|c| c == '{' || c == '}')
+                    .split(",")
+                    .map(|s| s.parse::<f64>().unwrap())
+                    .collect();
+
+                let x_min = 0;
+
+                let x_max = data.len();
+
+                let y_min: f64 = *data.iter().min_by(|a, b| {
+                    a.partial_cmp(b)
+                        .unwrap()
+                }).unwrap();
+
+                let y_max: f64 = *data.iter().max_by(|a, b| {
+                    a.partial_cmp(b)
+                        .unwrap()
+                }).unwrap();
+
+                let plot = conrod::widget::PlotPath::new(x_min, x_max, y_min, y_max, |x| {
+                    return data[x];
+                });
+
+                plot.color(conrod::color::LIGHT_BLUE)
+                    .padded_w_of(ids.canvas, 100.0)
+                    .h_of(ids.canvas)
+                    .top_left_of(ids.canvas)
+                    .set(ids.plot, ui);
             }
         }
     }
