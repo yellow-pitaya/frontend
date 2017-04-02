@@ -11,6 +11,7 @@ use std::io::prelude::*;
 
 struct Redpitaya {
     socket: std::net::TcpStream,
+    started: bool,
 }
 
 impl Redpitaya {
@@ -22,19 +23,32 @@ impl Redpitaya {
 
         Redpitaya {
             socket: socket,
+            started: false,
         }
     }
 
     pub fn aquire_start(&mut self) {
         self.send("ACQ:START");
+        self.started = true;
     }
 
     pub fn aquire_stop(&mut self) {
         self.send("ACQ:STOP");
+        self.started = false;
+    }
+
+    pub fn acquire_is_started(&self) -> bool {
+        self.started
     }
 
     pub fn aquire_reset(&mut self) {
         self.send("ACQ:RST");
+    }
+
+    pub fn get_data(&mut self) -> String {
+        self.send("ACQ:SOUR1:DATA?");
+
+        self.receive()
     }
 
     fn send(&mut self, command: &str) {
@@ -112,13 +126,15 @@ widget_ids! {
 struct Application {
     started: bool,
     tx: std::sync::mpsc::Sender<String>,
+    rx: std::sync::mpsc::Receiver<String>,
 }
 
 impl Application {
-    pub fn new(tx: std::sync::mpsc::Sender<String>) -> Application {
+    pub fn new(tx: std::sync::mpsc::Sender<String>, rx: std::sync::mpsc::Receiver<String>) -> Application {
         Application {
             started: false,
             tx: tx,
+            rx: rx,
         }
     }
 
@@ -203,6 +219,13 @@ impl Application {
 
             self.started = value;
         }
+
+        if self.started {
+            self.tx.send("oscillo/data".into());
+            if let Ok(message) = self.rx.recv() {
+                println!("{}", message);
+            }
+        }
     }
 }
 
@@ -210,20 +233,26 @@ fn main() {
     env_logger::init()
         .unwrap();
 
-    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    let (redpitaya_tx, redpitaya_rx) = std::sync::mpsc::channel::<String>();
+    let (application_tx, application_rx) = std::sync::mpsc::channel::<String>();
 
     let mut redpitaya = Redpitaya::new("192.168.1.5", 5000);
 
     std::thread::spawn(move || {
-        for message in rx {
+        for message in redpitaya_rx {
             match message.as_str() {
                 "oscillo/start" => redpitaya.aquire_start(),
                 "oscillo/stop" => redpitaya.aquire_stop(),
+                "oscillo/data" => if redpitaya.acquire_is_started() {
+                    let data = redpitaya.get_data();
+
+                    application_tx.send(data);
+                },
                 message => warn!("Invalid action: '{}'", message),
             };
         }
     });
 
-    Application::new(tx)
+    Application::new(redpitaya_tx, application_rx)
         .run();
 }
