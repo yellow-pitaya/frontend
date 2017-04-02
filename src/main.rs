@@ -51,6 +51,18 @@ impl Redpitaya {
         self.receive()
     }
 
+    pub fn generator_start(&mut self) {
+        self.send("OUTPUT1:STATE ON");
+    }
+
+    pub fn generator_stop(&mut self) {
+        self.send("OUTPUT1:STATE OFF");
+    }
+
+    pub fn generator_set_form(&mut self, form: &str) {
+        self.send(format!("OUTPUT1:FUNC {}", form).as_str())
+    }
+
     fn send(&mut self, command: &str) {
         info!("> {}", command);
 
@@ -119,13 +131,16 @@ impl EventLoop {
 widget_ids! {
     struct Ids {
         canvas,
-        toggle,
+        toggle_oscillo,
+        toggle_generator,
+        toggle_generator_img,
         plot,
     }
 }
 
 struct Application {
-    started: bool,
+    oscillo_started: bool,
+    generator_started: bool,
     tx: std::sync::mpsc::Sender<String>,
     rx: std::sync::mpsc::Receiver<String>,
 }
@@ -133,7 +148,8 @@ struct Application {
 impl Application {
     pub fn new(tx: std::sync::mpsc::Sender<String>, rx: std::sync::mpsc::Receiver<String>) -> Application {
         Application {
-            started: false,
+            oscillo_started: false,
+            generator_started: false,
             tx: tx,
             rx: rx,
         }
@@ -186,6 +202,7 @@ impl Application {
         }
 
         self.tx.send("oscillo/stop".into());
+        self.tx.send("generator/stop".into());
     }
 
     fn set_widgets(&mut self, ref mut ui: conrod::UiCell, ids: &Ids) {
@@ -198,18 +215,18 @@ impl Application {
             .color(bg_color)
             .set(ids.canvas, ui);
 
-        let label = match self.started {
+        let label = match self.oscillo_started {
             true => "Stop",
             false => "Run",
         };
 
-        let toggle = conrod::widget::Toggle::new(self.started)
+        let toggle = conrod::widget::Toggle::new(self.oscillo_started)
             .w_h(100.0, 50.0)
             .mid_right_of(ids.canvas)
             .color(bg_color.plain_contrast())
             .label(label)
             .label_color(bg_color)
-            .set(ids.toggle, ui);
+            .set(ids.toggle_oscillo, ui);
 
         if let Some(value) = toggle.last() {
             if value {
@@ -218,10 +235,28 @@ impl Application {
                 self.tx.send("oscillo/stop".into());
             }
 
-            self.started = value;
+            self.oscillo_started = value;
         }
 
-        if self.started {
+        let toggle = conrod::widget::Toggle::new(self.generator_started)
+            .w_h(100.0, 50.0)
+            .down_from(ids.toggle_oscillo, 10.0)
+            .label("Sin")
+            .color(bg_color.plain_contrast())
+            .label_color(bg_color)
+            .set(ids.toggle_generator, ui);
+
+        if let Some(value) = toggle.last() {
+            if value {
+                self.tx.send("generator/start".into());
+            } else {
+                self.tx.send("generator/stop".into());
+            }
+
+            self.generator_started = value;
+        }
+
+        if self.oscillo_started {
             self.tx.send("oscillo/data".into());
             if let Ok(message) = self.rx.recv() {
                 let data: Vec<f64> = message
@@ -277,6 +312,9 @@ fn main() {
 
                     application_tx.send(data);
                 },
+                "generator/start" => redpitaya.generator_start(),
+                "generator/stop" => redpitaya.generator_stop(),
+                "generator/sinc" => redpitaya.generator_set_form("sine"),
                 message => warn!("Invalid action: '{}'", message),
             };
         }
