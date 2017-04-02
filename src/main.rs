@@ -35,6 +35,8 @@ impl Redpitaya {
     }
 
     fn send(&mut self, command: &str) {
+        println!("> {}", command);
+
         self.socket.write(
             format!("{}\r\n", command).as_bytes()
         );
@@ -159,6 +161,8 @@ impl Application {
                     .unwrap();
             }
         }
+
+        self.tx.send("oscillo/stop".into());
     }
 
     fn set_widgets(&mut self, ref mut ui: conrod::UiCell, ids: &Ids) {
