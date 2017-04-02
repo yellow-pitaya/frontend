@@ -103,12 +103,14 @@ widget_ids! {
 
 struct Application {
     started: bool,
+    tx: std::sync::mpsc::Sender<String>,
 }
 
 impl Application {
-    pub fn new() -> Application {
+    pub fn new(tx: std::sync::mpsc::Sender<String>) -> Application {
         Application {
             started: false,
+            tx: tx,
         }
     }
 
@@ -183,14 +185,32 @@ impl Application {
             .set(ids.toggle, ui);
 
         if let Some(value) = toggle.last() {
+            if value {
+                self.tx.send("oscillo/start".into());
+            } else {
+                self.tx.send("oscillo/stop".into());
+            }
+
             self.started = value;
         }
     }
 }
 
 fn main() {
-    let redpitaya = Redpitaya::new("192.168.1.5", 5000);
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
 
-    Application::new()
+    let mut redpitaya = Redpitaya::new("192.168.1.5", 5000);
+
+    std::thread::spawn(move || {
+        for message in rx {
+            match message.as_str() {
+                "oscillo/start" => redpitaya.aquire_start(),
+                "oscillo/stop" => redpitaya.aquire_stop(),
+                message => println!("Invalid action: '{}'", message),
+            };
+        }
+    });
+
+    Application::new(tx)
         .run();
 }
