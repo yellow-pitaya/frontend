@@ -1,6 +1,9 @@
+extern crate env_logger;
 #[macro_use]
 extern crate conrod;
 extern crate glium;
+#[macro_use]
+extern crate log;
 
 use conrod::backend::glium::glium::Surface;
 use glium::DisplayBuild;
@@ -35,7 +38,7 @@ impl Redpitaya {
     }
 
     fn send(&mut self, command: &str) {
-        println!("> {}", command);
+        info!("> {}", command);
 
         self.socket.write(
             format!("{}\r\n", command).as_bytes()
@@ -48,8 +51,11 @@ impl Redpitaya {
 
         reader.read_line(&mut message);
 
-        message.trim_right_matches("\r\n")
-            .into()
+        let message = message.trim_right_matches("\r\n");
+
+        debug!("< {}", message);
+
+        message.into()
     }
 }
 
@@ -201,6 +207,9 @@ impl Application {
 }
 
 fn main() {
+    env_logger::init()
+        .unwrap();
+
     let (tx, rx) = std::sync::mpsc::channel::<String>();
 
     let mut redpitaya = Redpitaya::new("192.168.1.5", 5000);
@@ -210,7 +219,7 @@ fn main() {
             match message.as_str() {
                 "oscillo/start" => redpitaya.aquire_start(),
                 "oscillo/stop" => redpitaya.aquire_stop(),
-                message => println!("Invalid action: '{}'", message),
+                message => warn!("Invalid action: '{}'", message),
             };
         }
     });
