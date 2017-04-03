@@ -1,3 +1,4 @@
+use conrod::{Borderable, Sizeable, Positionable, Colorable, Labelable, Widget};
 use conrod::backend::glium::glium::Surface;
 use glium::DisplayBuild;
 
@@ -18,6 +19,7 @@ pub struct Application {
     generator_started: bool,
     tx: ::std::sync::mpsc::Sender<String>,
     rx: ::std::sync::mpsc::Receiver<String>,
+    bg_color: ::conrod::color::Color,
 }
 
 impl Application {
@@ -27,6 +29,7 @@ impl Application {
             generator_started: false,
             tx: tx,
             rx: rx,
+            bg_color: ::conrod::color::rgb(0.2, 0.35, 0.45),
         }
     }
 
@@ -81,15 +84,28 @@ impl Application {
     }
 
     fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &Ids) {
-        use conrod::{Borderable, Sizeable, Positionable, Colorable, Labelable, Widget};
-
-        let bg_color = ::conrod::color::rgb(0.2, 0.35, 0.45);
-
         ::conrod::widget::Canvas::new()
             .pad(30.0)
-            .color(bg_color)
+            .color(self.bg_color)
             .set(ids.canvas, ui);
 
+        self.oscillo_run_button(ui, ids);
+        self.generator_sin_button(ui, ids);
+
+        if self.oscillo_started {
+            self.tx.send("oscillo/data".into());
+            if let Ok(message) = self.rx.recv() {
+                let data = message
+                    .trim_matches(|c| c == '{' || c == '}')
+                    .split(",")
+                    .map(|s| s.parse::<f64>().unwrap());
+
+                self.draw_data(data, ui, ids);
+            }
+        }
+    }
+
+    fn oscillo_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
         let label = match self.oscillo_started {
             true => "Stop",
             false => "Run",
@@ -98,9 +114,9 @@ impl Application {
         let toggle = ::conrod::widget::Toggle::new(self.oscillo_started)
             .w_h(100.0, 50.0)
             .mid_right_of(ids.canvas)
-            .color(bg_color.plain_contrast())
+            .color(self.bg_color.plain_contrast())
             .label(label)
-            .label_color(bg_color)
+            .label_color(self.bg_color)
             .set(ids.toggle_oscillo, ui);
 
         if let Some(value) = toggle.last() {
@@ -112,13 +128,15 @@ impl Application {
 
             self.oscillo_started = value;
         }
+    }
 
+    fn generator_sin_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
         let toggle = ::conrod::widget::Toggle::new(self.generator_started)
             .w_h(100.0, 50.0)
             .down_from(ids.toggle_oscillo, 10.0)
             .label("Sin")
-            .color(bg_color.plain_contrast())
-            .label_color(bg_color)
+            .color(self.bg_color.plain_contrast())
+            .label_color(self.bg_color)
             .set(ids.toggle_generator, ui);
 
         if let Some(value) = toggle.last() {
@@ -130,40 +148,33 @@ impl Application {
 
             self.generator_started = value;
         }
+    }
 
-        if self.oscillo_started {
-            self.tx.send("oscillo/data".into());
-            if let Ok(message) = self.rx.recv() {
-                let data: Vec<f64> = message
-                    .trim_matches(|c| c == '{' || c == '}')
-                    .split(",")
-                    .map(|s| s.parse::<f64>().unwrap())
-                    .collect();
+    fn draw_data<I>(&mut self, data: I, ui: &mut ::conrod::UiCell, ids: &Ids) where I: Iterator<Item=f64> {
+        let data: Vec<f64> = data.collect();
 
-                let x_min = 0;
+        let x_min = 0;
 
-                let x_max = data.len();
+        let x_max = data.len();
 
-                let y_min: f64 = *data.iter().min_by(|a, b| {
-                    a.partial_cmp(b)
-                        .unwrap()
-                }).unwrap();
+        let y_min: f64 = *data.iter().min_by(|a, b| {
+            a.partial_cmp(b)
+                .unwrap()
+        }).unwrap();
 
-                let y_max: f64 = *data.iter().max_by(|a, b| {
-                    a.partial_cmp(b)
-                        .unwrap()
-                }).unwrap();
+        let y_max: f64 = *data.iter().max_by(|a, b| {
+            a.partial_cmp(b)
+                .unwrap()
+        }).unwrap();
 
-                let plot = ::conrod::widget::PlotPath::new(x_min, x_max, y_min, y_max, |x| {
-                    return data[x];
-                });
+        let plot = ::conrod::widget::PlotPath::new(x_min, x_max, y_min, y_max, |x| {
+            return data[x];
+        });
 
-                plot.color(::conrod::color::LIGHT_BLUE)
-                    .padded_w_of(ids.canvas, 100.0)
-                    .padded_h_of(ids.canvas, 30.0)
-                    .top_left_of(ids.canvas)
-                    .set(ids.plot, ui);
-            }
-        }
+        plot.color(::conrod::color::LIGHT_BLUE)
+            .padded_w_of(ids.canvas, 100.0)
+            .padded_h_of(ids.canvas, 30.0)
+            .top_left_of(ids.canvas)
+            .set(ids.plot, ui);
     }
 }
