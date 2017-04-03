@@ -18,12 +18,12 @@ impl Redpitaya {
         }
     }
 
-    pub fn aquire_start(&mut self) {
+    pub fn acquire_start(&mut self) {
         self.send("ACQ:START");
         self.started = true;
     }
 
-    pub fn aquire_stop(&mut self) {
+    pub fn acquire_stop(&mut self) {
         self.send("ACQ:STOP");
         self.started = false;
     }
@@ -32,7 +32,7 @@ impl Redpitaya {
         self.started
     }
 
-    pub fn aquire_reset(&mut self) {
+    pub fn acquire_reset(&mut self) {
         self.send("ACQ:RST");
     }
 
