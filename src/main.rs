@@ -24,7 +24,11 @@ fn main() {
         for message in redpitaya_rx {
             match message.as_str() {
                 "oscillo/start" => {
+                    redpitaya.acquire_reset();
+                    redpitaya.acquire_set_decimation(1);
+                    redpitaya.trigger_set_level(0);
                     redpitaya.acquire_start();
+                    redpitaya.trigger_enable("CH1_PE");
                     redpitaya.acquire_set_units("VOLTS");
                 },
                 "oscillo/stop" => redpitaya.acquire_stop(),

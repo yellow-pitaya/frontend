@@ -36,8 +36,24 @@ impl Redpitaya {
         self.send("ACQ:RST");
     }
 
+    pub fn trigger_set_level(&mut self, level: u8) {
+        self.send(format!("ACQ:TRIG:LEV {}", level).as_str());
+    }
+
+    pub fn trigger_enable(&mut self, source: &str) {
+        self.send(format!("ACQ:TRIG {}", source).as_str());
+    }
+
+    pub fn trigger_set_delay(&mut self, delay: u8) {
+        self.send(format!("ACQ:TRIG:DLY {}", delay).as_str());
+    }
+
     pub fn acquire_set_units(&mut self, unit: &str) {
         self.send(format!("ACQ:DATA:UNITS {}", unit).as_str());
+    }
+
+    pub fn acquire_set_decimation(&mut self, decimation: u8) {
+        self.send(format!("ACQ:DEC {}", decimation).as_str());
     }
 
     pub fn acquire_get_decimation(&mut self) -> u8 {
