@@ -9,6 +9,9 @@ widget_ids! {
         master,
         main_panel,
         side_panel,
+        side_panel_tabs,
+        oscillo_panel,
+        generator_panel,
         toggle_oscillo,
         toggle_generator,
         toggle_generator_img,
@@ -95,7 +98,7 @@ impl Application {
     fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &Ids) {
         let main_panel = ::conrod::widget::Canvas::new();
         let side_panel = ::conrod::widget::Canvas::new()
-            .length(200.0);
+            .length(400.0);
 
         ::conrod::widget::Canvas::new()
             .flow_right(&[
@@ -180,6 +183,16 @@ impl Application {
     }
 
     fn side_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        ::conrod::widget::Tabs::new(&[
+            (ids.oscillo_panel, "Oscilloscope"),
+            (ids.generator_panel, "Generator"),
+        ])
+            .starting_canvas(ids.oscillo_panel)
+            .wh_of(ids.side_panel)
+            .middle_of(ids.side_panel)
+            .color(self.bg_color.complement())
+            .set(ids.side_panel_tabs, ui);
+
         self.oscillo_run_button(ui, ids);
         self.generator_sin_button(ui, ids);
     }
@@ -192,7 +205,7 @@ impl Application {
 
         let toggle = ::conrod::widget::Toggle::new(self.oscillo_started)
             .w_h(100.0, 50.0)
-            .middle_of(ids.side_panel)
+            .middle_of(ids.oscillo_panel)
             .color(self.bg_color.plain_contrast())
             .label(label)
             .label_color(self.bg_color)
@@ -212,7 +225,7 @@ impl Application {
     fn generator_sin_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
         let toggle = ::conrod::widget::Toggle::new(self.generator_started)
             .w_h(100.0, 50.0)
-            .down_from(ids.toggle_oscillo, 10.0)
+            .middle_of(ids.generator_panel)
             .label("Sin")
             .color(self.bg_color.plain_contrast())
             .label_color(self.bg_color)
