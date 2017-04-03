@@ -153,21 +153,7 @@ impl Application {
     fn draw_data<I>(&mut self, data: I, ui: &mut ::conrod::UiCell, ids: &Ids) where I: Iterator<Item=f64> {
         let data: Vec<f64> = data.collect();
 
-        let x_min = 0;
-
-        let x_max = data.len();
-
-        let y_min: f64 = *data.iter().min_by(|a, b| {
-            a.partial_cmp(b)
-                .unwrap()
-        }).unwrap();
-
-        let y_max: f64 = *data.iter().max_by(|a, b| {
-            a.partial_cmp(b)
-                .unwrap()
-        }).unwrap();
-
-        let plot = ::conrod::widget::PlotPath::new(x_min, x_max, y_min, y_max, |x| {
+        let plot = ::conrod::widget::PlotPath::new(0, data.len() - 1, -2.0, 2.0, |x| {
             return data[x];
         });
 
