@@ -16,8 +16,8 @@ widget_ids! {
         toggle_generator,
         toggle_generator_img,
         scales,
-        plot,
         lines[],
+        points,
     }
 }
 
@@ -29,6 +29,7 @@ pub struct Application {
     bg_color: ::conrod::color::Color,
     width: f64,
     height: f64,
+    scales: [(f64, f64); 2],
 }
 
 impl Application {
@@ -41,6 +42,10 @@ impl Application {
             bg_color: ::conrod::color::rgb(0.2, 0.35, 0.45),
             width: 400.0,
             height: 200.0,
+            scales: [
+                (0.0, 16384.0),
+                (-5.0, 5.0),
+            ],
         }
     }
 
@@ -78,7 +83,7 @@ impl Application {
                 }
             }
 
-            self.set_widgets(ui.set_widgets(), &ids);
+            self.set_widgets(ui.set_widgets(), &mut ids);
 
             if let Some(primitives) = ui.draw_if_changed() {
                 renderer.fill(&display, primitives, &image_map);
@@ -95,7 +100,7 @@ impl Application {
         self.tx.send("generator/stop".into());
     }
 
-    fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &Ids) {
+    fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &mut Ids) {
         let main_panel = ::conrod::widget::Canvas::new();
         let side_panel = ::conrod::widget::Canvas::new()
             .length(400.0);
@@ -112,18 +117,18 @@ impl Application {
         self.side_panel(ui, ids);
     }
 
-    fn main_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+    fn main_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &mut Ids) {
         self.draw_scales(ui, ids);
 
         if self.oscillo_started {
             self.tx.send("oscillo/data".into());
             if let Ok(message) = self.rx.recv() {
-                let data = message
+                let mut data = message
                     .trim_matches(|c| c == '{' || c == '}')
                     .split(",")
                     .map(|s| s.parse::<f64>().unwrap());
 
-                self.draw_data(data, ui, ids);
+                self.draw_data(&mut data, ui, ids);
             }
         }
     }
@@ -169,17 +174,35 @@ impl Application {
         }
     }
 
-    fn draw_data<I>(&mut self, data: I, ui: &mut ::conrod::UiCell, ids: &Ids) where I: Iterator<Item=f64> {
-        let data: Vec<f64> = data.collect();
+    fn draw_data<I>(&mut self, data: &mut I, ui: &mut ::conrod::UiCell, ids: &mut Ids) where I: Iterator<Item=f64> {
+        let rect = ui.rect_of(ids.scales)
+            .unwrap();
 
-        let plot = ::conrod::widget::PlotPath::new(0, data.len() - 1, -2.0, 2.0, |x| {
-            return data[x];
+        let point_iter = (0..16384).map(|x| {
+            match data.next() {
+                Some(y) => self.scale(rect, x as f64, y),
+                None => [0.0, 0.0],
+            }
         });
 
-        plot.color(::conrod::color::LIGHT_BLUE)
-            .top_left_of(ids.scales)
+        ::conrod::widget::PointPath::new(point_iter)
             .wh_of(ids.scales)
-            .set(ids.plot, ui);
+            .middle_of(ids.scales)
+            .color(::conrod::color::YELLOW)
+            .parent(ids.scales)
+            .graphics_for(ids.scales)
+            .set(ids.points, ui);
+    }
+
+    fn scale(&self, rect: ::conrod::position::rect::Rect, x: f64, y: f64) -> ::conrod::position::Point {
+        [
+            self.scale_coord(x, self.scales[0], (rect.x.start, rect.x.end)),
+            self.scale_coord(y, self.scales[1], (rect.y.start, rect.y.end)),
+        ]
+    }
+
+    fn scale_coord(&self, x: f64, from: (f64, f64), to: (f64, f64)) -> f64 {
+        ((x - from.0) / (from.1 - from.0)) * (to.1 - to.0) + to.0
     }
 
     fn side_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {

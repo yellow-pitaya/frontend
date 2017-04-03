@@ -36,6 +36,18 @@ impl Redpitaya {
         self.send("ACQ:RST");
     }
 
+    pub fn acquire_set_units(&mut self, unit: &str) {
+        self.send(format!("ACQ:DATA:UNITS {}", unit).as_str());
+    }
+
+    pub fn acquire_get_decimation(&mut self) -> u8 {
+        self.send("ACQ:DEC?");
+
+        self.receive()
+            .parse()
+            .unwrap()
+    }
+
     pub fn get_data(&mut self) -> String {
         self.send("ACQ:SOUR1:DATA?");
 

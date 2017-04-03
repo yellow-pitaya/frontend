@@ -23,7 +23,10 @@ fn main() {
     std::thread::spawn(move || {
         for message in redpitaya_rx {
             match message.as_str() {
-                "oscillo/start" => redpitaya.acquire_start(),
+                "oscillo/start" => {
+                    redpitaya.acquire_start();
+                    redpitaya.acquire_set_units("VOLTS");
+                },
                 "oscillo/stop" => redpitaya.acquire_stop(),
                 "oscillo/data" => if redpitaya.acquire_is_started() {
                     let data = redpitaya.get_data();
