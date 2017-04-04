@@ -5,10 +5,10 @@ extern crate glium;
 #[macro_use]
 extern crate log;
 
-mod redpitaya;
+mod backend;
 mod application;
 
-use redpitaya::Redpitaya;
+use backend::Redpitaya;
 use application::Application;
 
 fn main() {
