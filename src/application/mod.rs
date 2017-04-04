@@ -90,8 +90,8 @@ impl Application {
             }
         }
 
-        self.redpitaya.acquire_stop();
-        self.redpitaya.generator_stop();
+        self.redpitaya.acquire.stop();
+        self.redpitaya.generator.stop();
     }
 
     fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &mut Ids) {
@@ -114,8 +114,8 @@ impl Application {
     fn main_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &mut Ids) {
         self.draw_scales(ui, ids);
 
-        if self.redpitaya.acquire_is_started() {
-            let message = self.redpitaya.get_data();
+        if self.redpitaya.acquire.is_started() {
+            let message = self.redpitaya.acquire.get_data();
 
             let mut data = message
                 .trim_matches(|c| c == '{' || c == '}')
@@ -214,12 +214,12 @@ impl Application {
     }
 
     fn oscillo_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let label = match self.redpitaya.acquire_is_started() {
+        let label = match self.redpitaya.acquire.is_started() {
             true => "Stop",
             false => "Run",
         };
 
-        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.acquire_is_started())
+        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.acquire.is_started())
             .w_h(100.0, 50.0)
             .middle_of(ids.oscillo_panel)
             .color(self.bg_color.plain_contrast())
@@ -229,20 +229,20 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.redpitaya.acquire_reset();
-                self.redpitaya.acquire_set_decimation(1);
-                self.redpitaya.trigger_set_level(0);
-                self.redpitaya.acquire_start();
-                self.redpitaya.trigger_enable("CH1_PE");
-                self.redpitaya.acquire_set_units("VOLTS");
+                self.redpitaya.acquire.reset();
+                self.redpitaya.acquire.set_decimation(1);
+                self.redpitaya.trigger.set_level(0);
+                self.redpitaya.acquire.start();
+                self.redpitaya.trigger.enable("CH1_PE");
+                self.redpitaya.acquire.set_units("VOLTS");
             } else {
-                self.redpitaya.acquire_stop();
+                self.redpitaya.acquire.stop();
             }
         }
     }
 
     fn generator_sin_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator_is_started())
+        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator.is_started())
             .w_h(100.0, 50.0)
             .middle_of(ids.generator_panel)
             .label("Sin")
@@ -252,9 +252,9 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.redpitaya.generator_start();
+                self.redpitaya.generator.start();
             } else {
-                self.redpitaya.generator_stop();
+                self.redpitaya.generator.stop();
             }
         }
     }
