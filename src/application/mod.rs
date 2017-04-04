@@ -14,7 +14,18 @@ widget_ids! {
         generator_panel,
         toggle_oscillo,
         toggle_generator,
-        toggle_generator_img,
+        toggle_generator_sine,
+        toggle_generator_img_sine,
+        toggle_generator_square,
+        toggle_generator_img_square,
+        toggle_generator_triangle,
+        toggle_generator_img_triangle,
+        toggle_generator_sawu,
+        toggle_generator_img_sawu,
+        toggle_generator_sawd,
+        toggle_generator_img_sawd,
+        toggle_generator_pwm,
+        toggle_generator_img_pwm,
         scales,
         lines[],
         points,
@@ -118,9 +129,17 @@ impl Application {
             let message = self.redpitaya.acquire.get_data();
 
             let mut data = message
-                .trim_matches(|c| c == '{' || c == '}')
+                .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
                 .split(",")
-                .map(|s| s.parse::<f64>().unwrap());
+                .map(|s| {
+                    match s.parse::<f64>() {
+                        Ok(f) => f,
+                        Err(_) => {
+                            error!("Invalid data '{}'", s);
+                            0.0
+                        },
+                    }
+                });
 
             self.draw_data(&mut data, ui, ids);
         }
@@ -210,7 +229,14 @@ impl Application {
             .set(ids.side_panel_tabs, ui);
 
         self.oscillo_run_button(ui, ids);
-        self.generator_sin_button(ui, ids);
+
+        self.generator_run_button(ui, ids);
+        self.generator_sine_button(ui, ids);
+        self.generator_square_button(ui, ids);
+        self.generator_triangle_button(ui, ids);
+        self.generator_sawu_button(ui, ids);
+        self.generator_sawd_button(ui, ids);
+        self.generator_pwm_button(ui, ids);
     }
 
     fn oscillo_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
@@ -241,12 +267,17 @@ impl Application {
         }
     }
 
-    fn generator_sin_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+    fn generator_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        let label = match self.redpitaya.generator.is_started() {
+            true => "Stop",
+            false => "Run",
+        };
+
         let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator.is_started())
             .w_h(100.0, 50.0)
             .middle_of(ids.generator_panel)
-            .label("Sin")
             .color(self.bg_color.plain_contrast())
+            .label(label)
             .label_color(self.bg_color)
             .set(ids.toggle_generator, ui);
 
@@ -255,6 +286,82 @@ impl Application {
                 self.redpitaya.generator.start();
             } else {
                 self.redpitaya.generator.stop();
+            }
+        }
+    }
+
+    fn generator_sine_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("sine", ui, ids.toggle_generator, ids.toggle_generator_sine, ids.toggle_generator_img_sine, f64::sin);
+    }
+
+    fn generator_square_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("square", ui, ids.toggle_generator_sine, ids.toggle_generator_square, ids.toggle_generator_img_square, |x| {
+            (x as f64).signum()
+        });
+    }
+
+    fn generator_triangle_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("triangle", ui, ids.toggle_generator_square, ids.toggle_generator_triangle, ids.toggle_generator_img_triangle, |x| {
+            if x.is_sign_negative() {
+                x * 2.0 / ::std::f64::consts::PI + 1.0
+            } else {
+                x * -2.0 / ::std::f64::consts::PI + 1.0
+            }
+        });
+    }
+
+    fn generator_sawu_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("sawu", ui, ids.toggle_generator_triangle, ids.toggle_generator_sawu, ids.toggle_generator_img_sawu, |x| {
+            x / ::std::f64::consts::PI
+        });
+    }
+
+    fn generator_sawd_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("sawd", ui, ids.toggle_generator_sawu, ids.toggle_generator_sawd, ids.toggle_generator_img_sawd, |x| {
+            -x / ::std::f64::consts::PI
+        });
+    }
+
+    fn generator_pwm_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        self.generator_button("pwm", ui, ids.toggle_generator_sawd, ids.toggle_generator_pwm, ids.toggle_generator_img_pwm, |x| {
+            if x.is_sign_negative() {
+                if x.abs().fract() > 0.5 {
+                    1.0
+                } else {
+                    -1.0
+                }
+            } else {
+                if x.abs().fract() > 0.5 {
+                    -1.0
+                } else {
+                    1.0
+                }
+            }
+        });
+    }
+
+
+    fn generator_button<F>(&mut self, name: &str, ui: &mut ::conrod::UiCell, parent: ::conrod::widget::Id, id: ::conrod::widget::Id, img_id: ::conrod::widget::Id, f: F)
+        where F: Fn(f64) -> f64 {
+        let active = self.redpitaya.generator.get_form() == name;
+
+        let toggle = ::conrod::widget::Toggle::new(active)
+            .w_h(100.0, 50.0)
+            .down_from(parent, 10.0)
+            .color(self.bg_color.plain_contrast())
+            .label_color(self.bg_color)
+            .set(id, ui);
+
+        ::conrod::widget::PlotPath::new(-::std::f64::consts::PI, ::std::f64::consts::PI, -1.0, 1.0, f)
+            .padded_wh_of(id, 10.0)
+            .middle_of(id)
+            .parent(id)
+            .graphics_for(id)
+            .set(img_id, ui);
+
+        if let Some(value) = toggle.last() {
+            if value {
+                self.redpitaya.generator.set_form(name);
             }
         }
     }

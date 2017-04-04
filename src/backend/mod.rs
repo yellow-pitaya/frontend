@@ -103,6 +103,7 @@ impl Acquire {
 pub struct Generator {
     socket: Socket,
     started: bool,
+    form: String,
 }
 
 impl Generator {
@@ -110,6 +111,7 @@ impl Generator {
         Generator {
             socket: socket,
             started: false,
+            form: "SYN".into(),
         }
     }
 
@@ -127,8 +129,13 @@ impl Generator {
         self.started
     }
 
-    pub fn set_form(&mut self, form: &str) {
-        self.socket.send(format!("OUTPUT1:FUNC {}", form))
+    pub fn set_form<S>(&mut self, form: S) where S: Into<String> {
+        self.form = form.into();
+        self.socket.send(format!("OUTPUT1:FUNC {}", self.form))
+    }
+
+    pub fn get_form(&self) -> String {
+        self.form.clone()
     }
 }
 
