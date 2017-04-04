@@ -2,7 +2,8 @@ use std::io::prelude::*;
 
 pub struct Redpitaya {
     socket: ::std::net::TcpStream,
-    started: bool,
+    acquire_started: bool,
+    generator_started: bool,
 }
 
 impl Redpitaya {
@@ -14,22 +15,23 @@ impl Redpitaya {
 
         Redpitaya {
             socket: socket,
-            started: false,
+            acquire_started: false,
+            generator_started: false,
         }
     }
 
     pub fn acquire_start(&mut self) {
         self.send("ACQ:START");
-        self.started = true;
+        self.acquire_started = true;
     }
 
     pub fn acquire_stop(&mut self) {
         self.send("ACQ:STOP");
-        self.started = false;
+        self.acquire_started = false;
     }
 
     pub fn acquire_is_started(&self) -> bool {
-        self.started
+        self.acquire_started
     }
 
     pub fn acquire_reset(&mut self) {
@@ -72,10 +74,16 @@ impl Redpitaya {
 
     pub fn generator_start(&mut self) {
         self.send("OUTPUT1:STATE ON");
+        self.generator_started = true;
     }
 
     pub fn generator_stop(&mut self) {
         self.send("OUTPUT1:STATE OFF");
+        self.generator_started = false;
+    }
+
+    pub fn generator_is_started(&self) -> bool {
+        self.generator_started
     }
 
     pub fn generator_set_form(&mut self, form: &str) {

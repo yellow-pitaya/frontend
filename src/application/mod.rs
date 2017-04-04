@@ -22,8 +22,6 @@ widget_ids! {
 }
 
 pub struct Application {
-    oscillo_started: bool,
-    generator_started: bool,
     redpitaya: ::backend::Redpitaya,
     bg_color: ::conrod::color::Color,
     width: f64,
@@ -34,8 +32,6 @@ pub struct Application {
 impl Application {
     pub fn new(redpitaya: ::backend::Redpitaya) -> Application {
         Application {
-            oscillo_started: false,
-            generator_started: false,
             redpitaya: redpitaya,
             bg_color: ::conrod::color::rgb(0.2, 0.35, 0.45),
             width: 400.0,
@@ -118,7 +114,7 @@ impl Application {
     fn main_panel(&mut self, ui: &mut ::conrod::UiCell, ids: &mut Ids) {
         self.draw_scales(ui, ids);
 
-        if self.oscillo_started {
+        if self.redpitaya.acquire_is_started() {
             let message = self.redpitaya.get_data();
 
             let mut data = message
@@ -218,12 +214,12 @@ impl Application {
     }
 
     fn oscillo_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let label = match self.oscillo_started {
+        let label = match self.redpitaya.acquire_is_started() {
             true => "Stop",
             false => "Run",
         };
 
-        let toggle = ::conrod::widget::Toggle::new(self.oscillo_started)
+        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.acquire_is_started())
             .w_h(100.0, 50.0)
             .middle_of(ids.oscillo_panel)
             .color(self.bg_color.plain_contrast())
@@ -242,13 +238,11 @@ impl Application {
             } else {
                 self.redpitaya.acquire_stop();
             }
-
-            self.oscillo_started = value;
         }
     }
 
     fn generator_sin_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let toggle = ::conrod::widget::Toggle::new(self.generator_started)
+        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator_is_started())
             .w_h(100.0, 50.0)
             .middle_of(ids.generator_panel)
             .label("Sin")
@@ -262,8 +256,6 @@ impl Application {
             } else {
                 self.redpitaya.generator_stop();
             }
-
-            self.generator_started = value;
         }
     }
 }
