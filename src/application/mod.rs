@@ -24,8 +24,7 @@ widget_ids! {
 pub struct Application {
     oscillo_started: bool,
     generator_started: bool,
-    tx: ::std::sync::mpsc::Sender<String>,
-    rx: ::std::sync::mpsc::Receiver<String>,
+    redpitaya: ::backend::Redpitaya,
     bg_color: ::conrod::color::Color,
     width: f64,
     height: f64,
@@ -33,12 +32,11 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(tx: ::std::sync::mpsc::Sender<String>, rx: ::std::sync::mpsc::Receiver<String>) -> Application {
+    pub fn new(redpitaya: ::backend::Redpitaya) -> Application {
         Application {
             oscillo_started: false,
             generator_started: false,
-            tx: tx,
-            rx: rx,
+            redpitaya: redpitaya,
             bg_color: ::conrod::color::rgb(0.2, 0.35, 0.45),
             width: 400.0,
             height: 200.0,
@@ -96,8 +94,8 @@ impl Application {
             }
         }
 
-        self.tx.send("oscillo/stop".into());
-        self.tx.send("generator/stop".into());
+        self.redpitaya.acquire_stop();
+        self.redpitaya.generator_stop();
     }
 
     fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &mut Ids) {
@@ -121,15 +119,14 @@ impl Application {
         self.draw_scales(ui, ids);
 
         if self.oscillo_started {
-            self.tx.send("oscillo/data".into());
-            if let Ok(message) = self.rx.recv() {
-                let mut data = message
-                    .trim_matches(|c| c == '{' || c == '}')
-                    .split(",")
-                    .map(|s| s.parse::<f64>().unwrap());
+            let message = self.redpitaya.get_data();
 
-                self.draw_data(&mut data, ui, ids);
-            }
+            let mut data = message
+                .trim_matches(|c| c == '{' || c == '}')
+                .split(",")
+                .map(|s| s.parse::<f64>().unwrap());
+
+            self.draw_data(&mut data, ui, ids);
         }
     }
 
@@ -236,9 +233,14 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.tx.send("oscillo/start".into());
+                self.redpitaya.acquire_reset();
+                self.redpitaya.acquire_set_decimation(1);
+                self.redpitaya.trigger_set_level(0);
+                self.redpitaya.acquire_start();
+                self.redpitaya.trigger_enable("CH1_PE");
+                self.redpitaya.acquire_set_units("VOLTS");
             } else {
-                self.tx.send("oscillo/stop".into());
+                self.redpitaya.acquire_stop();
             }
 
             self.oscillo_started = value;
@@ -256,9 +258,9 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.tx.send("generator/start".into());
+                self.redpitaya.generator_start();
             } else {
-                self.tx.send("generator/stop".into());
+                self.redpitaya.generator_stop();
             }
 
             self.generator_started = value;
