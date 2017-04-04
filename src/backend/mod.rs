@@ -16,7 +16,7 @@ impl Socket {
         }
     }
 
-    fn send(&mut self, command: &str) {
+    fn send<D>(&mut self, command: D) where D: ::std::fmt::Display {
         info!("> {}", command);
 
         self.socket.write(
@@ -78,11 +78,11 @@ impl Acquire {
     }
 
     pub fn set_units(&mut self, unit: &str) {
-        self.socket.send(format!("ACQ:DATA:UNITS {}", unit).as_str());
+        self.socket.send(format!("ACQ:DATA:UNITS {}", unit));
     }
 
     pub fn set_decimation(&mut self, decimation: u8) {
-        self.socket.send(format!("ACQ:DEC {}", decimation).as_str());
+        self.socket.send(format!("ACQ:DEC {}", decimation));
     }
 
     pub fn get_decimation(&mut self) -> u8 {
@@ -128,7 +128,7 @@ impl Generator {
     }
 
     pub fn set_form(&mut self, form: &str) {
-        self.socket.send(format!("OUTPUT1:FUNC {}", form).as_str())
+        self.socket.send(format!("OUTPUT1:FUNC {}", form))
     }
 }
 
@@ -144,15 +144,15 @@ impl Trigger {
     }
 
     pub fn set_level(&mut self, level: u8) {
-        self.socket.send(format!("ACQ:TRIG:LEV {}", level).as_str());
+        self.socket.send(format!("ACQ:TRIG:LEV {}", level));
     }
 
     pub fn enable(&mut self, source: &str) {
-        self.socket.send(format!("ACQ:TRIG {}", source).as_str());
+        self.socket.send(format!("ACQ:TRIG {}", source));
     }
 
     pub fn set_delay(&mut self, delay: u8) {
-        self.socket.send(format!("ACQ:TRIG:DLY {}", delay).as_str());
+        self.socket.send(format!("ACQ:TRIG:DLY {}", delay));
     }
 }
 
