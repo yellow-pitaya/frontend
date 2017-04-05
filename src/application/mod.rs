@@ -26,6 +26,9 @@ widget_ids! {
         toggle_generator_img_sawd,
         toggle_generator_pwm,
         toggle_generator_img_pwm,
+        text_generator_amplitude,
+        text_generator_frequency,
+        text_generator_dcyc,
         scales,
         lines[],
         points,
@@ -237,6 +240,12 @@ impl Application {
         self.generator_sawu_button(ui, ids);
         self.generator_sawd_button(ui, ids);
         self.generator_pwm_button(ui, ids);
+        self.generator_amplitude(ui, ids);
+        self.generator_frequency(ui, ids);
+
+        if self.redpitaya.generator.get_form() == "pwm" {
+            self.generator_dcyc(ui, ids);
+        }
     }
 
     fn oscillo_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
@@ -275,7 +284,7 @@ impl Application {
 
         let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator.is_started())
             .w_h(100.0, 50.0)
-            .middle_of(ids.generator_panel)
+            .mid_top_of(ids.generator_panel)
             .color(self.bg_color.plain_contrast())
             .label(label)
             .label_color(self.bg_color)
@@ -340,7 +349,6 @@ impl Application {
         });
     }
 
-
     fn generator_button<F>(&mut self, name: &str, ui: &mut ::conrod::UiCell, parent: ::conrod::widget::Id, id: ::conrod::widget::Id, img_id: ::conrod::widget::Id, f: F)
         where F: Fn(f64) -> f64 {
         let active = self.redpitaya.generator.get_form() == name;
@@ -363,6 +371,54 @@ impl Application {
             if value {
                 self.redpitaya.generator.set_form(name);
             }
+        }
+    }
+
+    fn generator_amplitude(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        let amplitude = self.redpitaya.generator.get_amplitude();
+
+        let slider = ::conrod::widget::Slider::new(amplitude, -1.0, 1.0)
+            .w_h(200.0, 50.0)
+            .down_from(ids.toggle_generator_pwm, 10.0)
+            .color(self.bg_color.plain_contrast())
+            .label_color(self.bg_color)
+            .label(format!("{} V", amplitude).as_str())
+            .set(ids.text_generator_amplitude, ui);
+
+        if let Some(value) = slider {
+            self.redpitaya.generator.set_amplitude(value);
+        }
+    }
+
+    fn generator_frequency(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        let frequency = self.redpitaya.generator.get_frequency();
+
+        let slider = ::conrod::widget::Slider::new(frequency as f32, 0.0, 62_500_000.0)
+            .w_h(200.0, 50.0)
+            .down_from(ids.text_generator_amplitude, 10.0)
+            .color(self.bg_color.plain_contrast())
+            .label_color(self.bg_color)
+            .label(format!("{} Hz", frequency as u32).as_str())
+            .set(ids.text_generator_frequency, ui);
+
+        if let Some(value) = slider {
+            self.redpitaya.generator.set_frequency(value as u32);
+        }
+    }
+
+    fn generator_dcyc(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
+        let dcyc = self.redpitaya.generator.get_dcyc();
+
+        let slider = ::conrod::widget::Slider::new(dcyc as f32, 0.0, 100.0)
+            .w_h(200.0, 50.0)
+            .down_from(ids.text_generator_frequency, 10.0)
+            .color(self.bg_color.plain_contrast())
+            .label_color(self.bg_color)
+            .label(format!("{} Hz", dcyc as u32).as_str())
+            .set(ids.text_generator_dcyc, ui);
+
+        if let Some(value) = slider {
+            self.redpitaya.generator.set_dcyc(value as u32);
         }
     }
 }
