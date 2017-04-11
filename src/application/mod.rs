@@ -36,7 +36,7 @@ widget_ids! {
 }
 
 pub struct Application {
-    redpitaya: ::backend::Redpitaya,
+    redpitaya: ::redpitaya_scpi::Redpitaya,
     bg_color: ::conrod::color::Color,
     width: f64,
     height: f64,
@@ -44,7 +44,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(redpitaya: ::backend::Redpitaya) -> Application {
+    pub fn new(redpitaya: ::redpitaya_scpi::Redpitaya) -> Application {
         Application {
             redpitaya: redpitaya,
             bg_color: ::conrod::color::rgb(0.2, 0.35, 0.45),
@@ -105,7 +105,7 @@ impl Application {
         }
 
         self.redpitaya.acquire.stop();
-        self.redpitaya.generator.stop();
+        self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
     }
 
     fn set_widgets(&mut self, ref mut ui: ::conrod::UiCell, ids: &mut Ids) {
@@ -129,7 +129,7 @@ impl Application {
         self.draw_scales(ui, ids);
 
         if self.redpitaya.acquire.is_started() {
-            let message = self.redpitaya.acquire.get_data();
+            let message = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
 
             let mut data = message
                 .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
@@ -243,7 +243,7 @@ impl Application {
         self.generator_amplitude(ui, ids);
         self.generator_frequency(ui, ids);
 
-        if self.redpitaya.generator.get_form() == "pwm" {
+        if self.redpitaya.generator.get_form(::redpitaya_scpi::generator::Source::OUT1) == ::redpitaya_scpi::generator::Form::PWM {
             self.generator_dcyc(ui, ids);
         }
     }
@@ -265,11 +265,11 @@ impl Application {
         if let Some(value) = toggle.last() {
             if value {
                 self.redpitaya.acquire.reset();
-                self.redpitaya.acquire.set_decimation(1);
+                self.redpitaya.acquire.set_decimation(::redpitaya_scpi::acquire::Decimation::DEC_1);
                 self.redpitaya.trigger.set_level(0);
                 self.redpitaya.acquire.start();
-                self.redpitaya.trigger.enable("CH1_PE");
-                self.redpitaya.acquire.set_units("VOLTS");
+                self.redpitaya.trigger.enable(::redpitaya_scpi::trigger::Source::CH1_PE);
+                self.redpitaya.data.set_units(::redpitaya_scpi::data::Unit::VOLTS);
             } else {
                 self.redpitaya.acquire.stop();
             }
@@ -277,12 +277,12 @@ impl Application {
     }
 
     fn generator_run_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let label = match self.redpitaya.generator.is_started() {
+        let label = match self.redpitaya.generator.is_started(::redpitaya_scpi::generator::Source::OUT1) {
             true => "Stop",
             false => "Run",
         };
 
-        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator.is_started())
+        let toggle = ::conrod::widget::Toggle::new(self.redpitaya.generator.is_started(::redpitaya_scpi::generator::Source::OUT1))
             .w_h(100.0, 50.0)
             .mid_top_of(ids.generator_panel)
             .color(self.bg_color.plain_contrast())
@@ -292,25 +292,25 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.redpitaya.generator.start();
+                self.redpitaya.generator.start(::redpitaya_scpi::generator::Source::OUT1);
             } else {
-                self.redpitaya.generator.stop();
+                self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
             }
         }
     }
 
     fn generator_sine_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("sine", ui, ids.toggle_generator, ids.toggle_generator_sine, ids.toggle_generator_img_sine, f64::sin);
+        self.generator_button(::redpitaya_scpi::generator::Form::SINE, ui, ids.toggle_generator, ids.toggle_generator_sine, ids.toggle_generator_img_sine, f64::sin);
     }
 
     fn generator_square_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("square", ui, ids.toggle_generator_sine, ids.toggle_generator_square, ids.toggle_generator_img_square, |x| {
+        self.generator_button(::redpitaya_scpi::generator::Form::SQUARE, ui, ids.toggle_generator_sine, ids.toggle_generator_square, ids.toggle_generator_img_square, |x| {
             (x as f64).signum()
         });
     }
 
     fn generator_triangle_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("triangle", ui, ids.toggle_generator_square, ids.toggle_generator_triangle, ids.toggle_generator_img_triangle, |x| {
+        self.generator_button(::redpitaya_scpi::generator::Form::TRIANGLE, ui, ids.toggle_generator_square, ids.toggle_generator_triangle, ids.toggle_generator_img_triangle, |x| {
             if x.is_sign_negative() {
                 x * 2.0 / ::std::f64::consts::PI + 1.0
             } else {
@@ -320,19 +320,19 @@ impl Application {
     }
 
     fn generator_sawu_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("sawu", ui, ids.toggle_generator_triangle, ids.toggle_generator_sawu, ids.toggle_generator_img_sawu, |x| {
+        self.generator_button(::redpitaya_scpi::generator::Form::SAWU, ui, ids.toggle_generator_triangle, ids.toggle_generator_sawu, ids.toggle_generator_img_sawu, |x| {
             x / ::std::f64::consts::PI
         });
     }
 
     fn generator_sawd_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("sawd", ui, ids.toggle_generator_sawu, ids.toggle_generator_sawd, ids.toggle_generator_img_sawd, |x| {
+        self.generator_button(::redpitaya_scpi::generator::Form::SAWD, ui, ids.toggle_generator_sawu, ids.toggle_generator_sawd, ids.toggle_generator_img_sawd, |x| {
             -x / ::std::f64::consts::PI
         });
     }
 
     fn generator_pwm_button(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        self.generator_button("pwm", ui, ids.toggle_generator_sawd, ids.toggle_generator_pwm, ids.toggle_generator_img_pwm, |x| {
+        self.generator_button(::redpitaya_scpi::generator::Form::PWM, ui, ids.toggle_generator_sawd, ids.toggle_generator_pwm, ids.toggle_generator_img_pwm, |x| {
             if x.is_sign_negative() {
                 if x.abs().fract() > 0.5 {
                     1.0
@@ -349,9 +349,9 @@ impl Application {
         });
     }
 
-    fn generator_button<F>(&mut self, name: &str, ui: &mut ::conrod::UiCell, parent: ::conrod::widget::Id, id: ::conrod::widget::Id, img_id: ::conrod::widget::Id, f: F)
+    fn generator_button<F>(&mut self, name: ::redpitaya_scpi::generator::Form, ui: &mut ::conrod::UiCell, parent: ::conrod::widget::Id, id: ::conrod::widget::Id, img_id: ::conrod::widget::Id, f: F)
         where F: Fn(f64) -> f64 {
-        let active = self.redpitaya.generator.get_form() == name;
+        let active = self.redpitaya.generator.get_form(::redpitaya_scpi::generator::Source::OUT1) == name;
 
         let toggle = ::conrod::widget::Toggle::new(active)
             .w_h(100.0, 50.0)
@@ -369,13 +369,13 @@ impl Application {
 
         if let Some(value) = toggle.last() {
             if value {
-                self.redpitaya.generator.set_form(name);
+                self.redpitaya.generator.set_form(::redpitaya_scpi::generator::Source::OUT1, name);
             }
         }
     }
 
     fn generator_amplitude(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let amplitude = self.redpitaya.generator.get_amplitude();
+        let amplitude = self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1);
 
         let slider = ::conrod::widget::Slider::new(amplitude, -1.0, 1.0)
             .w_h(200.0, 50.0)
@@ -386,12 +386,12 @@ impl Application {
             .set(ids.text_generator_amplitude, ui);
 
         if let Some(value) = slider {
-            self.redpitaya.generator.set_amplitude(value);
+            self.redpitaya.generator.set_amplitude(::redpitaya_scpi::generator::Source::OUT1, value);
         }
     }
 
     fn generator_frequency(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let frequency = self.redpitaya.generator.get_frequency();
+        let frequency = self.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1, );
 
         let slider = ::conrod::widget::Slider::new(frequency as f32, 0.0, 62_500_000.0)
             .w_h(200.0, 50.0)
@@ -402,12 +402,12 @@ impl Application {
             .set(ids.text_generator_frequency, ui);
 
         if let Some(value) = slider {
-            self.redpitaya.generator.set_frequency(value as u32);
+            self.redpitaya.generator.set_frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32);
         }
     }
 
     fn generator_dcyc(&mut self, ui: &mut ::conrod::UiCell, ids: &Ids) {
-        let dcyc = self.redpitaya.generator.get_dcyc();
+        let dcyc = self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1);
 
         let slider = ::conrod::widget::Slider::new(dcyc as f32, 0.0, 100.0)
             .w_h(200.0, 50.0)
@@ -418,7 +418,7 @@ impl Application {
             .set(ids.text_generator_dcyc, ui);
 
         if let Some(value) = slider {
-            self.redpitaya.generator.set_dcyc(value as u32);
+            self.redpitaya.generator.set_duty_cycle(::redpitaya_scpi::generator::Source::OUT1, value as u32);
         }
     }
 }

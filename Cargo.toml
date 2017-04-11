@@ -7,6 +7,7 @@ authors = ["Sanpi <sanpi@homecomputing.fr>"]
 env_logger = "0.3"
 glium = "0.16.0"
 log = "0.3"
+redpitaya-scpi = "0.4"
 
 [dependencies.conrod]
 version="0.51"
