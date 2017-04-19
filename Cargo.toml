@@ -4,11 +4,13 @@ version = "0.1.0"
 authors = ["Sanpi <sanpi@homecomputing.fr>"]
 
 [dependencies]
+cairo-rs = "0.1"
 env_logger = "0.3"
-glium = "0.16.0"
+glib = "0.1"
+gdk-sys = "0.3"
+gtk = "0.1"
 log = "0.3"
-redpitaya-scpi = "0.4"
-
-[dependencies.conrod]
-version="0.51"
-features=["glium", "winit"]
+redpitaya-scpi = "0.6"
+relm = "0.7"
+relm-attributes = "0.7"
+relm-derive = "0.7"

@@ -1,22 +1,22 @@
+#![feature(proc_macro)]
+
+extern crate cairo;
 extern crate env_logger;
+extern crate glib;
+extern crate gdk_sys;
+extern crate gtk;
 #[macro_use]
-extern crate conrod;
-extern crate glium;
+extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate log;
 extern crate redpitaya_scpi;
 
 mod application;
 
-use redpitaya_scpi::Redpitaya;
-use application::Application;
-
 fn main() {
     env_logger::init()
         .unwrap();
 
-    let redpitaya = Redpitaya::new("192.168.1.5:5000");
-
-    Application::new(redpitaya)
-        .run();
+    application::Application::run();
 }
