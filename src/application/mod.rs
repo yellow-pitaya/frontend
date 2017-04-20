@@ -13,6 +13,8 @@ pub struct Application {
     drawing_area: ::gtk::DrawingArea,
     acquire_toggle: ::gtk::ToggleButton,
     generator_toggle: ::gtk::ToggleButton,
+    amplitude_scale: ::gtk::Scale,
+    frequency_scale: ::gtk::Scale,
     duty_cycle_scale: ::gtk::Scale,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: [(f64, f64); 2],
@@ -195,9 +197,6 @@ impl ::relm::Widget for Application {
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
-        // @TODO use program arguments
-        let redpitaya = ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000");
-
         let main_box = ::gtk::Box::new(::gtk::Orientation::Horizontal, 0);
 
         let drawing_area = ::gtk::DrawingArea::new();
@@ -270,49 +269,25 @@ impl ::relm::Widget for Application {
             }
         }
 
-        let adjustement = ::gtk::Adjustment::new(
-            redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64,
-            -1.0,
-            1.0,
-            0.01,
-            0.1,
-            0.0
-        );
-        let button = ::gtk::Scale::new(::gtk::Orientation::Horizontal, Some(&adjustement));
+        let amplitude_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
         let stream = relm.stream().clone();
-        button.connect_change_value(move |_, _, value| {
+        amplitude_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::GeneratorAmplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32));
 
             ::gtk::Inhibit(false)
         });
-        generator_page.pack_start(&button, false, true, 0);
+        generator_page.pack_start(&amplitude_scale, false, true, 0);
 
-        let adjustement = ::gtk::Adjustment::new(
-            redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64,
-            0.0,
-            62_500_000.0,
-            1.0,
-            1_000.0,
-            0.0
-        );
-        let button = ::gtk::Scale::new(::gtk::Orientation::Horizontal, Some(&adjustement));
+        let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
         let stream = relm.stream().clone();
-        button.connect_change_value(move |_, _, value| {
+        frequency_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::GeneratorFrequency(::redpitaya_scpi::generator::Source::OUT1, value as u32));
 
             ::gtk::Inhibit(false)
         });
-        generator_page.pack_start(&button, false, true, 0);
+        generator_page.pack_start(&frequency_scale, false, true, 0);
 
-        let adjustement = ::gtk::Adjustment::new(
-            redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64,
-            0.0,
-            100.0,
-            1.0,
-            10.0,
-            0.0
-        );
-        let duty_cycle_scale = ::gtk::Scale::new(::gtk::Orientation::Horizontal, Some(&adjustement));
+        let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
         let stream = relm.stream().clone();
         duty_cycle_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::GeneratorDutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as u32));
@@ -336,21 +311,38 @@ impl ::relm::Widget for Application {
         window.add(&main_box);
         connect!(relm, window, connect_destroy(_), Signal::Quit);
 
-        window.show_all();
-        duty_cycle_scale.set_visible(false);
-
         Application {
             window: window,
             drawing_area: drawing_area,
             acquire_toggle: acquire_toggle,
             generator_toggle: generator_toggle,
+            amplitude_scale: amplitude_scale,
+            frequency_scale: frequency_scale,
             duty_cycle_scale: duty_cycle_scale,
-            redpitaya: redpitaya,
+            // @TODO use program arguments
+            redpitaya: ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000"),
             scales: [
                 (0.0, 16384.0),
                 (-5.0, 5.0),
             ],
         }
+    }
+
+    fn init_view(&self) {
+        self.amplitude_scale.set_value(
+            self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.frequency_scale.set_value(
+            self.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.duty_cycle_scale.set_value(
+            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.window.show_all();
+        self.duty_cycle_scale.set_visible(false);
     }
 }
 
