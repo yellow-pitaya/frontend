@@ -7,11 +7,15 @@ use gtk::{
     WidgetExt,
 };
 
+mod acquire;
+
+use relm::ContainerWidget;
+
 #[derive(Clone)]
 pub struct Application {
     window: ::gtk::Window,
     drawing_area: ::gtk::DrawingArea,
-    acquire_toggle: ::gtk::ToggleButton,
+    acquire: ::relm::Component<acquire::Widget>,
     generator_toggle: ::gtk::ToggleButton,
     amplitude_scale: ::gtk::Scale,
     frequency_scale: ::gtk::Scale,
@@ -123,7 +127,8 @@ impl Application {
 
 #[derive(Clone)]
 pub enum Signal {
-    AcquireToggle,
+    AcquireStart,
+    AcquireStop,
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
     GeneratorDutyCycle(::redpitaya_scpi::generator::Source, u32),
@@ -136,7 +141,8 @@ pub enum Signal {
 impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
-            Signal::AcquireToggle => "Signal::AcquireToggle",
+            Signal::AcquireStart => "Signal::AcquireStart",
+            Signal::AcquireStop => "Signal::AcquireStop",
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
             Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
@@ -162,14 +168,8 @@ impl ::relm::Widget for Application {
 
     fn update(&mut self, event: Signal, _: &mut Self::Model) {
         match event {
-            Signal::AcquireToggle => if self.redpitaya.acquire.is_started() {
-                self.redpitaya.acquire.stop();
-                self.acquire_toggle.set_label("Run");
-
-            } else {
-                self.redpitaya.acquire.start();
-                self.acquire_toggle.set_label("Stop");
-            },
+            Signal::AcquireStart => self.redpitaya.acquire.start(),
+            Signal::AcquireStop => self.redpitaya.acquire.stop(),
             Signal::GeneratorAmplitude(source, value) => self.redpitaya.generator.set_amplitude(source, value),
             Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
             Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
@@ -197,6 +197,9 @@ impl ::relm::Widget for Application {
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+        // @TODO use program arguments
+        let redpitaya = ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000");
+
         let main_box = ::gtk::Box::new(::gtk::Orientation::Horizontal, 0);
 
         let drawing_area = ::gtk::DrawingArea::new();
@@ -225,10 +228,9 @@ impl ::relm::Widget for Application {
         });
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
-
-        let acquire_toggle = ::gtk::ToggleButton::new_with_label("Run");
-        acquire_page.pack_start(&acquire_toggle, false, false, 0);
-        connect!(relm, acquire_toggle, connect_toggled(_), Signal::AcquireToggle);
+        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm);
+        connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
+        connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
 
         let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
 
@@ -314,13 +316,12 @@ impl ::relm::Widget for Application {
         Application {
             window: window,
             drawing_area: drawing_area,
-            acquire_toggle: acquire_toggle,
+            acquire: acquire,
             generator_toggle: generator_toggle,
             amplitude_scale: amplitude_scale,
             frequency_scale: frequency_scale,
             duty_cycle_scale: duty_cycle_scale,
-            // @TODO use program arguments
-            redpitaya: ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000"),
+            redpitaya: redpitaya,
             scales: [
                 (0.0, 16384.0),
                 (-5.0, 5.0),
