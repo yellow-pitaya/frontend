@@ -84,6 +84,7 @@ pub enum Signal {
     AcquireStart,
     AcquireStop,
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
+    GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
     GeneratorDutyCycle(::redpitaya_scpi::generator::Source, u32),
     GeneratorStart(::redpitaya_scpi::generator::Source),
@@ -99,6 +100,7 @@ impl ::relm::DisplayVariant for Signal {
             Signal::AcquireStart => "Signal::AcquireStart",
             Signal::AcquireStop => "Signal::AcquireStop",
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
+            Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
             Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
             Signal::GraphDraw => "Signal::GraphDraw",
@@ -127,6 +129,7 @@ impl ::relm::Widget for Application {
             Signal::AcquireStart => self.redpitaya.acquire.start(),
             Signal::AcquireStop => self.redpitaya.acquire.stop(),
             Signal::GeneratorAmplitude(source, value) => self.redpitaya.generator.set_amplitude(source, value),
+            Signal::GeneratorOffset(source, value) => self.redpitaya.generator.set_offset(source, value),
             Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
             Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
             Signal::GraphDraw => self.draw(),
@@ -171,6 +174,7 @@ impl ::relm::Widget for Application {
         connect!(generator@generator::Signal::Start(source), relm, Signal::GeneratorStart(source));
         connect!(generator@generator::Signal::Stop(source), relm, Signal::GeneratorStop(source));
         connect!(generator@generator::Signal::Amplitude(source, value), relm, Signal::GeneratorAmplitude(source, value));
+        connect!(generator@generator::Signal::Offset(source, value), relm, Signal::GeneratorOffset(source, value));
         connect!(generator@generator::Signal::Frequency(source, value), relm, Signal::GeneratorFrequency(source, value));
         connect!(generator@generator::Signal::DutyCycle(source, value), relm, Signal::GeneratorDutyCycle(source, value));
         connect!(generator@generator::Signal::Signal(source, value), relm, Signal::GeneratorSignal(source, value));
@@ -201,6 +205,10 @@ impl ::relm::Widget for Application {
     fn init_view(&self) {
         self.generator.widget().amplitude_scale.set_value(
             self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.generator.widget().offset_scale.set_value(
+            self.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
         self.generator.widget().frequency_scale.set_value(

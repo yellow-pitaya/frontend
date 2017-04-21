@@ -11,6 +11,7 @@ pub enum Signal {
     Start(::redpitaya_scpi::generator::Source),
     Stop(::redpitaya_scpi::generator::Source),
     Amplitude(::redpitaya_scpi::generator::Source, f32),
+    Offset(::redpitaya_scpi::generator::Source, f32),
     Frequency(::redpitaya_scpi::generator::Source, u32),
     DutyCycle(::redpitaya_scpi::generator::Source, u32),
     Signal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
@@ -20,6 +21,7 @@ impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Amplitude(_, _) => "Signal::Amplitude",
+            Signal::Offset(_, _) => "Signal::Offset",
             Signal::DutyCycle(_, _) => "Signal::DutyCycle",
             Signal::Frequency(_, _) => "Signal::Frequency",
             Signal::Signal(_, _) => "Signal::Signal",
@@ -34,6 +36,7 @@ pub struct Widget {
     pub page: ::gtk::Box,
     pub toggle: ::gtk::ToggleButton,
     pub amplitude_scale: ::gtk::Scale,
+    pub offset_scale: ::gtk::Scale,
     pub frequency_scale: ::gtk::Scale,
     pub duty_cycle_scale: ::gtk::Scale,
 }
@@ -119,6 +122,15 @@ impl ::relm::Widget for Widget {
         });
         page.pack_start(&amplitude_scale, false, true, 0);
 
+        let offset_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
+        let stream = relm.stream().clone();
+        offset_scale.connect_change_value(move |_, _, value| {
+            stream.emit(Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32));
+
+            ::gtk::Inhibit(false)
+        });
+        page.pack_start(&offset_scale, false, true, 0);
+
         let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
         let stream = relm.stream().clone();
         frequency_scale.connect_change_value(move |_, _, value| {
@@ -141,6 +153,7 @@ impl ::relm::Widget for Widget {
             page: page,
             toggle: toggle,
             amplitude_scale: amplitude_scale,
+            offset_scale: offset_scale,
             frequency_scale: frequency_scale,
             duty_cycle_scale: duty_cycle_scale,
         }
