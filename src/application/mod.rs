@@ -7,13 +7,14 @@ use gtk::{
 
 mod acquire;
 mod generator;
+mod graph;
 
 use relm::ContainerWidget;
 
 #[derive(Clone)]
 pub struct Application {
     window: ::gtk::Window,
-    drawing_area: ::gtk::DrawingArea,
+    graph: ::relm::Component<graph::Widget>,
     acquire: ::relm::Component<acquire::Widget>,
     generator: ::relm::Component<generator::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
@@ -27,30 +28,15 @@ impl Application {
     }
 
     pub fn draw(&self) {
-        let width = self.drawing_area.get_allocated_width() as f64;
-        let height = self.drawing_area.get_allocated_height() as f64;
-        let context = self.create_context();
-
-        context.set_source_rgb(1.0, 1.0, 1.0);
-        context.rectangle(0.0, 0.0, width, height);
-        context.fill();
-
-        self.draw_scales(&context, width, height);
         if self.redpitaya.acquire.is_started() {
+            let graph = self.graph.widget();
+
+            let width = graph.get_width();
+            let height = graph.get_height();
+            let context = graph.create_context();
+
             self.transform(&context, width, height);
             self.draw_data(&context);
-        }
-    }
-
-    fn create_context(&self) -> ::cairo::Context {
-        let window = self.drawing_area.get_window().unwrap();
-
-        unsafe {
-            use ::glib::translate::ToGlibPtr;
-
-            let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
-
-            ::std::mem::transmute(context)
         }
     }
 
@@ -60,34 +46,6 @@ impl Application {
 
         context.scale(width / self.scales[0].1, height / (self.scales[1].0.abs() + self.scales[1].1.abs()));
         context.translate(self.scales[0].0, self.scales[1].1);
-    }
-
-    fn draw_scales(&self, context: &::cairo::Context, width: f64, height: f64) {
-        context.set_line_width(1.0);
-        context.set_source_rgb(0.0, 0.0, 0.0);
-
-        context.rectangle(0.0, 0.0, width, height);
-        context.stroke();
-
-        for i in 1..10 {
-            let x = width / 10.0 * (i as f64);
-
-            if i != 5 {
-                context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
-            } else {
-                context.set_source_rgb(0.0, 0.0, 0.0);
-            }
-
-            context.move_to(x, 0.0);
-            context.line_to(x, height);
-
-            let y = height / 10.0 * (i as f64);
-
-            context.move_to(0.0, y);
-            context.line_to(width, y);
-
-            context.stroke();
-        }
     }
 
     fn draw_data(&self, context: &::cairo::Context) {
@@ -128,10 +86,10 @@ pub enum Signal {
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
     GeneratorDutyCycle(::redpitaya_scpi::generator::Source, u32),
-    Draw,
     GeneratorStart(::redpitaya_scpi::generator::Source),
     GeneratorStop(::redpitaya_scpi::generator::Source),
     GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
+    GraphDraw,
     Quit,
 }
 
@@ -143,7 +101,7 @@ impl ::relm::DisplayVariant for Signal {
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
             Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
-            Signal::Draw => "Signal::Draw",
+            Signal::GraphDraw => "Signal::GraphDraw",
             Signal::GeneratorStart(_) => "Signal::GeneratorStart",
             Signal::GeneratorStop(_) => "Signal::GeneratorStop",
             Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
@@ -171,7 +129,7 @@ impl ::relm::Widget for Application {
             Signal::GeneratorAmplitude(source, value) => self.redpitaya.generator.set_amplitude(source, value),
             Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
             Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
-            Signal::Draw => self.draw(),
+            Signal::GraphDraw => self.draw(),
             Signal::GeneratorStart(source) => self.redpitaya.generator.start(source),
             Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
             Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
@@ -190,30 +148,11 @@ impl ::relm::Widget for Application {
 
         let main_box = ::gtk::Box::new(::gtk::Orientation::Horizontal, 0);
 
-        let drawing_area = ::gtk::DrawingArea::new();
-        main_box.pack_start(&drawing_area, true, true, 0);
+        let graph_page = ::gtk::EventBox::new();
+        main_box.pack_start(&graph_page, true, true, 0);
 
-        let stream = relm.stream().clone();
-        drawing_area.connect_draw(move |_, _| {
-            stream.emit(Signal::Draw);
-
-            ::gtk::Inhibit(false)
-        });
-
-        let stream = relm.stream().clone();
-        GLOBAL.with(move |global| {
-            *global.borrow_mut() = Some(stream)
-        });
-
-        ::gtk::timeout_add(1_000, || {
-            GLOBAL.with(|global| {
-                if let Some(ref stream) = *global.borrow() {
-                    stream.emit(Signal::Draw);
-                }
-            });
-
-            ::glib::Continue(true)
-        });
+        let graph = graph_page.add_widget::<graph::Widget, _>(&relm);
+        connect!(graph@graph::Signal::Draw, relm, Signal::GraphDraw);
 
         let notebook = ::gtk::Notebook::new();
 
@@ -248,7 +187,7 @@ impl ::relm::Widget for Application {
 
         Application {
             window: window,
-            drawing_area: drawing_area,
+            graph: graph,
             acquire: acquire,
             generator: generator,
             redpitaya: redpitaya,
@@ -276,7 +215,3 @@ impl ::relm::Widget for Application {
         self.generator.widget().duty_cycle_scale.set_visible(false);
     }
 }
-
-thread_local!(
-    static GLOBAL: ::std::cell::RefCell<Option<::relm::EventStream<Signal>>> = ::std::cell::RefCell::new(None)
-);
