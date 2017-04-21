@@ -1,13 +1,12 @@
 use gtk::{
     BoxExt,
-    ButtonExt,
     ContainerExt,
     RangeExt,
-    ToggleButtonExt,
     WidgetExt,
 };
 
 mod acquire;
+mod generator;
 
 use relm::ContainerWidget;
 
@@ -16,10 +15,7 @@ pub struct Application {
     window: ::gtk::Window,
     drawing_area: ::gtk::DrawingArea,
     acquire: ::relm::Component<acquire::Widget>,
-    generator_toggle: ::gtk::ToggleButton,
-    amplitude_scale: ::gtk::Scale,
-    frequency_scale: ::gtk::Scale,
-    duty_cycle_scale: ::gtk::Scale,
+    generator: ::relm::Component<generator::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: [(f64, f64); 2],
 }
@@ -133,7 +129,8 @@ pub enum Signal {
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
     GeneratorDutyCycle(::redpitaya_scpi::generator::Source, u32),
     Draw,
-    GeneratorToggle(::redpitaya_scpi::generator::Source),
+    GeneratorStart(::redpitaya_scpi::generator::Source),
+    GeneratorStop(::redpitaya_scpi::generator::Source),
     GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
     Quit,
 }
@@ -147,7 +144,8 @@ impl ::relm::DisplayVariant for Signal {
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
             Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
             Signal::Draw => "Signal::Draw",
-            Signal::GeneratorToggle(_) => "Signal::GeneratorToggle",
+            Signal::GeneratorStart(_) => "Signal::GeneratorStart",
+            Signal::GeneratorStop(_) => "Signal::GeneratorStop",
             Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
             Signal::Quit => "Signal::Quit",
         }
@@ -174,19 +172,9 @@ impl ::relm::Widget for Application {
             Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
             Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
             Signal::Draw => self.draw(),
-            Signal::GeneratorToggle(source) => if self.redpitaya.generator.is_started(source) {
-                self.redpitaya.generator.stop(source);
-                self.generator_toggle.set_label("Run");
-            } else {
-                self.redpitaya.generator.start(source);
-                self.generator_toggle.set_label("Stop");
-            },
-            Signal::GeneratorSignal(source, form) => {
-                self.redpitaya.generator.set_form(source, form);
-
-                let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
-                self.duty_cycle_scale.set_visible(is_pwm);
-            },
+            Signal::GeneratorStart(source) => self.redpitaya.generator.start(source),
+            Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
+            Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
             Signal::Quit => {
                 self.redpitaya.acquire.stop();
                 self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
@@ -227,82 +215,27 @@ impl ::relm::Widget for Application {
             ::glib::Continue(true)
         });
 
+        let notebook = ::gtk::Notebook::new();
+
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
 
-        let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
-
-        let generator_toggle = ::gtk::ToggleButton::new_with_label("Run");
-        generator_page.pack_start(&generator_toggle, false, false, 0);
-        connect!(relm,generator_toggle, connect_toggled(_), Signal::GeneratorToggle(::redpitaya_scpi::generator::Source::OUT1));
-
-        let forms = vec![
-            ::redpitaya_scpi::generator::Form::SINE,
-            ::redpitaya_scpi::generator::Form::SQUARE,
-            ::redpitaya_scpi::generator::Form::TRIANGLE,
-            ::redpitaya_scpi::generator::Form::SAWU,
-            ::redpitaya_scpi::generator::Form::SAWD,
-            ::redpitaya_scpi::generator::Form::PWM,
-            // @TODO ::redpitaya_scpi::generator::Form::ARBITRARY,
-        ];
-
-        let mut group_member = None;
-
-        for form in forms {
-            let button = ::gtk::RadioButton::new_with_label_from_widget(
-                group_member.as_ref(),
-                format!("{}", form).as_str()
-            );
-            generator_page.pack_start(&button, false, true, 0);
-
-            let stream = relm.stream().clone();
-            button.connect_toggled(move |f| {
-                if f.get_active() {
-                    stream.emit(
-                        Signal::GeneratorSignal(::redpitaya_scpi::generator::Source::OUT1, form.clone())
-                    );
-                }
-            });
-
-            if group_member == None {
-                group_member = Some(button);
-            }
-        }
-
-        let amplitude_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
-        let stream = relm.stream().clone();
-        amplitude_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::GeneratorAmplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32));
-
-            ::gtk::Inhibit(false)
-        });
-        generator_page.pack_start(&amplitude_scale, false, true, 0);
-
-        let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
-        let stream = relm.stream().clone();
-        frequency_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::GeneratorFrequency(::redpitaya_scpi::generator::Source::OUT1, value as u32));
-
-            ::gtk::Inhibit(false)
-        });
-        generator_page.pack_start(&frequency_scale, false, true, 0);
-
-        let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
-        let stream = relm.stream().clone();
-        duty_cycle_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::GeneratorDutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as u32));
-
-            ::gtk::Inhibit(false)
-        });
-        generator_page.pack_start(&duty_cycle_scale, false, true, 0);
-
-        let notebook = ::gtk::Notebook::new();
         notebook.append_page(
             &acquire_page,
             Some(&::gtk::Label::new(Some("Acquire")))
         );
+
+        let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        let generator = generator_page.add_widget::<generator::Widget, _>(&relm);
+        connect!(generator@generator::Signal::Start(source), relm, Signal::GeneratorStart(source));
+        connect!(generator@generator::Signal::Stop(source), relm, Signal::GeneratorStop(source));
+        connect!(generator@generator::Signal::Amplitude(source, value), relm, Signal::GeneratorAmplitude(source, value));
+        connect!(generator@generator::Signal::Frequency(source, value), relm, Signal::GeneratorFrequency(source, value));
+        connect!(generator@generator::Signal::DutyCycle(source, value), relm, Signal::GeneratorDutyCycle(source, value));
+        connect!(generator@generator::Signal::Signal(source, value), relm, Signal::GeneratorSignal(source, value));
+
         notebook.append_page(
             &generator_page,
             Some(&::gtk::Label::new(Some("Generator")))
@@ -317,10 +250,7 @@ impl ::relm::Widget for Application {
             window: window,
             drawing_area: drawing_area,
             acquire: acquire,
-            generator_toggle: generator_toggle,
-            amplitude_scale: amplitude_scale,
-            frequency_scale: frequency_scale,
-            duty_cycle_scale: duty_cycle_scale,
+            generator: generator,
             redpitaya: redpitaya,
             scales: [
                 (0.0, 16384.0),
@@ -330,20 +260,20 @@ impl ::relm::Widget for Application {
     }
 
     fn init_view(&self) {
-        self.amplitude_scale.set_value(
+        self.generator.widget().amplitude_scale.set_value(
             self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.frequency_scale.set_value(
+        self.generator.widget().frequency_scale.set_value(
             self.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.duty_cycle_scale.set_value(
+        self.generator.widget().duty_cycle_scale.set_value(
             self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
         self.window.show_all();
-        self.duty_cycle_scale.set_visible(false);
+        self.generator.widget().duty_cycle_scale.set_visible(false);
     }
 }
 
