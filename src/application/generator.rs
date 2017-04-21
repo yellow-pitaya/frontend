@@ -13,7 +13,7 @@ pub enum Signal {
     Amplitude(::redpitaya_scpi::generator::Source, f32),
     Offset(::redpitaya_scpi::generator::Source, f32),
     Frequency(::redpitaya_scpi::generator::Source, u32),
-    DutyCycle(::redpitaya_scpi::generator::Source, u32),
+    DutyCycle(::redpitaya_scpi::generator::Source, f32),
     Signal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
 }
 
@@ -143,7 +143,7 @@ impl ::relm::Widget for Widget {
         let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
         let stream = relm.stream().clone();
         duty_cycle_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as u32));
+            stream.emit(Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32 / 100.0));
 
             ::gtk::Inhibit(false)
         });

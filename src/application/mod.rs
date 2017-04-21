@@ -86,7 +86,7 @@ pub enum Signal {
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
-    GeneratorDutyCycle(::redpitaya_scpi::generator::Source, u32),
+    GeneratorDutyCycle(::redpitaya_scpi::generator::Source, f32),
     GeneratorStart(::redpitaya_scpi::generator::Source),
     GeneratorStop(::redpitaya_scpi::generator::Source),
     GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
@@ -216,7 +216,7 @@ impl ::relm::Widget for Application {
         );
 
         self.generator.widget().duty_cycle_scale.set_value(
-            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
+            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64 * 100.0
         );
 
         self.window.show_all();
