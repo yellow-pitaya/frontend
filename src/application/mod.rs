@@ -8,6 +8,7 @@ use gtk::{
 mod acquire;
 mod generator;
 mod graph;
+mod trigger;
 
 use relm::ContainerWidget;
 
@@ -17,8 +18,11 @@ pub struct Application {
     graph: ::relm::Component<graph::Widget>,
     acquire: ::relm::Component<acquire::Widget>,
     generator: ::relm::Component<generator::Widget>,
+    trigger: ::relm::Component<trigger::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: [(f64, f64); 2],
+    delay_trigger: u16,
+    level_trigger: f32,
 }
 
 impl Application {
@@ -28,16 +32,31 @@ impl Application {
     }
 
     pub fn draw(&self) {
+        let graph = self.graph.widget();
+        let width = graph.get_width();
+        let height = graph.get_height();
+        let context = graph.create_context();
+
+        self.transform(&context, width, height);
+        self.draw_trigger(&context);
+
         if self.redpitaya.acquire.is_started() {
-            let graph = self.graph.widget();
-
-            let width = graph.get_width();
-            let height = graph.get_height();
-            let context = graph.create_context();
-
-            self.transform(&context, width, height);
             self.draw_data(&context);
         }
+    }
+
+    fn draw_trigger(&self, context: &::cairo::Context) {
+        context.set_line_width(0.01);
+
+        context.set_source_rgb(1.0, 0.5, 0.0);
+
+        context.move_to(self.scales[0].0, self.level_trigger as f64);
+        context.line_to(self.scales[0].1, self.level_trigger as f64);
+
+        context.move_to(self.delay_trigger as f64, self.scales[1].0);
+        context.line_to(self.delay_trigger as f64, self.scales[1].1);
+
+        context.stroke();
     }
 
     fn transform(&self, context: &::cairo::Context, width: f64, height: f64) {
@@ -89,6 +108,8 @@ pub enum Signal {
     GeneratorStop(::redpitaya_scpi::generator::Source),
     GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
     GraphDraw,
+    TriggerDelay(u16),
+    TriggerLevel(f32),
     Quit,
 }
 
@@ -101,10 +122,12 @@ impl ::relm::DisplayVariant for Signal {
             Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
             Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
-            Signal::GraphDraw => "Signal::GraphDraw",
             Signal::GeneratorStart(_) => "Signal::GeneratorStart",
             Signal::GeneratorStop(_) => "Signal::GeneratorStop",
             Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
+            Signal::TriggerDelay(_) => "Signal::TriggerDelay",
+            Signal::TriggerLevel(_) => "Signal::TriggerLevel",
+            Signal::GraphDraw => "Signal::GraphDraw",
             Signal::Quit => "Signal::Quit",
         }
     }
@@ -126,14 +149,26 @@ impl ::relm::Widget for Application {
         match event {
             Signal::AcquireStart => self.redpitaya.acquire.start(),
             Signal::AcquireStop => self.redpitaya.acquire.stop(),
+
             Signal::GeneratorAmplitude(source, value) => self.redpitaya.generator.set_amplitude(source, value),
             Signal::GeneratorOffset(source, value) => self.redpitaya.generator.set_offset(source, value),
             Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
             Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
-            Signal::GraphDraw => self.draw(),
             Signal::GeneratorStart(source) => self.redpitaya.generator.start(source),
             Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
             Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
+
+            Signal::GraphDraw => self.draw(),
+
+            Signal::TriggerDelay(value) => {
+                self.redpitaya.trigger.set_delay(value);
+                self.delay_trigger = value;
+            },
+            Signal::TriggerLevel(value) => {
+                self.redpitaya.trigger.set_level(value);
+                self.level_trigger = value;
+            },
+
             Signal::Quit => {
                 self.redpitaya.acquire.stop();
                 self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
@@ -183,18 +218,36 @@ impl ::relm::Widget for Application {
             &generator_page,
             Some(&::gtk::Label::new(Some("Generator")))
         );
-        main_box.pack_start(&notebook, false, true, 0);
 
         let window = ::gtk::Window::new(::gtk::WindowType::Toplevel);
         window.add(&main_box);
         connect!(relm, window, connect_destroy(_), Signal::Quit);
+
+        let trigger_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        trigger_page.set_border_width(10);
+        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm);
+        connect!(trigger@trigger::Signal::Delay(value), relm, Signal::TriggerDelay(value));
+        connect!(trigger@trigger::Signal::Level(value), relm, Signal::TriggerLevel(value));
+
+        notebook.append_page(
+            &trigger_page,
+            Some(&::gtk::Label::new(Some("Trigger")))
+        );
+
+        main_box.pack_start(&notebook, false, true, 0);
+
+        let delay_trigger = redpitaya.trigger.get_delay();
+        let level_trigger = redpitaya.trigger.get_level();
 
         Application {
             window: window,
             graph: graph,
             acquire: acquire,
             generator: generator,
+            trigger: trigger,
             redpitaya: redpitaya,
+            delay_trigger: delay_trigger,
+            level_trigger: level_trigger,
             scales: [
                 (0.0, 16384.0),
                 (-5.0, 5.0),
@@ -218,6 +271,10 @@ impl ::relm::Widget for Application {
         self.generator.widget().duty_cycle_scale.set_value(
             self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
+
+        self.trigger.widget().delay_scale.set_value(self.delay_trigger as f64);
+
+        self.trigger.widget().level_scale.set_value(self.level_trigger as f64);
 
         self.window.show_all();
         self.generator.widget().duty_cycle_frame.set_visible(false);
