@@ -161,6 +161,7 @@ impl ::relm::Widget for Widget {
         page.pack_start(&frame, false, true, 0);
 
         let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
+        frequency_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
 
         frequency_scale.connect_format_value(move |_, value| {
             format!("{:0} Hz", value)
@@ -178,6 +179,7 @@ impl ::relm::Widget for Widget {
         page.pack_start(&duty_cycle_frame, false, true, 0);
 
         let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 1.0, 0.01);
+        duty_cycle_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
 
         duty_cycle_scale.connect_format_value(move |_, value| {
             format!("{:.0} %", value * 100.0)
