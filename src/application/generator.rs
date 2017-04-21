@@ -1,6 +1,7 @@
 use gtk::{
     BoxExt,
     ButtonExt,
+    ContainerExt,
     RangeExt,
     ToggleButtonExt,
     WidgetExt,
@@ -39,6 +40,7 @@ pub struct Widget {
     pub offset_scale: ::gtk::Scale,
     pub frequency_scale: ::gtk::Scale,
     pub duty_cycle_scale: ::gtk::Scale,
+    pub duty_cycle_frame: ::gtk::Frame,
 }
 
 impl ::relm::Widget for Widget {
@@ -59,14 +61,14 @@ impl ::relm::Widget for Widget {
             Signal::Stop(_) => self.toggle.set_label("Run"),
             Signal::Signal(_, form) => {
                 let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
-                self.duty_cycle_scale.set_visible(is_pwm);
+                self.duty_cycle_frame.set_visible(is_pwm);
             },
             _ => (),
         };
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
-        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let toggle = ::gtk::ToggleButton::new_with_label("Run");
         page.pack_start(&toggle, false, false, 0);
@@ -74,11 +76,17 @@ impl ::relm::Widget for Widget {
         let stream = relm.stream().clone();
         toggle.connect_toggled(move |w| {
             if w.get_active() {
-                    stream.emit(Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
+                stream.emit(Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
             } else {
-                    stream.emit(Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
+                stream.emit(Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
             }
         });
+
+        let frame = ::gtk::Frame::new("Form");
+        page.pack_start(&frame, false, true, 0);
+
+        let vbox = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        frame.add(&vbox);
 
         let forms = vec![
             ::redpitaya_scpi::generator::Form::SINE,
@@ -97,7 +105,7 @@ impl ::relm::Widget for Widget {
                 group_member.as_ref(),
                 format!("{}", form).as_str()
             );
-            page.pack_start(&button, false, true, 0);
+            vbox.pack_start(&button, false, true, 0);
 
             let stream = relm.stream().clone();
             button.connect_toggled(move |f| {
@@ -113,41 +121,75 @@ impl ::relm::Widget for Widget {
             }
         }
 
+        let frame = ::gtk::Frame::new("Amplitude");
+        page.pack_start(&frame, false, true, 0);
+
         let amplitude_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
+        amplitude_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
+
+        amplitude_scale.connect_format_value(move |_, value| {
+            format!("{:.2} V", value)
+        });
+
         let stream = relm.stream().clone();
         amplitude_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32));
 
             ::gtk::Inhibit(false)
         });
-        page.pack_start(&amplitude_scale, false, true, 0);
+        frame.add(&amplitude_scale);
+
+        let frame = ::gtk::Frame::new("Offset");
+        page.pack_start(&frame, false, true, 0);
 
         let offset_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
+        offset_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
+
+        offset_scale.connect_format_value(move |_, value| {
+            format!("{:.2} V", value)
+        });
+
         let stream = relm.stream().clone();
         offset_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32));
 
             ::gtk::Inhibit(false)
         });
-        page.pack_start(&offset_scale, false, true, 0);
+        frame.add(&offset_scale);
+
+        let frame = ::gtk::Frame::new("Frequency");
+        page.pack_start(&frame, false, true, 0);
 
         let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
+
+        frequency_scale.connect_format_value(move |_, value| {
+            format!("{:0} Hz", value)
+        });
+
         let stream = relm.stream().clone();
         frequency_scale.connect_change_value(move |_, _, value| {
             stream.emit(Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32));
 
             ::gtk::Inhibit(false)
         });
-        page.pack_start(&frequency_scale, false, true, 0);
+        frame.add(&frequency_scale);
 
-        let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
+        let duty_cycle_frame = ::gtk::Frame::new("Duty cycle");
+        page.pack_start(&duty_cycle_frame, false, true, 0);
+
+        let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 1.0, 0.01);
+
+        duty_cycle_scale.connect_format_value(move |_, value| {
+            format!("{:.0} %", value * 100.0)
+        });
+
         let stream = relm.stream().clone();
         duty_cycle_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32 / 100.0));
+            stream.emit(Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32));
 
             ::gtk::Inhibit(false)
         });
-        page.pack_start(&duty_cycle_scale, false, true, 0);
+        duty_cycle_frame.add(&duty_cycle_scale);
 
         Widget {
             page: page,
@@ -156,6 +198,7 @@ impl ::relm::Widget for Widget {
             offset_scale: offset_scale,
             frequency_scale: frequency_scale,
             duty_cycle_scale: duty_cycle_scale,
+            duty_cycle_frame: duty_cycle_frame,
         }
     }
 }

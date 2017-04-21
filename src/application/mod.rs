@@ -160,6 +160,7 @@ impl ::relm::Widget for Application {
         let notebook = ::gtk::Notebook::new();
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        acquire_page.set_border_width(10);
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
@@ -170,6 +171,7 @@ impl ::relm::Widget for Application {
         );
 
         let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        generator_page.set_border_width(10);
         let generator = generator_page.add_widget::<generator::Widget, _>(&relm);
         connect!(generator@generator::Signal::Start(source), relm, Signal::GeneratorStart(source));
         connect!(generator@generator::Signal::Stop(source), relm, Signal::GeneratorStop(source));
@@ -216,10 +218,10 @@ impl ::relm::Widget for Application {
         );
 
         self.generator.widget().duty_cycle_scale.set_value(
-            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64 * 100.0
+            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
         self.window.show_all();
-        self.generator.widget().duty_cycle_scale.set_visible(false);
+        self.generator.widget().duty_cycle_frame.set_visible(false);
     }
 }
