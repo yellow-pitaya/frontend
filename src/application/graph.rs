@@ -26,7 +26,7 @@ impl Widget {
         let height = self.get_height();
         let context = self.create_context();
 
-        context.set_source_rgb(1.0, 1.0, 1.0);
+        context.set_source_rgb(0.0, 0.0, 0.0);
         context.rectangle(0.0, 0.0, width, height);
         context.fill();
 
@@ -35,19 +35,19 @@ impl Widget {
 
     fn draw_scales(&self, context: &::cairo::Context, width: f64, height: f64) {
         context.set_line_width(1.0);
-        context.set_source_rgb(0.0, 0.0, 0.0);
+        context.set_source_rgb(1.0, 1.0, 1.0);
 
         context.rectangle(0.0, 0.0, width, height);
         context.stroke();
 
         for i in 1..10 {
-            let x = width / 10.0 * (i as f64);
-
-            if i != 5 {
-                context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
+            if i == 5 {
+                context.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             } else {
-                context.set_source_rgb(0.0, 0.0, 0.0);
+                context.set_source_rgba(1.0, 1.0, 1.0, 0.2);
             }
+
+            let x = width / 10.0 * (i as f64);
 
             context.move_to(x, 0.0);
             context.line_to(x, height);

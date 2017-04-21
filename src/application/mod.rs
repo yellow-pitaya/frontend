@@ -41,15 +41,13 @@ impl Application {
     }
 
     fn transform(&self, context: &::cairo::Context, width: f64, height: f64) {
-        context.set_line_width(0.1);
-        context.set_source_rgb(0.0, 0.0, 0.0);
-
         context.scale(width / self.scales[0].1, height / (self.scales[1].0.abs() + self.scales[1].1.abs()));
         context.translate(self.scales[0].0, self.scales[1].1);
     }
 
     fn draw_data(&self, context: &::cairo::Context) {
         let message = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
+        context.set_line_width(0.05);
 
         let mut data = message
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
@@ -64,7 +62,7 @@ impl Application {
                 }
             });
 
-        context.set_source_rgb(1.0, 0.0, 0.0);
+        context.set_source_rgb(1.0, 1.0, 0.0);
 
         for x in 0..16384 {
             match data.next() {
