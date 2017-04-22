@@ -22,23 +22,31 @@ impl Widget {
         self.drawing_area.get_allocated_height() as f64
     }
 
-    pub fn draw(&self) {
-        let width = self.get_width();
-        let height = self.get_height();
-        let context = self.create_context();
+    pub fn create_context(&self) -> ::cairo::Context {
+        let window = self.drawing_area.get_window().unwrap();
+
+        unsafe {
+            use ::glib::translate::ToGlibPtr;
+
+            let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
+
+            ::std::mem::transmute(context)
+        }
+    }
+}
+
+impl ::application::Panel for Widget {
+    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
+        let width = scales.get_width();
+        let height = scales.get_height();
 
         context.set_color(::application::color::BACKGROUND);
-        context.rectangle(0.0, 0.0, width, height);
+        context.rectangle(scales.h.0, scales.v.0, width, height);
         context.fill();
 
-        self.draw_scales(&context, width, height);
-    }
-
-    fn draw_scales(&self, context: &::cairo::Context, width: f64, height: f64) {
-        context.set_line_width(1.0);
         context.set_color(::application::color::MAIN_SCALE);
 
-        context.rectangle(0.0, 0.0, width, height);
+        context.rectangle(scales.h.0, scales.v.0, width, height);
         context.stroke();
 
         for i in 1..10 {
@@ -50,27 +58,15 @@ impl Widget {
 
             let x = width / 10.0 * (i as f64);
 
-            context.move_to(x, 0.0);
-            context.line_to(x, height);
+            context.move_to(scales.h.0 + x, scales.v.0);
+            context.line_to(scales.h.0 + x, scales.v.1);
+            context.stroke();
 
             let y = height / 10.0 * (i as f64);
 
-            context.move_to(0.0, y);
-            context.line_to(width, y);
-
+            context.move_to(scales.h.0, scales.v.0 + y);
+            context.line_to(scales.h.1, scales.v.0 + y);
             context.stroke();
-        }
-    }
-
-    pub fn create_context(&self) -> ::cairo::Context {
-        let window = self.drawing_area.get_window().unwrap();
-
-        unsafe {
-            use ::glib::translate::ToGlibPtr;
-
-            let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
-
-            ::std::mem::transmute(context)
         }
     }
 }
@@ -87,10 +83,7 @@ impl ::relm::Widget for Widget {
         &self.drawing_area
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
-        match event {
-            Signal::Draw => self.draw(),
-        }
+    fn update(&mut self, _: Signal, _: &mut Self::Model) {
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {

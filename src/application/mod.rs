@@ -4,6 +4,26 @@ mod generator;
 mod graph;
 mod trigger;
 
+trait Panel {
+    fn draw(&self, context: &::cairo::Context, scales: Scales);
+}
+
+#[derive(Copy, Clone)]
+struct Scales {
+    h: (f64, f64),
+    v: (f64, f64),
+}
+
+impl Scales {
+    pub fn get_width(&self) -> f64 {
+        self.h.1 - self.h.0
+    }
+
+    pub fn get_height(&self) -> f64 {
+        self.v.1 - self.v.0
+    }
+}
+
 use application::color::Collorable;
 use gtk::{
     BoxExt,
@@ -21,9 +41,7 @@ pub struct Application {
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
-    scales: [(f64, f64); 2],
-    delay_trigger: u16,
-    level_trigger: f32,
+    scales: Scales,
 }
 
 impl Application {
@@ -36,38 +54,34 @@ impl Application {
         let graph = self.graph.widget();
         let width = graph.get_width();
         let height = graph.get_height();
-        let context = graph.create_context();
+        let context = self.graph.widget().create_context();
 
         self.transform(&context, width, height);
-        self.draw_trigger(&context);
+
+        context.set_line_width(0.01);
+
+        graph.draw(&context, self.scales);
+        self.trigger.widget().draw(&context, self.scales);
 
         if self.redpitaya.acquire.is_started() {
+            context.set_line_width(0.05);
             self.draw_data(&context);
         }
     }
 
-    fn draw_trigger(&self, context: &::cairo::Context) {
-        context.set_line_width(0.01);
-
-        context.set_color(::application::color::TRIGGER);
-
-        context.move_to(self.scales[0].0, self.level_trigger as f64);
-        context.line_to(self.scales[0].1, self.level_trigger as f64);
-
-        context.move_to(self.delay_trigger as f64, self.scales[1].0);
-        context.line_to(self.delay_trigger as f64, self.scales[1].1);
-
-        context.stroke();
-    }
-
     fn transform(&self, context: &::cairo::Context, width: f64, height: f64) {
-        context.scale(width / self.scales[0].1, height / (self.scales[1].0.abs() + self.scales[1].1.abs()));
-        context.translate(self.scales[0].0, self.scales[1].1);
+        context.set_matrix(::cairo::Matrix {
+            xx: width / self.scales.get_width(),
+            xy: 0.0,
+            yy: -height / self.scales.get_height(),
+            yx: 0.0,
+            x0: self.scales.h.0 * width / self.scales.get_width(),
+            y0: self.scales.v.1 * height / self.scales.get_height(),
+        });
     }
 
     fn draw_data(&self, context: &::cairo::Context) {
         let message = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
-        context.set_line_width(0.05);
 
         let mut data = message
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
@@ -161,14 +175,8 @@ impl ::relm::Widget for Application {
 
             Signal::GraphDraw => self.draw(),
 
-            Signal::TriggerDelay(value) => {
-                self.redpitaya.trigger.set_delay(value);
-                self.delay_trigger = value;
-            },
-            Signal::TriggerLevel(value) => {
-                self.redpitaya.trigger.set_level(value);
-                self.level_trigger = value;
-            },
+            Signal::TriggerDelay(value) => self.redpitaya.trigger.set_delay(value),
+            Signal::TriggerLevel(value) => self.redpitaya.trigger.set_level(value),
 
             Signal::Quit => {
                 self.redpitaya.acquire.stop();
@@ -237,9 +245,6 @@ impl ::relm::Widget for Application {
 
         main_box.pack_start(&notebook, false, true, 0);
 
-        let delay_trigger = redpitaya.trigger.get_delay();
-        let level_trigger = redpitaya.trigger.get_level();
-
         Application {
             window: window,
             graph: graph,
@@ -247,12 +252,10 @@ impl ::relm::Widget for Application {
             generator: generator,
             trigger: trigger,
             redpitaya: redpitaya,
-            delay_trigger: delay_trigger,
-            level_trigger: level_trigger,
-            scales: [
-                (0.0, 16384.0),
-                (-5.0, 5.0),
-            ],
+            scales: Scales {
+                h: (0.0, 16384.0),
+                v: (-5.0, 5.0),
+            },
         }
     }
 
@@ -273,9 +276,13 @@ impl ::relm::Widget for Application {
             self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.trigger.widget().delay_scale.set_value(self.delay_trigger as f64);
+        self.trigger.widget().delay_scale.set_value(
+            self.redpitaya.trigger.get_delay() as f64
+        );
 
-        self.trigger.widget().level_scale.set_value(self.level_trigger as f64);
+        self.trigger.widget().level_scale.set_value(
+            self.redpitaya.trigger.get_level() as f64
+        );
 
         self.window.show_all();
         self.generator.widget().duty_cycle_frame.set_visible(false);

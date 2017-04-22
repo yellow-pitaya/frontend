@@ -1,4 +1,5 @@
-use ::gtk::{
+use application::color::Collorable;
+use gtk::{
     BoxExt,
     ContainerExt,
     RangeExt,
@@ -76,5 +77,19 @@ impl ::relm::Widget for Widget {
             delay_scale: delay_scale,
             level_scale: level_scale,
         }
+    }
+}
+
+impl ::application::Panel for Widget {
+    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
+        context.set_color(::application::color::TRIGGER);
+
+        context.move_to(scales.h.0, self.level_scale.get_value());
+        context.line_to(scales.h.1, self.level_scale.get_value());
+
+        context.move_to(self.delay_scale.get_value(), scales.v.0);
+        context.line_to(self.delay_scale.get_value(), scales.v.1);
+
+        context.stroke();
     }
 }
