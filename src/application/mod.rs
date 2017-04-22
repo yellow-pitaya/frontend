@@ -1,15 +1,16 @@
+mod acquire;
+mod color;
+mod generator;
+mod graph;
+mod trigger;
+
+use application::color::Collorable;
 use gtk::{
     BoxExt,
     ContainerExt,
     RangeExt,
     WidgetExt,
 };
-
-mod acquire;
-mod generator;
-mod graph;
-mod trigger;
-
 use relm::ContainerWidget;
 
 #[derive(Clone)]
@@ -48,7 +49,7 @@ impl Application {
     fn draw_trigger(&self, context: &::cairo::Context) {
         context.set_line_width(0.01);
 
-        context.set_source_rgb(1.0, 0.5, 0.0);
+        context.set_color(::application::color::TRIGGER);
 
         context.move_to(self.scales[0].0, self.level_trigger as f64);
         context.line_to(self.scales[0].1, self.level_trigger as f64);
@@ -81,7 +82,7 @@ impl Application {
                 }
             });
 
-        context.set_source_rgb(1.0, 1.0, 0.0);
+        context.set_color(::application::color::IN1);
 
         for x in 0..16384 {
             match data.next() {

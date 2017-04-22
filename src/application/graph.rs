@@ -1,3 +1,4 @@
+use application::color::Collorable;
 use gtk::{
     WidgetExt,
 };
@@ -26,7 +27,7 @@ impl Widget {
         let height = self.get_height();
         let context = self.create_context();
 
-        context.set_source_rgb(0.0, 0.0, 0.0);
+        context.set_color(::application::color::BACKGROUND);
         context.rectangle(0.0, 0.0, width, height);
         context.fill();
 
@@ -35,16 +36,16 @@ impl Widget {
 
     fn draw_scales(&self, context: &::cairo::Context, width: f64, height: f64) {
         context.set_line_width(1.0);
-        context.set_source_rgb(1.0, 1.0, 1.0);
+        context.set_color(::application::color::MAIN_SCALE);
 
         context.rectangle(0.0, 0.0, width, height);
         context.stroke();
 
         for i in 1..10 {
             if i == 5 {
-                context.set_source_rgba(1.0, 1.0, 1.0, 1.0);
+                context.set_color(::application::color::MAIN_SCALE);
             } else {
-                context.set_source_rgba(1.0, 1.0, 1.0, 0.2);
+                context.set_color(::application::color::SECONDARY_SCALE);
             }
 
             let x = width / 10.0 * (i as f64);
