@@ -1,4 +1,4 @@
-use ::application::color::Collorable;
+use ::application::color::Colorable;
 
 #[derive(Clone)]
 pub struct Widget {

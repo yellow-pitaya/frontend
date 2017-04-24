@@ -1,4 +1,4 @@
-use application::color::Collorable;
+use application::color::Colorable;
 use gtk::{
     WidgetExt,
 };
