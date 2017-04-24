@@ -28,6 +28,7 @@ impl ::application::Panel for Widget {
                 }
             });
 
+        context.set_line_width(0.05);
         context.set_color(::application::color::IN1);
 
         for x in 0..16384 {

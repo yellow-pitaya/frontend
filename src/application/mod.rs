@@ -5,6 +5,7 @@ mod generator;
 mod graph;
 mod trigger;
 
+use cairo::prelude::*;
 use gtk::{
     BoxExt,
     ContainerExt,
@@ -55,19 +56,29 @@ impl Application {
         let graph = self.graph.widget();
         let width = graph.get_width();
         let height = graph.get_height();
-        let context = self.graph.widget().create_context();
+
+        let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width as i32, height as i32);
+        let context = ::cairo::Context::new(&image);
 
         self.transform(&context, width, height);
-
         context.set_line_width(0.01);
 
-        graph.draw(&context, self.scales);
-        self.trigger.widget().draw(&context, self.scales);
+        self.draw_panel(self.graph.widget(), &context);
+
+        self.draw_panel(self.trigger.widget(), &context);
 
         if self.redpitaya.acquire.is_started() {
-            context.set_line_width(0.05);
-            self.data.draw(&context, self.scales);
+            self.draw_panel(&self.data, &context);
         }
+
+        image.flush();
+        graph.set_image(&image);
+    }
+
+    fn draw_panel(&self, panel: &Panel, context: &::cairo::Context) {
+        context.save();
+        panel.draw(&context, self.scales);
+        context.restore();
     }
 
     fn transform(&self, context: &::cairo::Context, width: f64, height: f64) {
@@ -145,7 +156,9 @@ impl ::relm::Widget for Application {
             Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
 
             Signal::GraphDraw => {
-                self.data.data = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
+                if self.redpitaya.acquire.is_started() {
+                    self.data.data = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
+                }
                 self.draw();
             },
 

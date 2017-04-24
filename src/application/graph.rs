@@ -22,7 +22,14 @@ impl Widget {
         self.drawing_area.get_allocated_height() as f64
     }
 
-    pub fn create_context(&self) -> ::cairo::Context {
+    pub fn set_image(&self, image: &::cairo::ImageSurface) {
+        let context = self.create_context();
+
+        context.set_source_surface(image, 0.0, 0.0);
+        context.paint();
+    }
+
+    fn create_context(&self) -> ::cairo::Context {
         let window = self.drawing_area.get_window().unwrap();
 
         unsafe {
