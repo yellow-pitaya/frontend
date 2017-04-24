@@ -90,27 +90,8 @@ impl ::relm::Widget for Widget {
         let drawing_area = ::gtk::DrawingArea::new();
         connect!(relm, drawing_area, connect_draw(_, _) (Signal::Draw, ::gtk::Inhibit(false)));
 
-        let stream = relm.stream().clone();
-        GLOBAL.with(move |global| {
-            *global.borrow_mut() = Some(stream)
-        });
-
-        ::gtk::timeout_add(1_000, || {
-            GLOBAL.with(|global| {
-                if let Some(ref stream) = *global.borrow() {
-                    stream.emit(Signal::Draw);
-                }
-            });
-
-            ::glib::Continue(true)
-        });
-
         Widget {
             drawing_area: drawing_area,
         }
     }
 }
-
-thread_local!(
-    static GLOBAL: ::std::cell::RefCell<Option<::relm::EventStream<Signal>>> = ::std::cell::RefCell::new(None)
-);

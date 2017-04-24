@@ -219,6 +219,21 @@ impl ::relm::Widget for Application {
 
         main_box.pack_start(&notebook, false, true, 0);
 
+        let stream = relm.stream().clone();
+        GLOBAL.with(move |global| {
+            *global.borrow_mut() = Some(stream)
+        });
+
+        ::gtk::timeout_add(1_000, || {
+            GLOBAL.with(|global| {
+                if let Some(ref stream) = *global.borrow() {
+                    stream.emit(Signal::GraphDraw);
+                }
+            });
+
+            ::glib::Continue(true)
+        });
+
         Application {
             window: window,
             graph: graph,
@@ -263,3 +278,7 @@ impl ::relm::Widget for Application {
         self.generator.widget().duty_cycle_frame.set_visible(false);
     }
 }
+
+thread_local!(
+    static GLOBAL: ::std::cell::RefCell<Option<::relm::EventStream<Signal>>> = ::std::cell::RefCell::new(None)
+);
