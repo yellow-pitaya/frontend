@@ -1,8 +1,17 @@
 mod acquire;
 mod color;
+mod data;
 mod generator;
 mod graph;
 mod trigger;
+
+use gtk::{
+    BoxExt,
+    ContainerExt,
+    RangeExt,
+    WidgetExt,
+};
+use relm::ContainerWidget;
 
 trait Panel {
     fn draw(&self, context: &::cairo::Context, scales: Scales);
@@ -24,15 +33,6 @@ impl Scales {
     }
 }
 
-use application::color::Collorable;
-use gtk::{
-    BoxExt,
-    ContainerExt,
-    RangeExt,
-    WidgetExt,
-};
-use relm::ContainerWidget;
-
 #[derive(Clone)]
 pub struct Application {
     window: ::gtk::Window,
@@ -41,6 +41,7 @@ pub struct Application {
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
+    data: data::Widget,
     scales: Scales,
 }
 
@@ -65,7 +66,7 @@ impl Application {
 
         if self.redpitaya.acquire.is_started() {
             context.set_line_width(0.05);
-            self.draw_data(&context);
+            self.data.draw(&context, self.scales);
         }
     }
 
@@ -78,36 +79,6 @@ impl Application {
             x0: self.scales.h.0 * width / self.scales.get_width(),
             y0: self.scales.v.1 * height / self.scales.get_height(),
         });
-    }
-
-    fn draw_data(&self, context: &::cairo::Context) {
-        let message = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
-
-        let mut data = message
-            .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
-            .split(",")
-            .map(|s| {
-                match s.parse::<f64>() {
-                    Ok(f) => f,
-                    Err(_) => {
-                        error!("Invalid data '{}'", s);
-                        0.0
-                    },
-                }
-            });
-
-        context.set_color(::application::color::IN1);
-
-        for x in 0..16384 {
-            match data.next() {
-                Some(y) => {
-                    context.line_to(x as f64, y);
-                    context.move_to(x as f64, y);
-                },
-                None => (),
-            }
-        }
-        context.stroke();
     }
 }
 
@@ -173,7 +144,10 @@ impl ::relm::Widget for Application {
             Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
             Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
 
-            Signal::GraphDraw => self.draw(),
+            Signal::GraphDraw => {
+                self.data.data = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
+                self.draw();
+            },
 
             Signal::TriggerDelay(value) => self.redpitaya.trigger.set_delay(value),
             Signal::TriggerLevel(value) => self.redpitaya.trigger.set_level(value),
@@ -251,6 +225,7 @@ impl ::relm::Widget for Application {
             acquire: acquire,
             generator: generator,
             trigger: trigger,
+            data: data::Widget::new(),
             redpitaya: redpitaya,
             scales: Scales {
                 h: (0.0, 16384.0),
