@@ -2,10 +2,9 @@ use gtk::{
     BoxExt,
     ButtonExt,
     ContainerExt,
-    RangeExt,
     ToggleButtonExt,
-    WidgetExt,
 };
+use relm::ContainerWidget;
 
 #[derive(Clone)]
 pub enum Signal {
@@ -36,11 +35,10 @@ impl ::relm::DisplayVariant for Signal {
 pub struct Widget {
     pub page: ::gtk::Box,
     pub toggle: ::gtk::ToggleButton,
-    pub amplitude_scale: ::gtk::Scale,
-    pub offset_scale: ::gtk::Scale,
-    pub frequency_scale: ::gtk::Scale,
-    pub duty_cycle_scale: ::gtk::Scale,
-    pub duty_cycle_frame: ::gtk::Frame,
+    pub amplitude: ::relm::Component<::widget::PreciseScale>,
+    pub offset: ::relm::Component<::widget::PreciseScale>,
+    pub frequency: ::relm::Component<::widget::PreciseScale>,
+    pub duty_cycle: ::relm::Component<::widget::PreciseScale>,
 }
 
 impl ::relm::Widget for Widget {
@@ -61,7 +59,7 @@ impl ::relm::Widget for Widget {
             Signal::Stop(_) => self.toggle.set_label("Run"),
             Signal::Signal(_, form) => {
                 let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
-                self.duty_cycle_frame.set_visible(is_pwm);
+                self.duty_cycle.widget().set_visible(is_pwm);
             },
             _ => (),
         };
@@ -121,86 +119,60 @@ impl ::relm::Widget for Widget {
             }
         }
 
-        let frame = ::gtk::Frame::new("Amplitude");
-        page.pack_start(&frame, false, true, 0);
+        let amplitude = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        amplitude.widget().set_label("Amplitude (V)");
+        amplitude.widget().set_digits(2);
+        amplitude.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, -1.0, 1.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            amplitude@::widget::Signal::Changed(value),
+            relm,
+            Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32)
+        );
 
-        let amplitude_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
-        amplitude_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
+        let offset = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        offset.widget().set_label("Offset (V)");
+        offset.widget().set_digits(2);
+        offset.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, -1.0, 1.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            offset@::widget::Signal::Changed(value),
+            relm,
+            Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32)
+        );
 
-        amplitude_scale.connect_format_value(move |_, value| {
-            format!("{:.2} V", value)
-        });
+        let frequency = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        frequency.widget().set_label("Frequency (Hz)");
+        frequency.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0
+        ));
+        connect!(
+            frequency@::widget::Signal::Changed(value),
+            relm,
+            Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32)
+        );
 
-        let stream = relm.stream().clone();
-        amplitude_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32));
-
-            ::gtk::Inhibit(false)
-        });
-        frame.add(&amplitude_scale);
-
-        let frame = ::gtk::Frame::new("Offset");
-        page.pack_start(&frame, false, true, 0);
-
-        let offset_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -1.0, 1.0, 0.01);
-        offset_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
-
-        offset_scale.connect_format_value(move |_, value| {
-            format!("{:.2} V", value)
-        });
-
-        let stream = relm.stream().clone();
-        offset_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32));
-
-            ::gtk::Inhibit(false)
-        });
-        frame.add(&offset_scale);
-
-        let frame = ::gtk::Frame::new("Frequency");
-        page.pack_start(&frame, false, true, 0);
-
-        let frequency_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 62_500_000.0, 1_000.0);
-        frequency_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
-
-        frequency_scale.connect_format_value(move |_, value| {
-            format!("{:0} Hz", value)
-        });
-
-        let stream = relm.stream().clone();
-        frequency_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32));
-
-            ::gtk::Inhibit(false)
-        });
-        frame.add(&frequency_scale);
-
-        let duty_cycle_frame = ::gtk::Frame::new("Duty cycle");
-        page.pack_start(&duty_cycle_frame, false, true, 0);
-
-        let duty_cycle_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 1.0, 0.01);
-        duty_cycle_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
-
-        duty_cycle_scale.connect_format_value(move |_, value| {
-            format!("{:.0} %", value * 100.0)
-        });
-
-        let stream = relm.stream().clone();
-        duty_cycle_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32));
-
-            ::gtk::Inhibit(false)
-        });
-        duty_cycle_frame.add(&duty_cycle_scale);
+        let duty_cycle = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        duty_cycle.widget().set_label("Duty cycle (%)");
+        duty_cycle.widget().set_digits(2);
+        duty_cycle.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, 0.0, 1.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            duty_cycle@::widget::Signal::Changed(value),
+            relm,
+            Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32)
+        );
 
         Widget {
             page: page,
             toggle: toggle,
-            amplitude_scale: amplitude_scale,
-            offset_scale: offset_scale,
-            frequency_scale: frequency_scale,
-            duty_cycle_scale: duty_cycle_scale,
-            duty_cycle_frame: duty_cycle_frame,
+            amplitude: amplitude,
+            offset: offset,
+            frequency: frequency,
+            duty_cycle: duty_cycle,
         }
     }
 }

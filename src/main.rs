@@ -15,6 +15,7 @@ extern crate log;
 extern crate redpitaya_scpi;
 
 mod application;
+mod widget;
 
 fn main() {
     env_logger::init()

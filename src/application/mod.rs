@@ -9,7 +9,6 @@ use cairo::prelude::*;
 use gtk::{
     BoxExt,
     ContainerExt,
-    RangeExt,
     WidgetExt,
 };
 use relm::ContainerWidget;
@@ -261,33 +260,33 @@ impl ::relm::Widget for Application {
     }
 
     fn init_view(&self) {
-        self.generator.widget().amplitude_scale.set_value(
+        self.generator.widget().amplitude.widget().set_value(
             self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.generator.widget().offset_scale.set_value(
+        self.generator.widget().offset.widget().set_value(
             self.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.generator.widget().frequency_scale.set_value(
+        self.generator.widget().frequency.widget().set_value(
             self.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.generator.widget().duty_cycle_scale.set_value(
+        self.generator.widget().duty_cycle.widget().set_value(
             self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
 
-        self.trigger.widget().delay_scale.set_value(
+        self.trigger.widget().delay.widget().set_value(
             self.redpitaya.trigger.get_delay() as f64
         );
 
-        self.trigger.widget().level_scale.set_value(
+        self.trigger.widget().level.widget().set_value(
             self.redpitaya.trigger.get_level() as f64
         );
 
         self.trigger.widget().set_mode(trigger::Mode::Normal);
 
         self.window.show_all();
-        self.generator.widget().duty_cycle_frame.set_visible(false);
+        self.generator.widget().duty_cycle.widget().set_visible(false);
     }
 }

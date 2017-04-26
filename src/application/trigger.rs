@@ -2,11 +2,10 @@ use application::color::Colorable;
 use gtk::{
     BoxExt,
     ButtonExt,
-    ContainerExt,
     ComboBoxExt,
-    RangeExt,
     WidgetExt,
 };
+use relm::ContainerWidget;
 
 pub enum Mode {
     Auto = 0,
@@ -49,10 +48,10 @@ pub enum Signal {
 #[derive(Clone)]
 pub struct Widget {
     page: ::gtk::Box,
-    pub level_scale: ::gtk::Scale,
+    pub level: ::relm::Component<::widget::PreciseScale>,
     single_button: ::gtk::Button,
     pub mode_combo: ::gtk::ComboBoxText,
-    pub delay_scale: ::gtk::Scale,
+    pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
 }
 
@@ -91,15 +90,15 @@ impl ::relm::Widget for Widget {
             Signal::Mode => {
                 match self.get_mode() {
                     Mode::Auto => {
-                        self.level_scale.set_visible(false);
+                        self.level.widget().set_visible(false);
                         self.single_button.set_visible(false);
                     },
                     Mode::Normal => {
-                        self.level_scale.set_visible(true);
+                        self.level.widget().set_visible(true);
                         self.single_button.set_visible(false);
                     },
                     Mode::Single => {
-                        self.level_scale.set_visible(true);
+                        self.level.widget().set_visible(true);
                         self.single_button.set_visible(true);
                     },
                 };
@@ -109,57 +108,42 @@ impl ::relm::Widget for Widget {
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
-        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
-
-        let frame = ::gtk::Frame::new("Level");
-        page.pack_start(&frame, false, true, 0);
-
-        let level_box = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
-        frame.add(&level_box);
+        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let mode_combo = ::gtk::ComboBoxText::new();
         mode_combo.append_text("Auto");
         mode_combo.append_text("Normal");
         mode_combo.append_text("Single");
-        level_box.pack_start(&mode_combo, false, false, 0);
+        page.pack_start(&mode_combo, false, false, 0);
         connect!(relm, mode_combo, connect_changed(_), Signal::Mode);
 
         let single_button = ::gtk::Button::new_with_label("Single");
-        level_box.pack_start(&single_button, false, false, 0);
+        page.pack_start(&single_button, false, false, 0);
         connect!(relm, single_button, connect_clicked(_), Signal::Single);
 
-        let level_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, -10.0, 10.0, 0.1);
-        level_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
+        let level = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        level.widget().set_label("Level (V)");
+        level.widget().set_digits(2);
+        level.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            level@::widget::Signal::Changed(value),
+            relm,
+            Signal::Level(value as f32)
+        );
 
-        level_scale.connect_format_value(move |_, value| {
-            format!("{:.2} mV", value)
-        });
-
-        let stream = relm.stream().clone();
-        level_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::Level(value as f32));
-
-            ::gtk::Inhibit(false)
-        });
-        level_box.pack_start(&level_scale, false, false, 0);
-
-        let frame = ::gtk::Frame::new("Delay");
-        page.pack_start(&frame, false, true, 0);
-
-        let delay_scale = ::gtk::Scale::new_with_range(::gtk::Orientation::Horizontal, 0.0, 16384.0, 1.0);
-        delay_scale.add_mark(0.0, ::gtk::PositionType::Top, None);
-
-        delay_scale.connect_format_value(move |_, value| {
-            format!("{:.0} Sample", value)
-        });
-
-        let stream = relm.stream().clone();
-        delay_scale.connect_change_value(move |_, _, value| {
-            stream.emit(Signal::Delay(value as u16));
-
-            ::gtk::Inhibit(false)
-        });
-        frame.add(&delay_scale);
+        let delay = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        delay.widget().set_label("Delay (V)");
+        delay.widget().set_digits(2);
+        delay.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, 0.0, 16384.0, 1.1, 10.0, 0.0
+        ));
+        connect!(
+            delay@::widget::Signal::Changed(value),
+            relm,
+            Signal::Delay(value as u16)
+        );
 
         let stream = relm.stream().clone();
         GLOBAL.with(move |global| {
@@ -179,8 +163,8 @@ impl ::relm::Widget for Widget {
         Widget {
             page: page,
             single_button: single_button,
-            delay_scale: delay_scale,
-            level_scale: level_scale,
+            delay: delay,
+            level: level,
             mode_combo: mode_combo,
             stream: relm.stream().clone(),
         }
@@ -191,11 +175,11 @@ impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
         context.set_color(::application::color::TRIGGER);
 
-        context.move_to(scales.h.0, self.level_scale.get_value());
-        context.line_to(scales.h.1, self.level_scale.get_value());
+        context.move_to(scales.h.0, self.level.widget().get_value());
+        context.line_to(scales.h.1, self.level.widget().get_value());
 
-        context.move_to(self.delay_scale.get_value(), scales.v.0);
-        context.line_to(self.delay_scale.get_value(), scales.v.1);
+        context.move_to(self.delay.widget().get_value(), scales.v.0);
+        context.line_to(self.delay.widget().get_value(), scales.v.1);
 
         context.stroke();
     }
