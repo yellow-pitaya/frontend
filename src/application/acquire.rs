@@ -44,9 +44,9 @@ impl ::relm::Widget for Widget {
         let stream = relm.stream().clone();
         toggle.connect_toggled(move |w| {
             if w.get_active() {
-                    stream.emit(Signal::Start);
+                stream.emit(Signal::Start);
             } else {
-                    stream.emit(Signal::Stop);
+                stream.emit(Signal::Stop);
             }
         });
 

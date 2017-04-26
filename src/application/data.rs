@@ -1,21 +1,28 @@
-use ::application::color::Colorable;
+use application::color::Colorable;
+
+#[derive(Msg)]
+pub enum Signal {
+    Data,
+}
 
 #[derive(Clone)]
 pub struct Widget {
-    pub data: String,
+    buffer: ::std::cell::RefCell<String>,
+    label: ::gtk::Label,
+    stream: ::relm::EventStream<Signal>,
 }
 
 impl Widget {
-    pub fn new() -> Self {
-        Widget {
-            data: String::new(),
-        }
+    pub fn set_buffer(&self, buffer: String) {
+        *self.buffer.borrow_mut() = buffer;
+        self.stream.emit(Signal::Data);
     }
 }
 
 impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, _: ::application::Scales) {
-        let mut data = self.data
+        let buffer = self.buffer.borrow();
+        let mut data = buffer
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
             .split(",")
             .map(|s| {
@@ -41,5 +48,29 @@ impl ::application::Panel for Widget {
             }
         }
         context.stroke();
+    }
+}
+
+impl ::relm::Widget for Widget {
+    type Model = ();
+    type Msg = Signal;
+    type Root = ::gtk::Label;
+
+    fn model() -> Self::Model {
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.label
+    }
+
+    fn update(&mut self, _: Signal, _: &mut Self::Model) {
+    }
+
+    fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+        Widget {
+            buffer: ::std::cell::RefCell::new(String::new()),
+            label: ::gtk::Label::new(""),
+            stream: relm.stream().clone(),
+        }
     }
 }

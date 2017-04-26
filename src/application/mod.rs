@@ -42,7 +42,7 @@ pub struct Application {
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
-    data: data::Widget,
+    data: ::relm::Component<data::Widget>,
     scales: Scales,
 }
 
@@ -64,12 +64,8 @@ impl Application {
         context.set_line_width(0.01);
 
         self.draw_panel(self.graph.widget(), &context);
-
         self.draw_panel(self.trigger.widget(), &context);
-
-        if self.redpitaya.acquire.is_started() {
-            self.draw_panel(&self.data, &context);
-        }
+        self.draw_panel(self.data.widget(), &context);
 
         image.flush();
         graph.set_image(&image);
@@ -105,6 +101,9 @@ pub enum Signal {
     GeneratorStop(::redpitaya_scpi::generator::Source),
     GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
     GraphDraw,
+    TriggerAuto,
+    TriggerNormal,
+    TriggerSingle,
     TriggerDelay(u16),
     TriggerLevel(f32),
     Quit,
@@ -122,6 +121,9 @@ impl ::relm::DisplayVariant for Signal {
             Signal::GeneratorStart(_) => "Signal::GeneratorStart",
             Signal::GeneratorStop(_) => "Signal::GeneratorStop",
             Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
+            Signal::TriggerAuto => "Signal::TriggerAuto",
+            Signal::TriggerNormal => "Signal::TriggerNormal",
+            Signal::TriggerSingle => "Signal::Single",
             Signal::TriggerDelay(_) => "Signal::TriggerDelay",
             Signal::TriggerLevel(_) => "Signal::TriggerLevel",
             Signal::GraphDraw => "Signal::GraphDraw",
@@ -155,13 +157,18 @@ impl ::relm::Widget for Application {
             Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
             Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
 
-            Signal::GraphDraw => {
-                if self.redpitaya.acquire.is_started() {
-                    self.data.data = self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1);
-                }
-                self.draw();
-            },
+            Signal::GraphDraw => self.draw(),
 
+            Signal::TriggerAuto | Signal::TriggerSingle => if self.redpitaya.acquire.is_started() {
+                    self.data.widget().set_buffer(
+                        self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
+                    );
+            },
+            Signal::TriggerNormal => if self.redpitaya.acquire.is_started() {
+                self.data.widget().set_buffer(
+                    self.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16384)
+                );
+            },
             Signal::TriggerDelay(value) => self.redpitaya.trigger.set_delay(value),
             Signal::TriggerLevel(value) => self.redpitaya.trigger.set_level(value),
 
@@ -194,6 +201,9 @@ impl ::relm::Widget for Application {
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
 
+        let data = acquire_page.add_widget::<data::Widget, _>(&relm);
+        connect!(data@data::Signal::Data, relm, Signal::GraphDraw);
+
         notebook.append_page(
             &acquire_page,
             Some(&::gtk::Label::new(Some("Acquire")))
@@ -222,6 +232,9 @@ impl ::relm::Widget for Application {
         let trigger_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         trigger_page.set_border_width(10);
         let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm);
+        connect!(trigger@trigger::Signal::Auto, relm, Signal::TriggerAuto);
+        connect!(trigger@trigger::Signal::Normal, relm, Signal::TriggerNormal);
+        connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);
         connect!(trigger@trigger::Signal::Delay(value), relm, Signal::TriggerDelay(value));
         connect!(trigger@trigger::Signal::Level(value), relm, Signal::TriggerLevel(value));
 
@@ -232,28 +245,13 @@ impl ::relm::Widget for Application {
 
         main_box.pack_start(&notebook, false, true, 0);
 
-        let stream = relm.stream().clone();
-        GLOBAL.with(move |global| {
-            *global.borrow_mut() = Some(stream)
-        });
-
-        ::gtk::timeout_add(1_000, || {
-            GLOBAL.with(|global| {
-                if let Some(ref stream) = *global.borrow() {
-                    stream.emit(Signal::GraphDraw);
-                }
-            });
-
-            ::glib::Continue(true)
-        });
-
         Application {
             window: window,
             graph: graph,
             acquire: acquire,
             generator: generator,
             trigger: trigger,
-            data: data::Widget::new(),
+            data: data,
             redpitaya: redpitaya,
             scales: Scales {
                 h: (0.0, 16384.0),
@@ -287,11 +285,9 @@ impl ::relm::Widget for Application {
             self.redpitaya.trigger.get_level() as f64
         );
 
+        self.trigger.widget().set_mode(trigger::Mode::Normal);
+
         self.window.show_all();
         self.generator.widget().duty_cycle_frame.set_visible(false);
     }
 }
-
-thread_local!(
-    static GLOBAL: ::std::cell::RefCell<Option<::relm::EventStream<Signal>>> = ::std::cell::RefCell::new(None)
-);
