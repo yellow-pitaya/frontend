@@ -51,6 +51,7 @@ impl Scales {
 pub struct Application {
     window: ::gtk::Window,
     graph: ::relm::Component<graph::Widget>,
+    status_bar: ::gtk::Statusbar,
     acquire: ::relm::Component<acquire::Widget>,
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
@@ -206,7 +207,11 @@ impl ::relm::Widget for Application {
         let graph = graph_page.add_widget::<graph::Widget, _>(&relm);
         connect!(graph@graph::Signal::Draw, relm, Signal::GraphDraw);
 
+        let vbox = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        main_box.pack_start(&vbox, false, false, 0);
+
         let notebook = ::gtk::Notebook::new();
+        vbox.pack_start(&notebook, true, true, 0);
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
@@ -238,6 +243,9 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Generator")))
         );
 
+        let status_bar = ::gtk::Statusbar::new();
+        vbox.pack_start(&status_bar, false, true, 0);
+
         let window = ::gtk::Window::new(::gtk::WindowType::Toplevel);
         window.add(&main_box);
         connect!(relm, window, connect_destroy(_), Signal::Quit);
@@ -256,11 +264,10 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Trigger")))
         );
 
-        main_box.pack_start(&notebook, false, true, 0);
-
         Application {
             window: window,
             graph: graph,
+            status_bar: status_bar,
             acquire: acquire,
             generator: generator,
             trigger: trigger,
@@ -295,6 +302,11 @@ impl ::relm::Widget for Application {
 
             let mut scales = self.scales;
             scales.from_decimation(decimation);
+
+            self.status_bar.push(
+                self.status_bar.get_context_id("sampling-rate"),
+                decimation.get_sampling_rate()
+            );
         }
 
         self.trigger.widget().delay.widget().set_value(
