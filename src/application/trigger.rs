@@ -137,7 +137,7 @@ impl ::relm::Widget for Widget {
         delay.widget().set_label("Delay (V)");
         delay.widget().set_digits(2);
         delay.widget().set_adjustment(::gtk::Adjustment::new(
-            0.0, 0.0, 16384.0, 1.1, 10.0, 0.0
+            0.0, 0.0, 131_072.0, 1.1, 10.0, 0.0
         ));
         connect!(
             delay@::widget::Signal::Changed(value),

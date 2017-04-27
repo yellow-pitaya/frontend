@@ -31,6 +31,20 @@ impl Scales {
     pub fn get_height(&self) -> f64 {
         self.v.1 - self.v.0
     }
+
+    pub fn x(&self) -> ::std::ops::Range<u64> {
+        ::std::ops::Range {
+            start: self.h.0 as u64,
+            end: self.h.1 as u64,
+        }
+    }
+
+    pub fn from_decimation(&mut self, decimation: ::redpitaya_scpi::acquire::Decimation) {
+        let duration = decimation.get_buffer_duration();
+        let h1 = (duration.as_secs() * 1_000_000 + duration.subsec_nanos() as u64 / 1_000) as f64;
+
+        self.h.1 = h1;
+    }
 }
 
 #[derive(Clone)]
@@ -165,7 +179,7 @@ impl ::relm::Widget for Application {
             },
             Signal::TriggerNormal => if self.redpitaya.acquire.is_started() {
                 self.data.widget().set_buffer(
-                    self.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16384)
+                    self.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
                 );
             },
             Signal::TriggerDelay(value) => self.redpitaya.trigger.set_delay(value),
@@ -253,7 +267,7 @@ impl ::relm::Widget for Application {
             data: data,
             redpitaya: redpitaya,
             scales: Scales {
-                h: (0.0, 16384.0),
+                h: (0.0, 131_072.0),
                 v: (-5.0, 5.0),
             },
         }
@@ -275,6 +289,13 @@ impl ::relm::Widget for Application {
         self.generator.widget().duty_cycle.widget().set_value(
             self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
+
+        {
+            let decimation = self.redpitaya.acquire.get_decimation();
+
+            let mut scales = self.scales;
+            scales.from_decimation(decimation);
+        }
 
         self.trigger.widget().delay.widget().set_value(
             self.redpitaya.trigger.get_delay() as f64

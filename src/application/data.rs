@@ -20,7 +20,7 @@ impl Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, _: ::application::Scales) {
+    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
         let buffer = self.buffer.borrow();
         let mut data = buffer
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
@@ -38,11 +38,13 @@ impl ::application::Panel for Widget {
         context.set_line_width(0.05);
         context.set_color(::application::color::IN1);
 
-        for x in 0..16384 {
+        for sample in 0..16_384 {
+            let t = sample as f64 / 16_384.0 * scales.h.1;
+
             match data.next() {
                 Some(y) => {
-                    context.line_to(x as f64, y);
-                    context.move_to(x as f64, y);
+                    context.line_to(t, y);
+                    context.move_to(t, y);
                 },
                 None => (),
             }
