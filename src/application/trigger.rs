@@ -172,7 +172,7 @@ impl ::relm::Widget for Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
+    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
         context.set_color(::application::color::TRIGGER);
 
         context.move_to(scales.h.0, self.level.widget().get_value());

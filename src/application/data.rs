@@ -20,7 +20,7 @@ impl Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
+    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
         let buffer = self.buffer.borrow();
         let mut data = buffer
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())

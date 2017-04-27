@@ -43,7 +43,7 @@ impl Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::application::Scales) {
+    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
         let width = scales.get_width();
         let height = scales.get_height();
 
