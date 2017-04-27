@@ -290,6 +290,9 @@ impl ::relm::Widget for Application {
         self.trigger.widget().set_mode(trigger::Mode::Normal);
 
         self.window.show_all();
+
+        // @FIXME
         self.generator.widget().duty_cycle.widget().set_visible(false);
+        self.generator.widget().palette.widget().fold();
     }
 }

@@ -1,8 +1,4 @@
-use gtk::{
-    BoxExt,
-    ButtonExt,
-    ToggleButtonExt,
-};
+use relm::ContainerWidget;
 
 #[derive(Msg)]
 pub enum Signal {
@@ -13,7 +9,7 @@ pub enum Signal {
 #[derive(Clone)]
 pub struct Widget {
     page: ::gtk::Box,
-    toggle: ::gtk::ToggleButton,
+    palette: ::relm::Component<::widget::Palette>,
 }
 
 impl ::relm::Widget for Widget {
@@ -28,31 +24,20 @@ impl ::relm::Widget for Widget {
         &self.page
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
-        match event {
-            Signal::Start => self.toggle.set_label("Stop"),
-            Signal::Stop => self.toggle.set_label("Run"),
-        };
+    fn update(&mut self, _: Signal, _: &mut Self::Model) {
     }
 
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
 
-        let toggle = ::gtk::ToggleButton::new_with_label("Run");
-        page.pack_start(&toggle, false, false, 0);
-
-        let stream = relm.stream().clone();
-        toggle.connect_toggled(move |w| {
-            if w.get_active() {
-                stream.emit(Signal::Start);
-            } else {
-                stream.emit(Signal::Stop);
-            }
-        });
+        let palette = page.add_widget::<::widget::Palette, _>(&relm);
+        palette.widget().set_label("IN 1");
+        connect!(palette@::widget::Signal::Expand, relm, Signal::Start);
+        connect!(palette@::widget::Signal::Fold, relm, Signal::Stop);
 
         Widget {
             page: page,
-            toggle: toggle,
+            palette: palette,
         }
     }
 }

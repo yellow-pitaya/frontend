@@ -1,6 +1,6 @@
+use application::color::Colorable;
 use gtk::{
     BoxExt,
-    ButtonExt,
     ContainerExt,
     ToggleButtonExt,
 };
@@ -34,7 +34,7 @@ impl ::relm::DisplayVariant for Signal {
 #[derive(Clone)]
 pub struct Widget {
     pub page: ::gtk::Box,
-    pub toggle: ::gtk::ToggleButton,
+    pub palette: ::relm::Component<::widget::Palette>,
     pub amplitude: ::relm::Component<::widget::PreciseScale>,
     pub offset: ::relm::Component<::widget::PreciseScale>,
     pub frequency: ::relm::Component<::widget::PreciseScale>,
@@ -55,8 +55,6 @@ impl ::relm::Widget for Widget {
 
     fn update(&mut self, event: Signal, _: &mut Self::Model) {
         match event {
-            Signal::Start(_) => self.toggle.set_label("Stop"),
-            Signal::Stop(_) => self.toggle.set_label("Run"),
             Signal::Signal(_, form) => {
                 let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
                 self.duty_cycle.widget().set_visible(is_pwm);
@@ -68,23 +66,19 @@ impl ::relm::Widget for Widget {
     fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
-        let toggle = ::gtk::ToggleButton::new_with_label("Run");
-        page.pack_start(&toggle, false, false, 0);
+        let palette = page.add_widget::<::widget::Palette, _>(&relm);
+        palette.widget().set_label("OUT 1");
+        connect!(palette@::widget::Signal::Expand, relm, Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
+        connect!(palette@::widget::Signal::Fold, relm, Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
 
-        let stream = relm.stream().clone();
-        toggle.connect_toggled(move |w| {
-            if w.get_active() {
-                stream.emit(Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
-            } else {
-                stream.emit(Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
-            }
-        });
+        let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
+        palette.widget().add(&vbox);
 
         let frame = ::gtk::Frame::new("Form");
-        page.pack_start(&frame, false, true, 0);
+        vbox.pack_start(&frame, false, true, 0);
 
-        let vbox = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
-        frame.add(&vbox);
+        let flow_box = ::gtk::FlowBox::new();
+        frame.add(&flow_box);
 
         let forms = vec![
             ::redpitaya_scpi::generator::Form::SINE,
@@ -103,7 +97,7 @@ impl ::relm::Widget for Widget {
                 group_member.as_ref(),
                 format!("{}", form).as_str()
             );
-            vbox.pack_start(&button, false, true, 0);
+            flow_box.add(&button);
 
             let stream = relm.stream().clone();
             button.connect_toggled(move |f| {
@@ -119,7 +113,7 @@ impl ::relm::Widget for Widget {
             }
         }
 
-        let amplitude = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
         amplitude.widget().set_label("Amplitude (V)");
         amplitude.widget().set_digits(2);
         amplitude.widget().set_adjustment(::gtk::Adjustment::new(
@@ -131,7 +125,7 @@ impl ::relm::Widget for Widget {
             Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
 
-        let offset = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let offset = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
         offset.widget().set_label("Offset (V)");
         offset.widget().set_digits(2);
         offset.widget().set_adjustment(::gtk::Adjustment::new(
@@ -143,7 +137,7 @@ impl ::relm::Widget for Widget {
             Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
 
-        let frequency = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let frequency = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
         frequency.widget().set_label("Frequency (Hz)");
         frequency.widget().set_adjustment(::gtk::Adjustment::new(
             0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0
@@ -154,7 +148,7 @@ impl ::relm::Widget for Widget {
             Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
 
-        let duty_cycle = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
         duty_cycle.widget().set_label("Duty cycle (%)");
         duty_cycle.widget().set_digits(2);
         duty_cycle.widget().set_adjustment(::gtk::Adjustment::new(
@@ -168,7 +162,7 @@ impl ::relm::Widget for Widget {
 
         Widget {
             page: page,
-            toggle: toggle,
+            palette: palette,
             amplitude: amplitude,
             offset: offset,
             frequency: frequency,
