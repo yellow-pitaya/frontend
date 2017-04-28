@@ -98,8 +98,9 @@ impl ::relm::Widget for Widget {
     type Model = ();
     type Msg = Signal;
     type Root = ::gtk::Box;
+    type ModelParam = ();
 
-    fn model() -> Self::Model {
+    fn model(_: Self::ModelParam) -> Self::Model {
     }
 
     fn root(&self) -> &Self::Root {
@@ -109,10 +110,10 @@ impl ::relm::Widget for Widget {
     fn update(&mut self, _: Signal, _: &mut Self::Model) {
     }
 
-    fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
 
-        let palette = page.add_widget::<::widget::Palette, _>(&relm);
+        let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("IN 1");
         connect!(palette@::widget::Signal::Expand, relm, Signal::Start);
         connect!(palette@::widget::Signal::Fold, relm, Signal::Stop);
@@ -120,7 +121,7 @@ impl ::relm::Widget for Widget {
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
-        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         level.widget().set_label("Level (V)");
         level.widget().set_adjustment(::gtk::Adjustment::new(
             0.0, -10.0, 10.0, 0.1, 1.0, 0.0

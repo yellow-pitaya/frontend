@@ -22,7 +22,7 @@ pub enum Signal {
 
 #[widget]
 impl ::relm::Widget for PreciseScale {
-    fn model() -> () {
+    fn model(_: ()) -> () {
     }
 
     fn update(&mut self, event: Signal, _: &mut Self::Model) {
@@ -117,7 +117,7 @@ impl PreciseScale {
 
 #[widget]
 impl ::relm::Widget for Palette {
-    fn model() -> () {
+    fn model(_: ()) -> () {
     }
 
     fn update(&mut self, event: Signal, _: &mut Self::Model) {

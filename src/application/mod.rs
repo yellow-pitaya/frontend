@@ -29,11 +29,6 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn run() {
-        ::relm::run::<Self>()
-            .unwrap();
-    }
-
     pub fn draw(&self) {
         let graph = self.graph.widget();
         let width = graph.get_width();
@@ -119,8 +114,9 @@ impl ::relm::Widget for Application {
     type Model = ();
     type Msg = Signal;
     type Root = ::gtk::Window;
+    type ModelParam = ();
 
-    fn model() -> Self::Model {
+    fn model(_: Self::ModelParam) -> Self::Model {
     }
 
     fn root(&self) -> &Self::Root {
@@ -164,7 +160,7 @@ impl ::relm::Widget for Application {
         };
     }
 
-    fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
         // @TODO use program arguments
         let redpitaya = ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000");
 
@@ -173,7 +169,7 @@ impl ::relm::Widget for Application {
         let graph_page = ::gtk::EventBox::new();
         main_box.pack_start(&graph_page, true, true, 0);
 
-        let graph = graph_page.add_widget::<graph::Widget, _>(&relm);
+        let graph = graph_page.add_widget::<graph::Widget, _>(&relm, ());
         connect!(graph@graph::Signal::Draw, relm, Signal::GraphDraw);
 
         let vbox = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
@@ -184,7 +180,7 @@ impl ::relm::Widget for Application {
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
-        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm);
+        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, ());
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
@@ -197,7 +193,7 @@ impl ::relm::Widget for Application {
 
         let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         generator_page.set_border_width(10);
-        let generator = generator_page.add_widget::<generator::Widget, _>(&relm);
+        let generator = generator_page.add_widget::<generator::Widget, _>(&relm, ());
         connect!(generator@generator::Signal::Start(source), relm, Signal::GeneratorStart(source));
         connect!(generator@generator::Signal::Stop(source), relm, Signal::GeneratorStop(source));
         connect!(generator@generator::Signal::Amplitude(source, value), relm, Signal::GeneratorAmplitude(source, value));
@@ -220,7 +216,7 @@ impl ::relm::Widget for Application {
 
         let trigger_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         trigger_page.set_border_width(10);
-        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm);
+        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm, ());
         connect!(trigger@trigger::Signal::Auto, relm, Signal::TriggerAuto);
         connect!(trigger@trigger::Signal::Normal, relm, Signal::TriggerNormal);
         connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);

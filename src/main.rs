@@ -17,6 +17,8 @@ extern crate redpitaya_scpi;
 mod application;
 mod widget;
 
+use ::relm::Widget;
+
 #[derive(Copy, Clone)]
 struct Scales {
     h: (f64, f64),
@@ -57,5 +59,6 @@ fn main() {
     env_logger::init()
         .unwrap();
 
-    application::Application::run();
+    application::Application::run(())
+        .unwrap();
 }

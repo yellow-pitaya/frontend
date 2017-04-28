@@ -10,9 +10,9 @@ glib = "0.1"
 gdk-sys = "0.3"
 log = "0.3"
 redpitaya-scpi = "0.11"
-relm = "0.7"
-relm-attributes = "0.7"
-relm-derive = "0.7"
+relm = "0.9"
+relm-attributes = "0.9"
+relm-derive = "0.9"
 
 [dependencies.gtk]
 version = "0.1"

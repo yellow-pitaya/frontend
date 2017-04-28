@@ -128,8 +128,9 @@ impl ::relm::Widget for Widget {
     type Model = ();
     type Msg = Signal;
     type Root = ::gtk::Box;
+    type ModelParam = ();
 
-    fn model() -> Self::Model {
+    fn model(_: Self::ModelParam) -> Self::Model {
     }
 
     fn root(&self) -> &Self::Root {
@@ -146,10 +147,10 @@ impl ::relm::Widget for Widget {
         };
     }
 
-    fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
-        let palette = page.add_widget::<::widget::Palette, _>(&relm);
+        let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("OUT 1");
         connect!(palette@::widget::Signal::Expand, relm, Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
         connect!(palette@::widget::Signal::Fold, relm, Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
@@ -196,7 +197,7 @@ impl ::relm::Widget for Widget {
             }
         }
 
-        let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         amplitude.widget().set_label("Amplitude (V)");
         amplitude.widget().set_digits(2);
         amplitude.widget().set_adjustment(::gtk::Adjustment::new(
@@ -208,7 +209,7 @@ impl ::relm::Widget for Widget {
             Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
 
-        let offset = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let offset = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         offset.widget().set_label("Offset (V)");
         offset.widget().set_digits(2);
         offset.widget().set_adjustment(::gtk::Adjustment::new(
@@ -220,7 +221,7 @@ impl ::relm::Widget for Widget {
             Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
 
-        let frequency = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let frequency = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         frequency.widget().set_label("Frequency (Hz)");
         frequency.widget().set_adjustment(::gtk::Adjustment::new(
             0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0
@@ -231,7 +232,7 @@ impl ::relm::Widget for Widget {
             Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
 
-        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         level.widget().set_label("Level (V)");
         level.widget().set_adjustment(::gtk::Adjustment::new(
             0.0, -10.0, 10.0, 0.1, 1.0, 0.0
@@ -242,7 +243,7 @@ impl ::relm::Widget for Widget {
             Signal::Level(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
 
-        let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         duty_cycle.widget().set_label("Duty cycle (%)");
         duty_cycle.widget().set_digits(2);
         duty_cycle.widget().set_adjustment(::gtk::Adjustment::new(

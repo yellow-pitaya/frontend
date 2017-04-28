@@ -70,8 +70,9 @@ impl ::relm::Widget for Widget {
     type Model = ();
     type Msg = Signal;
     type Root = ::gtk::Box;
+    type ModelParam = ();
 
-    fn model() -> Self::Model {
+    fn model(_: Self::ModelParam) -> Self::Model {
     }
 
     fn root(&self) -> &Self::Root {
@@ -107,7 +108,7 @@ impl ::relm::Widget for Widget {
         }
     }
 
-    fn view(relm: ::relm::RemoteRelm<Signal>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let mode_combo = ::gtk::ComboBoxText::new();
@@ -121,7 +122,7 @@ impl ::relm::Widget for Widget {
         page.pack_start(&single_button, false, false, 0);
         connect!(relm, single_button, connect_clicked(_), Signal::Single);
 
-        let level = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let level = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
         level.widget().set_label("Level (V)");
         level.widget().set_digits(2);
         level.widget().set_adjustment(::gtk::Adjustment::new(
@@ -133,7 +134,7 @@ impl ::relm::Widget for Widget {
             Signal::Level(value as f32)
         );
 
-        let delay = page.add_widget::<::widget::PreciseScale, _>(&relm);
+        let delay = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
         delay.widget().set_label("Delay (V)");
         delay.widget().set_digits(2);
         delay.widget().set_adjustment(::gtk::Adjustment::new(
