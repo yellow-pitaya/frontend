@@ -1,4 +1,4 @@
-use application::color::Colorable;
+use color::Colorable;
 use relm::ContainerWidget;
 
 #[derive(Clone)]
@@ -84,7 +84,7 @@ impl ::application::Panel for Widget {
             return;
         }
 
-        context.set_color(::application::color::IN1);
+        context.set_color(::color::IN1);
 
         let level = self.level.widget().get_value();
         context.translate(0.0, level);
@@ -115,6 +115,7 @@ impl ::relm::Widget for Widget {
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("IN 1");
+        palette.widget().set_color(::color::IN1);
         connect!(palette@::widget::Signal::Expand, relm, Signal::Start);
         connect!(palette@::widget::Signal::Fold, relm, Signal::Stop);
 

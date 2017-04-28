@@ -3,8 +3,10 @@
 extern crate cairo;
 extern crate env_logger;
 extern crate glib;
+extern crate gdk;
 extern crate gdk_sys;
 extern crate gtk;
+extern crate gtk_sys;
 #[macro_use]
 extern crate relm;
 extern crate relm_attributes;
@@ -15,6 +17,7 @@ extern crate log;
 extern crate redpitaya_scpi;
 
 mod application;
+mod color;
 mod widget;
 
 use ::relm::Widget;

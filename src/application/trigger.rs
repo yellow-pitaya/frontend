@@ -1,4 +1,4 @@
-use application::color::Colorable;
+use color::Colorable;
 use gtk::{
     BoxExt,
     ButtonExt,
@@ -174,7 +174,7 @@ impl ::relm::Widget for Widget {
 
 impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
-        context.set_color(::application::color::TRIGGER);
+        context.set_color(::color::TRIGGER);
 
         context.move_to(scales.h.0, self.level.widget().get_value());
         context.line_to(scales.h.1, self.level.widget().get_value());

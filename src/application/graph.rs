@@ -1,4 +1,4 @@
-use application::color::Colorable;
+use color::Colorable;
 use gtk::{
     WidgetExt,
 };
@@ -47,20 +47,20 @@ impl ::application::Panel for Widget {
         let width = scales.get_width();
         let height = scales.get_height();
 
-        context.set_color(::application::color::BACKGROUND);
+        context.set_color(::color::BACKGROUND);
         context.rectangle(scales.h.0, scales.v.0, width, height);
         context.fill();
 
-        context.set_color(::application::color::MAIN_SCALE);
+        context.set_color(::color::MAIN_SCALE);
 
         context.rectangle(scales.h.0, scales.v.0, width, height);
         context.stroke();
 
         for i in 1..10 {
             if i == 5 {
-                context.set_color(::application::color::MAIN_SCALE);
+                context.set_color(::color::MAIN_SCALE);
             } else {
-                context.set_color(::application::color::SECONDARY_SCALE);
+                context.set_color(::color::SECONDARY_SCALE);
             }
 
             let x = width / 10.0 * (i as f64);

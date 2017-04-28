@@ -1,4 +1,4 @@
-type Color = (f64, f64, f64, f64);
+pub type Color = (f64, f64, f64, f64);
 
 pub const BACKGROUND: Color = (0.0, 0.0, 0.0, 1.0);
 pub const MAIN_SCALE: Color = (1.0, 1.0, 1.0, 1.0);

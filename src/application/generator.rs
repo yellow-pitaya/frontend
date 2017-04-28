@@ -1,4 +1,4 @@
-use application::color::Colorable;
+use color::Colorable;
 use gtk::{
     BoxExt,
     ButtonExt,
@@ -152,6 +152,7 @@ impl ::relm::Widget for Widget {
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("OUT 1");
+        palette.widget().set_color(::color::OUT1);
         connect!(palette@::widget::Signal::Expand, relm, Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
         connect!(palette@::widget::Signal::Fold, relm, Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
 
@@ -274,7 +275,7 @@ impl ::application::Panel for Widget {
             return;
         }
 
-        context.set_color(::application::color::OUT1);
+        context.set_color(::color::OUT1);
 
         let level = self.level.widget().get_value();
         context.translate(0.0, level);

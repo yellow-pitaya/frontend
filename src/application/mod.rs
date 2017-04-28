@@ -1,5 +1,4 @@
 mod acquire;
-mod color;
 mod generator;
 mod graph;
 mod trigger;
