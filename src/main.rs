@@ -59,6 +59,8 @@ fn main() {
     env_logger::init()
         .unwrap();
 
-    application::Application::run(())
+    let redpitaya = ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000");
+
+    application::Application::run(redpitaya)
         .unwrap();
 }

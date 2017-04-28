@@ -17,6 +17,12 @@ trait Panel {
 }
 
 #[derive(Clone)]
+pub struct Model {
+    redpitaya: ::redpitaya_scpi::Redpitaya,
+    scales: ::Scales,
+}
+
+#[derive(Clone)]
 pub struct Application {
     window: ::gtk::Window,
     graph: ::relm::Component<graph::Widget>,
@@ -24,12 +30,60 @@ pub struct Application {
     acquire: ::relm::Component<acquire::Widget>,
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
-    redpitaya: ::redpitaya_scpi::Redpitaya,
-    scales: ::Scales,
 }
 
 impl Application {
-    pub fn draw(&self) {
+    fn init(&self, model: &Model) {
+        self.generator.widget().amplitude.widget().set_value(
+            model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.generator.widget().offset.widget().set_value(
+            model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.generator.widget().frequency.widget().set_value(
+            model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        self.generator.widget().duty_cycle.widget().set_value(
+            model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
+        );
+
+        {
+            let decimation = model.redpitaya.acquire.get_decimation();
+            let status = format!(
+                "{} - {} V/div - {} µs/div",
+                decimation.get_sampling_rate(),
+                model.scales.v_div(),
+                model.scales.h_div()
+            );
+
+            self.status_bar.push(
+                self.status_bar.get_context_id("sampling-rate"),
+                status.as_str()
+            );
+        }
+
+        self.trigger.widget().delay.widget().set_value(
+            model.redpitaya.trigger.get_delay() as f64
+        );
+
+        self.trigger.widget().level.widget().set_value(
+            model.redpitaya.trigger.get_level() as f64
+        );
+
+        self.trigger.widget().set_mode(trigger::Mode::Normal);
+
+        self.window.show_all();
+
+        // @FIXME
+        self.acquire.widget().palette.widget().fold();
+        self.generator.widget().duty_cycle.widget().set_visible(false);
+        self.generator.widget().palette.widget().fold();
+    }
+
+    pub fn draw(&self, model: &Model) {
         let graph = self.graph.widget();
         let width = graph.get_width();
         let height = graph.get_height();
@@ -37,32 +91,32 @@ impl Application {
         let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width as i32, height as i32);
         let context = ::cairo::Context::new(&image);
 
-        self.transform(&context, width, height);
+        self.transform(model.scales, &context, width, height);
         context.set_line_width(0.01);
 
-        self.draw_panel(self.graph.widget(), &context);
-        self.draw_panel(self.trigger.widget(), &context);
-        self.draw_panel(self.generator.widget(), &context);
-        self.draw_panel(self.acquire.widget(), &context);
+        self.draw_panel(self.graph.widget(), model.scales, &context);
+        self.draw_panel(self.trigger.widget(), model.scales, &context);
+        self.draw_panel(self.generator.widget(), model.scales, &context);
+        self.draw_panel(self.acquire.widget(), model.scales, &context);
 
         image.flush();
         graph.set_image(&image);
     }
 
-    fn draw_panel(&self, panel: &Panel, context: &::cairo::Context) {
+    fn draw_panel(&self, panel: &Panel, scales: ::Scales, context: &::cairo::Context) {
         context.save();
-        panel.draw(&context, self.scales);
+        panel.draw(&context, scales);
         context.restore();
     }
 
-    fn transform(&self, context: &::cairo::Context, width: f64, height: f64) {
+    fn transform(&self, scales: ::Scales, context: &::cairo::Context, width: f64, height: f64) {
         context.set_matrix(::cairo::Matrix {
-            xx: width / self.scales.get_width(),
+            xx: width / scales.get_width(),
             xy: 0.0,
-            yy: -height / self.scales.get_height(),
+            yy: -height / scales.get_height(),
             yx: 0.0,
-            x0: self.scales.h.0 * width / self.scales.get_width(),
-            y0: self.scales.v.1 * height / self.scales.get_height(),
+            x0: scales.h.0 * width / scales.get_width(),
+            y0: scales.v.1 * height / scales.get_height(),
         });
     }
 }
@@ -111,59 +165,68 @@ impl ::relm::DisplayVariant for Signal {
 }
 
 impl ::relm::Widget for Application {
-    type Model = ();
+    type Model = Model;
+    type ModelParam = ::redpitaya_scpi::Redpitaya;
     type Msg = Signal;
     type Root = ::gtk::Window;
-    type ModelParam = ();
 
-    fn model(_: Self::ModelParam) -> Self::Model {
+    fn model(redpitaya: Self::ModelParam) -> Self::Model {
+        let mut scales = ::Scales {
+            h: (0.0, 0.0),
+            v: (-5.0, 5.0),
+            n_samples: redpitaya.data.buffer_size(),
+        };
+        let decimation = redpitaya.acquire.get_decimation();
+        scales.from_decimation(decimation);
+
+        Model {
+            redpitaya: redpitaya,
+            scales: scales,
+        }
     }
 
     fn root(&self) -> &Self::Root {
         &self.window
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
-            Signal::AcquireStart => self.redpitaya.acquire.start(),
-            Signal::AcquireStop => self.redpitaya.acquire.stop(),
+            Signal::AcquireStart => model.redpitaya.acquire.start(),
+            Signal::AcquireStop => model.redpitaya.acquire.stop(),
 
-            Signal::GeneratorAmplitude(source, value) => self.redpitaya.generator.set_amplitude(source, value),
-            Signal::GeneratorOffset(source, value) => self.redpitaya.generator.set_offset(source, value),
-            Signal::GeneratorFrequency(source, value) => self.redpitaya.generator.set_frequency(source, value),
-            Signal::GeneratorDutyCycle(source, value) => self.redpitaya.generator.set_duty_cycle(source, value),
-            Signal::GeneratorStart(source) => self.redpitaya.generator.start(source),
-            Signal::GeneratorStop(source) => self.redpitaya.generator.stop(source),
-            Signal::GeneratorSignal(source, form) => self.redpitaya.generator.set_form(source, form),
+            Signal::GeneratorAmplitude(source, value) => model.redpitaya.generator.set_amplitude(source, value),
+            Signal::GeneratorOffset(source, value) => model.redpitaya.generator.set_offset(source, value),
+            Signal::GeneratorFrequency(source, value) => model.redpitaya.generator.set_frequency(source, value),
+            Signal::GeneratorDutyCycle(source, value) => model.redpitaya.generator.set_duty_cycle(source, value),
+            Signal::GeneratorStart(source) => model.redpitaya.generator.start(source),
+            Signal::GeneratorStop(source) => model.redpitaya.generator.stop(source),
+            Signal::GeneratorSignal(source, form) => model.redpitaya.generator.set_form(source, form),
 
-            Signal::GraphDraw => self.draw(),
+            Signal::GraphDraw => self.draw(model),
 
-            Signal::TriggerAuto | Signal::TriggerSingle => if self.redpitaya.acquire.is_started() {
+            Signal::TriggerAuto | Signal::TriggerSingle => if model.redpitaya.acquire.is_started() {
                     self.acquire.widget().set_buffer(
-                        self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
+                        model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
                     );
             },
-            Signal::TriggerNormal => if self.redpitaya.acquire.is_started() {
+            Signal::TriggerNormal => if model.redpitaya.acquire.is_started() {
                 self.acquire.widget().set_buffer(
-                    self.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
+                    model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
                 );
             },
-            Signal::TriggerDelay(value) => self.redpitaya.trigger.set_delay(value),
-            Signal::TriggerLevel(value) => self.redpitaya.trigger.set_level(value),
+            Signal::TriggerDelay(value) => model.redpitaya.trigger.set_delay(value),
+            Signal::TriggerLevel(value) => model.redpitaya.trigger.set_level(value),
 
             Signal::Quit => {
-                self.redpitaya.acquire.stop();
-                self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
-                self.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT2);
+                model.redpitaya.acquire.stop();
+                model.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
+                model.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT2);
                 ::gtk::main_quit();
             },
         };
     }
 
-    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
-        // @TODO use program arguments
-        let redpitaya = ::redpitaya_scpi::Redpitaya::new("192.168.1.5:5000");
-
+    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
         let main_box = ::gtk::Box::new(::gtk::Orientation::Horizontal, 0);
 
         let graph_page = ::gtk::EventBox::new();
@@ -228,73 +291,22 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Trigger")))
         );
 
-        let mut scales = ::Scales {
-            h: (0.0, 131_072.0),
-            v: (-5.0, 5.0),
-            n_samples: redpitaya.data.buffer_size(),
-        };
-        let decimation = redpitaya.acquire.get_decimation();
-        scales.from_decimation(decimation);
-
-        Application {
+        let application = Application {
             window: window,
             graph: graph,
             status_bar: status_bar,
             acquire: acquire,
             generator: generator,
             trigger: trigger,
-            redpitaya: redpitaya,
-            scales: scales,
-        }
+        };
+
+        application.init(model);
+
+        application
     }
 
     fn init_view(&self) {
-        self.generator.widget().amplitude.widget().set_value(
-            self.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
-
-        self.generator.widget().offset.widget().set_value(
-            self.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
-
-        self.generator.widget().frequency.widget().set_value(
-            self.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
-
-        self.generator.widget().duty_cycle.widget().set_value(
-            self.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
-
-        {
-            let decimation = self.redpitaya.acquire.get_decimation();
-            let status = format!(
-                "{} - {} V/div - {} µs/div",
-                decimation.get_sampling_rate(),
-                self.scales.v_div(),
-                self.scales.h_div()
-            );
-
-            self.status_bar.push(
-                self.status_bar.get_context_id("sampling-rate"),
-                status.as_str()
-            );
-        }
-
-        self.trigger.widget().delay.widget().set_value(
-            self.redpitaya.trigger.get_delay() as f64
-        );
-
-        self.trigger.widget().level.widget().set_value(
-            self.redpitaya.trigger.get_level() as f64
-        );
-
-        self.trigger.widget().set_mode(trigger::Mode::Normal);
-
-        self.window.show_all();
-
         // @FIXME
-        self.acquire.widget().palette.widget().fold();
-        self.generator.widget().duty_cycle.widget().set_visible(false);
-        self.generator.widget().palette.widget().fold();
+        //self.init();
     }
 }
