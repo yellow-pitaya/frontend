@@ -30,6 +30,10 @@ pub struct Widget {
 }
 
 impl Widget {
+    fn is_started(&self) -> bool {
+        self.palette.widget().get_active()
+    }
+
     pub fn set_buffer(&self, buffer: String) {
         *self.buffer.borrow_mut() = buffer;
         self.stream.emit(Signal::Data);
@@ -59,15 +63,15 @@ impl Widget {
 
         context.set_line_width(0.05);
 
-        for sample in 0..16_384 {
-            let t = sample as f64 / 16_384.0 * scales.h.1;
+        for sample in 0..scales.n_samples {
+            let x = scales.sample_to_ms(sample);
 
             match data.next() {
                 Some(y) => {
-                    context.line_to(t, y);
-                    context.move_to(t, y);
+                    context.line_to(x, y);
+                    context.move_to(x, y);
                 },
-                None => (),
+                None => break,
             }
         }
         context.stroke();
@@ -76,6 +80,10 @@ impl Widget {
 
 impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
+        if !self.is_started() {
+            return;
+        }
+
         context.set_color(::application::color::IN1);
 
         let level = self.level.widget().get_value();

@@ -1,6 +1,7 @@
 use application::color::Colorable;
 use gtk::{
     BoxExt,
+    ButtonExt,
     ContainerExt,
     ToggleButtonExt,
 };
@@ -13,6 +14,7 @@ pub enum Signal {
     Amplitude(::redpitaya_scpi::generator::Source, f32),
     Offset(::redpitaya_scpi::generator::Source, f32),
     Frequency(::redpitaya_scpi::generator::Source, u32),
+    Level(::redpitaya_scpi::generator::Source, u32),
     DutyCycle(::redpitaya_scpi::generator::Source, f32),
     Signal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
 }
@@ -24,6 +26,7 @@ impl ::relm::DisplayVariant for Signal {
             Signal::Offset(_, _) => "Signal::Offset",
             Signal::DutyCycle(_, _) => "Signal::DutyCycle",
             Signal::Frequency(_, _) => "Signal::Frequency",
+            Signal::Level(_, _) => "Signal::Level",
             Signal::Signal(_, _) => "Signal::Signal",
             Signal::Start(_) => "Signal::Start",
             Signal::Stop(_) => "Signal::Stop",
@@ -36,9 +39,89 @@ pub struct Widget {
     pub page: ::gtk::Box,
     pub palette: ::relm::Component<::widget::Palette>,
     pub amplitude: ::relm::Component<::widget::PreciseScale>,
+    form: ::gtk::RadioButton,
     pub offset: ::relm::Component<::widget::PreciseScale>,
     pub frequency: ::relm::Component<::widget::PreciseScale>,
+    level: ::relm::Component<::widget::PreciseScale>,
     pub duty_cycle: ::relm::Component<::widget::PreciseScale>,
+}
+
+impl Widget {
+    fn is_started(&self) -> bool {
+        self.palette.widget().get_active()
+    }
+
+    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
+        context.move_to(scales.h.0, 0.0);
+        context.line_to(scales.h.1, 0.0);
+
+        context.stroke();
+    }
+
+    fn draw_data(&self, context: &::cairo::Context, scales: ::Scales) {
+        context.set_line_width(0.05);
+
+        let form = self.get_form();
+        let amplitude = self.amplitude.widget().get_value();
+        let frequency = self.frequency.widget().get_value() / 1_000_000.0;
+
+        for sample in 0..scales.n_samples {
+            let x = scales.sample_to_ms(sample);
+            let y = match form {
+                ::redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
+                ::redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
+                ::redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
+                ::redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
+                ::redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
+                ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency),
+                _ => unimplemented!(),
+            };
+
+            context.line_to(x, y);
+            context.move_to(x, y);
+        }
+
+        context.stroke();
+    }
+
+    fn get_form(&self) -> ::redpitaya_scpi::generator::Form {
+        let default = ::redpitaya_scpi::generator::Form::SINE;
+
+        for radio in self.form.get_group() {
+            if radio.get_active() {
+                return match radio.get_label() {
+                    Some(label) => label.into(),
+                    None => default,
+                }
+            }
+        }
+
+        default
+    }
+
+    fn sine(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude * (x * frequency * 2.0 * ::std::f64::consts::PI).sin()
+    }
+
+    fn square(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude * self.sine(x, amplitude, frequency).signum()
+    }
+
+    fn triangle(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude * 2.0 / ::std::f64::consts::PI * (frequency * 2.0 * ::std::f64::consts::PI * x).sin().asin()
+    }
+
+    fn sawu(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude * (x * frequency).fract()
+    }
+
+    fn sawd(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude *  (1.0 - (x * frequency).fract())
+    }
+
+    fn pwm(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
+        amplitude * (x * frequency * 2.0 * ::std::f64::consts::PI).sin()
+    }
 }
 
 impl ::relm::Widget for Widget {
@@ -148,6 +231,17 @@ impl ::relm::Widget for Widget {
             Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
 
+        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        level.widget().set_label("Level (V)");
+        level.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            level@::widget::Signal::Changed(value),
+            relm,
+            Signal::Level(::redpitaya_scpi::generator::Source::OUT1, value as u32)
+        );
+
         let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
         duty_cycle.widget().set_label("Duty cycle (%)");
         duty_cycle.widget().set_digits(2);
@@ -164,9 +258,27 @@ impl ::relm::Widget for Widget {
             page: page,
             palette: palette,
             amplitude: amplitude,
+            form: group_member.unwrap(),
             offset: offset,
             frequency: frequency,
+            level: level,
             duty_cycle: duty_cycle,
         }
+    }
+}
+
+impl ::application::Panel for Widget {
+    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
+        if !self.is_started() {
+            return;
+        }
+
+        context.set_color(::application::color::OUT1);
+
+        let level = self.level.widget().get_value();
+        context.translate(0.0, level);
+
+        self.draw_level(&context, scales);
+        self.draw_data(&context, scales);
     }
 }

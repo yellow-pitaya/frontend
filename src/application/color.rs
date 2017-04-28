@@ -4,6 +4,7 @@ pub const BACKGROUND: Color = (0.0, 0.0, 0.0, 1.0);
 pub const MAIN_SCALE: Color = (1.0, 1.0, 1.0, 1.0);
 pub const SECONDARY_SCALE: Color = (1.0, 1.0, 1.0, 0.2);
 pub const IN1: Color = (1.0, 1.0, 0.0, 1.0);
+pub const OUT1: Color = (1.0, 0.0, 1.0, 1.0);
 pub const TRIGGER: Color = (1.0, 0.5, 0.0, 1.0);
 
 pub trait Colorable {

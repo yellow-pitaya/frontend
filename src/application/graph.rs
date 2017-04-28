@@ -98,7 +98,7 @@ impl ::relm::Widget for Widget {
         connect!(relm, drawing_area, connect_draw(_, _) (Signal::Draw, ::gtk::Inhibit(false)));
 
         Widget {
-            drawing_area: drawing_area,
+            drawing_area,
         }
     }
 }

@@ -47,6 +47,7 @@ impl Application {
 
         self.draw_panel(self.graph.widget(), &context);
         self.draw_panel(self.trigger.widget(), &context);
+        self.draw_panel(self.generator.widget(), &context);
         self.draw_panel(self.acquire.widget(), &context);
 
         image.flush();
@@ -231,6 +232,14 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Trigger")))
         );
 
+        let mut scales = ::Scales {
+            h: (0.0, 131_072.0),
+            v: (-5.0, 5.0),
+            n_samples: redpitaya.data.buffer_size(),
+        };
+        let decimation = redpitaya.acquire.get_decimation();
+        scales.from_decimation(decimation);
+
         Application {
             window: window,
             graph: graph,
@@ -239,10 +248,7 @@ impl ::relm::Widget for Application {
             generator: generator,
             trigger: trigger,
             redpitaya: redpitaya,
-            scales: ::Scales {
-                h: (0.0, 131_072.0),
-                v: (-5.0, 5.0),
-            },
+            scales: scales,
         }
     }
 
@@ -265,13 +271,16 @@ impl ::relm::Widget for Application {
 
         {
             let decimation = self.redpitaya.acquire.get_decimation();
-
-            let mut scales = self.scales;
-            scales.from_decimation(decimation);
+            let status = format!(
+                "{} - {} V/div - {} µs/div",
+                decimation.get_sampling_rate(),
+                self.scales.v_div(),
+                self.scales.h_div()
+            );
 
             self.status_bar.push(
                 self.status_bar.get_context_id("sampling-rate"),
-                decimation.get_sampling_rate()
+                status.as_str()
             );
         }
 
