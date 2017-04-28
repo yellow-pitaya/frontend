@@ -1,0 +1,10 @@
+language: rust
+
+cache: cargo
+
+sudo: false
+
+rust:
+  - nightly
+
+script: cargo build --release

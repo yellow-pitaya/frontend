@@ -1,0 +1,13 @@
+image: "scorpil/rust:stable"
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+
+build:
+  script:
+    - rustc --version && cargo --version
+    - time cargo build --release
+  cache:
+    paths:
+      - target/
+      - cargo/

@@ -1,4 +1,4 @@
-# Yellow Pitaya
+# Yellow Pitaya [![Build Status](https://travis-ci.org/sanpii/yellow-pitaya.svg?branch=master)](https://travis-ci.org/sanpii/yellow-pitaya) [![build status](https://gitlab.com/sanpi/yellow-pitaya/badges/master/build.svg)](https://gitlab.com/sanpi/yellow-pitaya/commits/master)
 
 This is another flover of pitaya, same hardware but different software.
 
