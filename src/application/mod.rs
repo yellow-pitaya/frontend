@@ -19,6 +19,7 @@ trait Panel {
 pub enum Signal {
     AcquireStart,
     AcquireStop,
+    AcquireDecimation(::redpitaya_scpi::acquire::Decimation),
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
@@ -40,6 +41,7 @@ impl ::relm::DisplayVariant for Signal {
         match *self {
             Signal::AcquireStart => "Signal::AcquireStart",
             Signal::AcquireStop => "Signal::AcquireStop",
+            Signal::AcquireDecimation(_) => "Signal::AcquireDecimation",
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
             Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
@@ -62,6 +64,7 @@ impl ::relm::DisplayVariant for Signal {
 pub struct Model {
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
+    rate: String,
 }
 
 #[derive(Clone)]
@@ -75,6 +78,20 @@ pub struct Application {
 }
 
 impl Application {
+    fn update_status(&self, model: &Model) {
+        let status = format!(
+            "{} - {} V/div - {} µs/div",
+            model.rate,
+            model.scales.v_div(),
+            model.scales.h_div()
+        );
+
+        self.status_bar.push(
+            self.status_bar.get_context_id("sampling-rate"),
+            status.as_str()
+        );
+    }
+
     fn init(&self, model: &Model) {
         self.generator.widget().amplitude.widget().set_value(
             model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
@@ -91,21 +108,6 @@ impl Application {
         self.generator.widget().duty_cycle.widget().set_value(
             model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
         );
-
-        {
-            let decimation = model.redpitaya.acquire.get_decimation();
-            let status = format!(
-                "{} - {} V/div - {} µs/div",
-                decimation.get_sampling_rate(),
-                model.scales.v_div(),
-                model.scales.h_div()
-            );
-
-            self.status_bar.push(
-                self.status_bar.get_context_id("sampling-rate"),
-                status.as_str()
-            );
-        }
 
         self.trigger.widget().delay.widget().set_value(
             model.redpitaya.trigger.get_delay() as f64
@@ -129,6 +131,8 @@ impl Application {
         let graph = self.graph.widget();
         let width = graph.get_width();
         let height = graph.get_height();
+
+        self.update_status(model);
 
         let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width as i32, height as i32);
         let context = ::cairo::Context::new(&image);
@@ -175,12 +179,14 @@ impl ::relm::Widget for Application {
             v: (-5.0, 5.0),
             n_samples: redpitaya.data.buffer_size(),
         };
+
         let decimation = redpitaya.acquire.get_decimation();
         scales.from_decimation(decimation);
 
         Model {
             redpitaya: redpitaya,
             scales: scales,
+            rate: decimation.get_sampling_rate().into(),
         }
     }
 
@@ -192,6 +198,11 @@ impl ::relm::Widget for Application {
         match event {
             Signal::AcquireStart => model.redpitaya.acquire.start(),
             Signal::AcquireStop => model.redpitaya.acquire.stop(),
+            Signal::AcquireDecimation(decimation) => {
+                model.redpitaya.acquire.set_decimation(decimation);
+                model.scales.from_decimation(decimation);
+                self.draw(model);
+            }
 
             Signal::GeneratorAmplitude(source, value) => model.redpitaya.generator.set_amplitude(source, value),
             Signal::GeneratorOffset(source, value) => model.redpitaya.generator.set_offset(source, value),
@@ -244,6 +255,7 @@ impl ::relm::Widget for Application {
         acquire_page.set_border_width(10);
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, ());
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Decimation(decimation), relm, Signal::AcquireDecimation(decimation));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);

@@ -1,9 +1,15 @@
+use gtk::{
+    BoxExt,
+    ContainerExt,
+    ToggleButtonExt,
+};
 use color::Colorable;
 use relm::ContainerWidget;
 
 #[derive(Clone)]
 pub enum Signal {
     Data,
+    Decimation(::redpitaya_scpi::acquire::Decimation),
     Level(::redpitaya_scpi::acquire::Source, u32),
     Start,
     Stop,
@@ -12,10 +18,11 @@ pub enum Signal {
 impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
+            Signal::Data => "Signal::Data",
+            Signal::Decimation(_) => "Signal::Decimation",
             Signal::Level(_, _) => "Signal::Level",
             Signal::Start => "Signal::Start",
             Signal::Stop => "Signal::Stop",
-            Signal::Data => "Signal::Data",
         }
     }
 }
@@ -111,7 +118,7 @@ impl ::relm::Widget for Widget {
     }
 
     fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
-        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
+        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("IN 1");
@@ -132,6 +139,44 @@ impl ::relm::Widget for Widget {
             relm,
             Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
         );
+
+        let frame = ::gtk::Frame::new("Decimation");
+        page.pack_start(&frame, false, true, 0);
+
+        let flow_box = ::gtk::FlowBox::new();
+        frame.add(&flow_box);
+
+        let decimations = vec![
+            ::redpitaya_scpi::acquire::Decimation::DEC_1,
+            ::redpitaya_scpi::acquire::Decimation::DEC_8,
+            ::redpitaya_scpi::acquire::Decimation::DEC_64,
+            ::redpitaya_scpi::acquire::Decimation::DEC_1024,
+            ::redpitaya_scpi::acquire::Decimation::DEC_8192,
+            ::redpitaya_scpi::acquire::Decimation::DEC_65536,
+        ];
+
+        let mut group_member = None;
+
+        for decimation in decimations {
+            let button = ::gtk::RadioButton::new_with_label_from_widget(
+                group_member.as_ref(),
+                decimation.get_sampling_rate()
+            );
+            flow_box.add(&button);
+
+            let stream = relm.stream().clone();
+            button.connect_toggled(move |f| {
+                if f.get_active() {
+                    stream.emit(
+                        Signal::Decimation(decimation.clone())
+                    );
+                }
+            });
+
+            if group_member == None {
+                group_member = Some(button);
+            }
+        }
 
         Widget {
             buffer: ::std::cell::RefCell::new(String::new()),
