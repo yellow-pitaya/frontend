@@ -17,6 +17,49 @@ trait Panel {
 }
 
 #[derive(Clone)]
+pub enum Signal {
+    AcquireStart,
+    AcquireStop,
+    GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
+    GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
+    GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
+    GeneratorDutyCycle(::redpitaya_scpi::generator::Source, f32),
+    GeneratorStart(::redpitaya_scpi::generator::Source),
+    GeneratorStop(::redpitaya_scpi::generator::Source),
+    GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
+    GraphDraw,
+    TriggerAuto,
+    TriggerNormal,
+    TriggerSingle,
+    TriggerDelay(u16),
+    TriggerLevel(f32),
+    Quit,
+}
+
+impl ::relm::DisplayVariant for Signal {
+    fn display_variant(&self) -> &'static str {
+        match *self {
+            Signal::AcquireStart => "Signal::AcquireStart",
+            Signal::AcquireStop => "Signal::AcquireStop",
+            Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
+            Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
+            Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
+            Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
+            Signal::GeneratorStart(_) => "Signal::GeneratorStart",
+            Signal::GeneratorStop(_) => "Signal::GeneratorStop",
+            Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
+            Signal::TriggerAuto => "Signal::TriggerAuto",
+            Signal::TriggerNormal => "Signal::TriggerNormal",
+            Signal::TriggerSingle => "Signal::Single",
+            Signal::TriggerDelay(_) => "Signal::TriggerDelay",
+            Signal::TriggerLevel(_) => "Signal::TriggerLevel",
+            Signal::GraphDraw => "Signal::GraphDraw",
+            Signal::Quit => "Signal::Quit",
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Model {
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
@@ -118,49 +161,6 @@ impl Application {
             x0: scales.h.0 * width / scales.get_width(),
             y0: scales.v.1 * height / scales.get_height(),
         });
-    }
-}
-
-#[derive(Clone)]
-pub enum Signal {
-    AcquireStart,
-    AcquireStop,
-    GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
-    GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
-    GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
-    GeneratorDutyCycle(::redpitaya_scpi::generator::Source, f32),
-    GeneratorStart(::redpitaya_scpi::generator::Source),
-    GeneratorStop(::redpitaya_scpi::generator::Source),
-    GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
-    GraphDraw,
-    TriggerAuto,
-    TriggerNormal,
-    TriggerSingle,
-    TriggerDelay(u16),
-    TriggerLevel(f32),
-    Quit,
-}
-
-impl ::relm::DisplayVariant for Signal {
-    fn display_variant(&self) -> &'static str {
-        match *self {
-            Signal::AcquireStart => "Signal::AcquireStart",
-            Signal::AcquireStop => "Signal::AcquireStop",
-            Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
-            Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
-            Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
-            Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
-            Signal::GeneratorStart(_) => "Signal::GeneratorStart",
-            Signal::GeneratorStop(_) => "Signal::GeneratorStop",
-            Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
-            Signal::TriggerAuto => "Signal::TriggerAuto",
-            Signal::TriggerNormal => "Signal::TriggerNormal",
-            Signal::TriggerSingle => "Signal::Single",
-            Signal::TriggerDelay(_) => "Signal::TriggerDelay",
-            Signal::TriggerLevel(_) => "Signal::TriggerLevel",
-            Signal::GraphDraw => "Signal::GraphDraw",
-            Signal::Quit => "Signal::Quit",
-        }
     }
 }
 
