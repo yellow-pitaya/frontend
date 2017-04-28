@@ -1,15 +1,89 @@
+use application::color::Colorable;
 use relm::ContainerWidget;
 
-#[derive(Msg)]
+#[derive(Clone)]
 pub enum Signal {
+    Data,
+    Level(::redpitaya_scpi::acquire::Source, u32),
     Start,
     Stop,
 }
 
+impl ::relm::DisplayVariant for Signal {
+    fn display_variant(&self) -> &'static str {
+        match *self {
+            Signal::Level(_, _) => "Signal::Level",
+            Signal::Start => "Signal::Start",
+            Signal::Stop => "Signal::Stop",
+            Signal::Data => "Signal::Data",
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Widget {
+    buffer: ::std::cell::RefCell<String>,
+    level: ::relm::Component<::widget::PreciseScale>,
+    stream: ::relm::EventStream<Signal>,
     page: ::gtk::Box,
-    palette: ::relm::Component<::widget::Palette>,
+    pub palette: ::relm::Component<::widget::Palette>,
+}
+
+impl Widget {
+    pub fn set_buffer(&self, buffer: String) {
+        *self.buffer.borrow_mut() = buffer;
+        self.stream.emit(Signal::Data);
+    }
+
+    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
+        context.move_to(scales.h.0, 0.0);
+        context.line_to(scales.h.1, 0.0);
+
+        context.stroke();
+    }
+
+    fn draw_data(&self, context: &::cairo::Context, scales: ::Scales) {
+        let buffer = self.buffer.borrow();
+        let mut data = buffer
+            .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
+            .split(",")
+            .map(|s| {
+                match s.parse::<f64>() {
+                    Ok(f) => f,
+                    Err(_) => {
+                        error!("Invalid data '{}'", s);
+                        0.0
+                    },
+                }
+            });
+
+        context.set_line_width(0.05);
+
+        for sample in 0..16_384 {
+            let t = sample as f64 / 16_384.0 * scales.h.1;
+
+            match data.next() {
+                Some(y) => {
+                    context.line_to(t, y);
+                    context.move_to(t, y);
+                },
+                None => (),
+            }
+        }
+        context.stroke();
+    }
+}
+
+impl ::application::Panel for Widget {
+    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
+        context.set_color(::application::color::IN1);
+
+        let level = self.level.widget().get_value();
+        context.translate(0.0, level);
+
+        self.draw_level(&context, scales);
+        self.draw_data(&context, scales);
+    }
 }
 
 impl ::relm::Widget for Widget {
@@ -35,9 +109,26 @@ impl ::relm::Widget for Widget {
         connect!(palette@::widget::Signal::Expand, relm, Signal::Start);
         connect!(palette@::widget::Signal::Fold, relm, Signal::Stop);
 
+        let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
+        palette.widget().add(&vbox);
+
+        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm);
+        level.widget().set_label("Level (V)");
+        level.widget().set_adjustment(::gtk::Adjustment::new(
+            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
+        ));
+        connect!(
+            level@::widget::Signal::Changed(value),
+            relm,
+            Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
+        );
+
         Widget {
+            buffer: ::std::cell::RefCell::new(String::new()),
+            level: level,
             page: page,
             palette: palette,
+            stream: relm.stream().clone(),
         }
     }
 }

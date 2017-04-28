@@ -1,6 +1,5 @@
 mod acquire;
 mod color;
-mod data;
 mod generator;
 mod graph;
 mod trigger;
@@ -26,7 +25,6 @@ pub struct Application {
     generator: ::relm::Component<generator::Widget>,
     trigger: ::relm::Component<trigger::Widget>,
     redpitaya: ::redpitaya_scpi::Redpitaya,
-    data: ::relm::Component<data::Widget>,
     scales: ::Scales,
 }
 
@@ -49,7 +47,7 @@ impl Application {
 
         self.draw_panel(self.graph.widget(), &context);
         self.draw_panel(self.trigger.widget(), &context);
-        self.draw_panel(self.data.widget(), &context);
+        self.draw_panel(self.acquire.widget(), &context);
 
         image.flush();
         graph.set_image(&image);
@@ -144,12 +142,12 @@ impl ::relm::Widget for Application {
             Signal::GraphDraw => self.draw(),
 
             Signal::TriggerAuto | Signal::TriggerSingle => if self.redpitaya.acquire.is_started() {
-                    self.data.widget().set_buffer(
+                    self.acquire.widget().set_buffer(
                         self.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
                     );
             },
             Signal::TriggerNormal => if self.redpitaya.acquire.is_started() {
-                self.data.widget().set_buffer(
+                self.acquire.widget().set_buffer(
                     self.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
                 );
             },
@@ -186,11 +184,10 @@ impl ::relm::Widget for Application {
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm);
+        connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
-
-        let data = acquire_page.add_widget::<data::Widget, _>(&relm);
-        connect!(data@data::Signal::Data, relm, Signal::GraphDraw);
 
         notebook.append_page(
             &acquire_page,
@@ -241,7 +238,6 @@ impl ::relm::Widget for Application {
             acquire: acquire,
             generator: generator,
             trigger: trigger,
-            data: data,
             redpitaya: redpitaya,
             scales: ::Scales {
                 h: (0.0, 131_072.0),
@@ -292,6 +288,7 @@ impl ::relm::Widget for Application {
         self.window.show_all();
 
         // @FIXME
+        self.acquire.widget().palette.widget().fold();
         self.generator.widget().duty_cycle.widget().set_visible(false);
         self.generator.widget().palette.widget().fold();
     }
