@@ -198,6 +198,8 @@ impl ::relm::Widget for Widget {
             }
         }
 
+        let form = group_member.unwrap();
+
         let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         amplitude.widget().set_label("Amplitude (V)");
         amplitude.widget().set_digits(2);
@@ -257,14 +259,14 @@ impl ::relm::Widget for Widget {
         );
 
         Widget {
-            page: page,
-            palette: palette,
-            amplitude: amplitude,
-            form: group_member.unwrap(),
-            offset: offset,
-            frequency: frequency,
-            level: level,
-            duty_cycle: duty_cycle,
+            page,
+            palette,
+            amplitude,
+            form,
+            offset,
+            frequency,
+            level,
+            duty_cycle,
         }
     }
 }

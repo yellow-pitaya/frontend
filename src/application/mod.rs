@@ -184,10 +184,12 @@ impl ::relm::Widget for Application {
         let decimation = redpitaya.acquire.get_decimation();
         scales.from_decimation(decimation);
 
+        let rate = decimation.get_sampling_rate().into();
+
         Model {
-            redpitaya: redpitaya,
-            scales: scales,
-            rate: decimation.get_sampling_rate().into(),
+            redpitaya,
+            scales,
+            rate,
         }
     }
 

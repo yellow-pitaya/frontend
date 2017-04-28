@@ -161,13 +161,15 @@ impl ::relm::Widget for Widget {
             ::glib::Continue(true)
         });
 
+        let stream = relm.stream().clone();
+
         Widget {
-            page: page,
-            single_button: single_button,
-            delay: delay,
-            level: level,
-            mode_combo: mode_combo,
-            stream: relm.stream().clone(),
+            page,
+            single_button,
+            delay,
+            level,
+            mode_combo,
+            stream,
         }
     }
 }

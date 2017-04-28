@@ -178,12 +178,15 @@ impl ::relm::Widget for Widget {
             }
         }
 
+        let buffer = ::std::cell::RefCell::new(String::new());
+        let stream = relm.stream().clone();
+
         Widget {
-            buffer: ::std::cell::RefCell::new(String::new()),
-            level: level,
-            page: page,
-            palette: palette,
-            stream: relm.stream().clone(),
+            buffer,
+            level,
+            page,
+            palette,
+            stream,
         }
     }
 }
