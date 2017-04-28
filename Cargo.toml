@@ -5,6 +5,7 @@ authors = ["Sanpi <sanpi@homecomputing.fr>"]
 
 [dependencies]
 cairo-rs = "0.1"
+docopt = "0.7"
 env_logger = "0.3"
 glib = "0.1"
 gdk = "0.5"
@@ -15,6 +16,7 @@ redpitaya-scpi = "0.12"
 relm = "0.9"
 relm-attributes = "0.9"
 relm-derive = "0.9"
+rustc-serialize = "0.3"
 
 [dependencies.gtk]
 version = "0.1"

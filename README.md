@@ -29,3 +29,9 @@ systemctl enable redpitaya_scpi.service
 ```
 
 This will disable web applications.
+
+## Usage
+
+```
+cargo run rp-xxxxxx.local:5000
+```
