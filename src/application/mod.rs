@@ -8,6 +8,7 @@ use gtk::{
     BoxExt,
     ContainerExt,
     WidgetExt,
+    WindowExt,
 };
 use relm::ContainerWidget;
 
@@ -285,6 +286,7 @@ impl ::relm::Widget for Application {
         vbox.pack_start(&status_bar, false, true, 0);
 
         let window = ::gtk::Window::new(::gtk::WindowType::Toplevel);
+        window.set_title("Yellow Pitaya");
         window.add(&main_box);
         connect!(relm, window, connect_destroy(_), Signal::Quit);
 
