@@ -40,7 +40,7 @@ impl ::relm::Widget for PreciseScale {
         };
     }
 
-    fn init_view(&self) {
+    fn init_view(&self, _: &mut Self::Model) {
         self.spin.hide();
         self.scale.add_mark(0.0, ::gtk::PositionType::Top, None);
     }
@@ -129,7 +129,7 @@ impl ::relm::Widget for Palette {
         };
     }
 
-    fn init_view(&self) {
+    fn init_view(&self, _: &mut Self::Model) {
         self.parent.hide();
     }
 

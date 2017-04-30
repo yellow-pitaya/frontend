@@ -93,50 +93,6 @@ impl Application {
         );
     }
 
-    fn init(&self, model: &Model) {
-        match model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(amplitude) => self.generator.widget().amplitude.widget().set_value(amplitude as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(offset) => self.generator.widget().offset.widget().set_value(offset as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(duty_cycle) => self.generator.widget().duty_cycle.widget().set_value(duty_cycle as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.trigger.get_delay() {
-            Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.trigger.get_level() {
-            Ok(level) => self.trigger.widget().level.widget().set_value(level as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        self.window.show_all();
-
-        // @FIXME
-        self.acquire.widget().palette.widget().fold();
-        self.generator.widget().duty_cycle.widget().set_visible(false);
-        self.generator.widget().palette.widget().fold();
-    }
-
     pub fn draw(&self, model: &Model) {
         let graph = self.graph.widget();
         let width = graph.get_width();
@@ -325,13 +281,50 @@ impl ::relm::Widget for Application {
             trigger: trigger,
         };
 
-        application.init(model);
-
         application
     }
 
-    fn init_view(&self) {
+    fn init_view(&self, model: &mut Model) {
+        match model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(amplitude) => self.generator.widget().amplitude.widget().set_value(amplitude as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(offset) => self.generator.widget().offset.widget().set_value(offset as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(duty_cycle) => self.generator.widget().duty_cycle.widget().set_value(duty_cycle as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.trigger.get_delay() {
+            Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.trigger.get_level() {
+            Ok(level) => self.trigger.widget().level.widget().set_value(level as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        self.window.show_all();
+
         // @FIXME
-        //self.init();
+        self.acquire.widget().palette.widget().fold();
+        self.generator.widget().duty_cycle.widget().set_visible(false);
+        self.generator.widget().palette.widget().fold();
     }
 }
