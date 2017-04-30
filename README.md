@@ -1,10 +1,8 @@
-# Yellow Pitaya [![Build Status](https://travis-ci.org/sanpii/yellow-pitaya.svg?branch=master)](https://travis-ci.org/sanpii/yellow-pitaya) [![build status](https://gitlab.com/sanpi/yellow-pitaya/badges/master/build.svg)](https://gitlab.com/sanpi/yellow-pitaya/commits/master)
-
-This is another flover of pitaya, same hardware but different software.
-
-![](screenshot.png)
+# Yellow Pitaya [![Build Status](https://travis-ci.org/yellow-pitaya/frontend.svg?branch=master)](https://travis-ci.org/yellow-pitaya/frontend) [![build status](https://gitlab.com/yellow-pitaya/frontend/badges/master/build.svg)](https://gitlab.com/yellow-pitaya/frontend/commits/master)
 
 This is a desktop interface for [redpitaya](https://redpitaya.com/).
+
+![](screenshot.png)
 
 ## Install
 
