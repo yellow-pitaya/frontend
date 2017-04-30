@@ -25,12 +25,51 @@ impl ::std::fmt::Display for Mode {
     }
 }
 
+#[derive(Copy, Clone, PartialEq)]
+pub enum Channel {
+    CH1,
+    CH2,
+    EXT,
+}
+
+impl ::std::fmt::Display for Channel {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        let display = match self {
+            &Channel::CH1 => "CH1",
+            &Channel::CH2 => "CH2",
+            &Channel::EXT => "EXT",
+        };
+
+        write!(f, "{}", display)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum Edge {
+    Positive,
+    Negative,
+}
+
+impl ::std::fmt::Display for Edge {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        let display = match self {
+            &Edge::Positive => "Positive",
+            &Edge::Negative => "Negative",
+        };
+
+        write!(f, "{}", display)
+    }
+}
+
 #[derive(Msg)]
 pub enum Signal {
     Auto,
     Normal,
     Single,
     Mode(Mode),
+    Channel(Channel),
+    Source(::redpitaya_scpi::trigger::Source),
+    Edge(Edge),
     InternalTick,
     Delay(u16),
     Level(f32),
@@ -48,7 +87,42 @@ pub struct Widget {
     pub single_button: ::gtk::Button,
     pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
-    radio: ::relm::Component<::widget::RadioGroup<Mode>>,
+    mode: ::relm::Component<::widget::RadioGroup<Mode>>,
+    channel: ::relm::Component<::widget::RadioGroup<Channel>>,
+    edge: ::relm::Component<::widget::RadioGroup<Edge>>,
+}
+
+impl Widget {
+    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
+        context.move_to(scales.h.0, self.level.widget().get_value());
+        context.line_to(scales.h.1, self.level.widget().get_value());
+
+        context.move_to(self.delay.widget().get_value(), scales.v.0);
+        context.line_to(self.delay.widget().get_value(), scales.v.1);
+
+        context.stroke();
+    }
+
+    fn get_source(&self) -> Option<::redpitaya_scpi::trigger::Source> {
+        let channel = self.channel.widget().get_current();
+        let edge = self.edge.widget().get_current();
+
+        if channel == Some(Channel::CH1) && edge == Some(Edge::Positive) {
+            Some(::redpitaya_scpi::trigger::Source::CH1_PE)
+        } else if channel == Some(Channel::CH1) && edge == Some(Edge::Negative) {
+            Some(::redpitaya_scpi::trigger::Source::CH1_NE)
+        } else if channel == Some(Channel::CH2) && edge == Some(Edge::Positive) {
+            Some(::redpitaya_scpi::trigger::Source::CH2_PE)
+        } else if channel == Some(Channel::CH2) && edge == Some(Edge::Negative) {
+            Some(::redpitaya_scpi::trigger::Source::CH2_NE)
+        } else if channel == Some(Channel::EXT) && edge == Some(Edge::Positive) {
+            Some(::redpitaya_scpi::trigger::Source::EXT_PE)
+        } else if channel == Some(Channel::EXT) && edge == Some(Edge::Negative) {
+            Some(::redpitaya_scpi::trigger::Source::EXT_NE)
+        } else {
+            None
+        }
+    }
 }
 
 impl ::relm::Widget for Widget {
@@ -94,12 +168,45 @@ impl ::relm::Widget for Widget {
                     },
                 };
             },
+            Signal::Channel(_) | Signal::Edge(_) => {
+                if let Some(source) = self.get_source() {
+                    self.stream.emit(Signal::Source(source));
+                }
+            },
             _ => (),
         }
     }
 
     fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
+
+        let frame = ::gtk::Frame::new("Source");
+        page.pack_start(&frame, false, true, 0);
+
+        let args = ::widget::radio::Model {
+            options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
+            current: Some(Channel::CH1),
+        };
+        let channel = frame.add_widget::<::widget::RadioGroup<Channel>, _>(&relm, args);
+        connect!(
+            channel@::widget::radio::Signal::Change(channel),
+            relm,
+            Signal::Channel(channel)
+        );
+
+        let frame = ::gtk::Frame::new("Edge");
+        page.pack_start(&frame, false, true, 0);
+
+        let args = ::widget::radio::Model {
+            options: vec![Edge::Positive, Edge::Negative],
+            current: Some(Edge::Positive),
+        };
+        let edge = frame.add_widget::<::widget::RadioGroup<Edge>, _>(&relm, args);
+        connect!(
+            edge@::widget::radio::Signal::Change(edge),
+            relm,
+            Signal::Edge(edge)
+        );
 
         let frame = ::gtk::Frame::new("Mode");
         page.pack_start(&frame, false, true, 0);
@@ -108,9 +215,9 @@ impl ::relm::Widget for Widget {
             options: vec![Mode::Auto, Mode::Normal, Mode::Single],
             current: Some(model.mode),
         };
-        let radio = frame.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
+        let mode = frame.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
         connect!(
-            radio@::widget::radio::Signal::Change(mode),
+            mode@::widget::radio::Signal::Change(mode),
             relm,
             Signal::Mode(mode)
         );
@@ -166,7 +273,9 @@ impl ::relm::Widget for Widget {
             delay,
             level,
             stream,
-            radio,
+            mode,
+            channel,
+            edge,
         }
     }
 }
@@ -175,13 +284,7 @@ impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
         context.set_color(::color::TRIGGER);
 
-        context.move_to(scales.h.0, self.level.widget().get_value());
-        context.line_to(scales.h.1, self.level.widget().get_value());
-
-        context.move_to(self.delay.widget().get_value(), scales.v.0);
-        context.line_to(self.delay.widget().get_value(), scales.v.1);
-
-        context.stroke();
+        self.draw_level(context, scales);
     }
 }
 

@@ -34,6 +34,7 @@ pub enum Signal {
     TriggerSingle,
     TriggerDelay(u16),
     TriggerLevel(f32),
+    TriggerSource(::redpitaya_scpi::trigger::Source),
     Quit,
 }
 
@@ -55,6 +56,7 @@ impl ::relm::DisplayVariant for Signal {
             Signal::TriggerSingle => "Signal::Single",
             Signal::TriggerDelay(_) => "Signal::TriggerDelay",
             Signal::TriggerLevel(_) => "Signal::TriggerLevel",
+            Signal::TriggerSource(_) => "Signal::TriggerSource",
             Signal::GraphDraw => "Signal::GraphDraw",
             Signal::Quit => "Signal::Quit",
         }
@@ -195,6 +197,7 @@ impl ::relm::Widget for Application {
             },
             Signal::TriggerDelay(value) => model.redpitaya.trigger.set_delay(value),
             Signal::TriggerLevel(value) => model.redpitaya.trigger.set_level(value),
+            Signal::TriggerSource(value) => model.redpitaya.trigger.enable(value),
 
             Signal::Quit => {
                 model.redpitaya.acquire.stop();
@@ -266,6 +269,7 @@ impl ::relm::Widget for Application {
         connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);
         connect!(trigger@trigger::Signal::Delay(value), relm, Signal::TriggerDelay(value));
         connect!(trigger@trigger::Signal::Level(value), relm, Signal::TriggerLevel(value));
+        connect!(trigger@trigger::Signal::Source(value), relm, Signal::TriggerSource(value));
 
         notebook.append_page(
             &trigger_page,
