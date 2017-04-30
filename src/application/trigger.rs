@@ -180,42 +180,36 @@ impl ::relm::Widget for Widget {
     fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
-        let frame = ::gtk::Frame::new("Source");
-        page.pack_start(&frame, false, true, 0);
-
         let args = ::widget::radio::Model {
+            title: String::from("Source"),
             options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
             current: Some(Channel::CH1),
         };
-        let channel = frame.add_widget::<::widget::RadioGroup<Channel>, _>(&relm, args);
+        let channel = page.add_widget::<::widget::RadioGroup<Channel>, _>(&relm, args);
         connect!(
             channel@::widget::radio::Signal::Change(channel),
             relm,
             Signal::Channel(channel)
         );
 
-        let frame = ::gtk::Frame::new("Edge");
-        page.pack_start(&frame, false, true, 0);
-
         let args = ::widget::radio::Model {
+            title: String::from("Edge"),
             options: vec![Edge::Positive, Edge::Negative],
             current: Some(Edge::Positive),
         };
-        let edge = frame.add_widget::<::widget::RadioGroup<Edge>, _>(&relm, args);
+        let edge = page.add_widget::<::widget::RadioGroup<Edge>, _>(&relm, args);
         connect!(
             edge@::widget::radio::Signal::Change(edge),
             relm,
             Signal::Edge(edge)
         );
 
-        let frame = ::gtk::Frame::new("Mode");
-        page.pack_start(&frame, false, true, 0);
-
         let args = ::widget::radio::Model {
+            title: String::from("Mode"),
             options: vec![Mode::Auto, Mode::Normal, Mode::Single],
             current: Some(model.mode),
         };
-        let mode = frame.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
+        let mode = page.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
         connect!(
             mode@::widget::radio::Signal::Change(mode),
             relm,

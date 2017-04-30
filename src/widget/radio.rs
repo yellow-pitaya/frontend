@@ -18,13 +18,14 @@ impl<T> ::relm::DisplayVariant for Signal<T> {
 
 #[derive(Clone)]
 pub struct Model<T> {
+    pub title: String,
     pub options: Vec<T>,
     pub current: Option<T>,
 }
 
 #[derive(Clone)]
 pub struct RadioGroup<T> {
-    flow_box: ::gtk::FlowBox,
+    frame: ::gtk::Frame,
     radio: Vec<(::gtk::RadioButton, T)>,
     phantom: ::std::marker::PhantomData<T>,
 }
@@ -46,7 +47,7 @@ impl<T> ::relm::Widget for RadioGroup<T>
 {
     type Model = Model<T>;
     type Msg = Signal<T>;
-    type Root = ::gtk::FlowBox;
+    type Root = ::gtk::Frame;
     type ModelParam = Model<T>;
 
     fn model(model: Self::ModelParam) -> Self::Model {
@@ -54,14 +55,17 @@ impl<T> ::relm::Widget for RadioGroup<T>
     }
 
     fn root(&self) -> &Self::Root {
-        &self.flow_box
+        &self.frame
     }
 
     fn update(&mut self, _: Signal<T>, _: &mut Self::Model) {
     }
 
     fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+        let frame = ::gtk::Frame::new(model.title.as_str());
+
         let flow_box = ::gtk::FlowBox::new();
+        frame.add(&flow_box);
 
         let mut radio = Vec::new();
         let mut group_member = None;
@@ -98,7 +102,7 @@ impl<T> ::relm::Widget for RadioGroup<T>
         }
 
         RadioGroup {
-            flow_box: flow_box,
+            frame: frame,
             radio: radio,
             phantom: ::std::marker::PhantomData,
         }

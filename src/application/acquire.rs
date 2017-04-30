@@ -1,4 +1,3 @@
-use gtk::BoxExt;
 use color::Colorable;
 use relm::ContainerWidget;
 
@@ -145,10 +144,8 @@ impl ::relm::Widget for Widget {
             Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
         );
 
-        let frame = ::gtk::Frame::new("Sampling Rate");
-        page.pack_start(&frame, false, true, 0);
-
         let args = ::widget::radio::Model {
+            title: String::from("Sampling Rate"),
             options: vec![
                 ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
                 ::redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
@@ -159,7 +156,7 @@ impl ::relm::Widget for Widget {
             ],
             current: Some(model.rate),
         };
-        let rate = frame.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>, _>(&relm, args);
+        let rate = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>, _>(&relm, args);
         connect!(
             rate@::widget::radio::Signal::Change(rate),
             relm,

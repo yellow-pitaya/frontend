@@ -1,5 +1,4 @@
 use color::Colorable;
-use gtk::BoxExt;
 use relm::ContainerWidget;
 
 #[derive(Clone)]
@@ -140,10 +139,8 @@ impl ::relm::Widget for Widget {
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
-        let frame = ::gtk::Frame::new("Form");
-        vbox.pack_start(&frame, false, true, 0);
-
         let args = ::widget::radio::Model {
+            title: String::from("Form"),
             options: vec![
             ::redpitaya_scpi::generator::Form::SINE,
             ::redpitaya_scpi::generator::Form::SQUARE,
@@ -155,7 +152,7 @@ impl ::relm::Widget for Widget {
             ],
             current: Some(::redpitaya_scpi::generator::Form::SINE),
         };
-        let form = frame.add_widget::<::widget::RadioGroup<::redpitaya_scpi::generator::Form>, _>(&relm, args);
+        let form = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::generator::Form>, _>(&relm, args);
         connect!(
             form@::widget::radio::Signal::Change(form),
             relm,
