@@ -32,7 +32,7 @@ pub enum Signal {
     TriggerAuto,
     TriggerNormal,
     TriggerSingle,
-    TriggerDelay(u16),
+    TriggerDelay(u8),
     TriggerLevel(f32),
     TriggerSource(::redpitaya_scpi::trigger::Source),
     Quit,
@@ -195,7 +195,7 @@ impl ::relm::Widget for Application {
                     model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
                 );
             },
-            Signal::TriggerDelay(value) => model.redpitaya.trigger.set_delay(value),
+            Signal::TriggerDelay(value) => model.redpitaya.trigger.set_delay_in_ns(value),
             Signal::TriggerLevel(value) => model.redpitaya.trigger.set_level(value),
             Signal::TriggerSource(value) => model.redpitaya.trigger.enable(value),
 

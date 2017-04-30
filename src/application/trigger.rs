@@ -71,7 +71,7 @@ pub enum Signal {
     Source(::redpitaya_scpi::trigger::Source),
     Edge(Edge),
     InternalTick,
-    Delay(u16),
+    Delay(u8),
     Level(f32),
 }
 
@@ -239,7 +239,7 @@ impl ::relm::Widget for Widget {
         );
 
         let delay = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
-        delay.widget().set_label("Delay (V)");
+        delay.widget().set_label("Delay (ns)");
         delay.widget().set_digits(2);
         delay.widget().set_adjustment(::gtk::Adjustment::new(
             0.0, 0.0, 131_072.0, 1.1, 10.0, 0.0
@@ -247,7 +247,7 @@ impl ::relm::Widget for Widget {
         connect!(
             delay@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::Delay(value as u16)
+            Signal::Delay(value as u8)
         );
 
         let stream = relm.stream().clone();
