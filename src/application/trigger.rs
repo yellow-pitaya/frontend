@@ -2,8 +2,6 @@ use color::Colorable;
 use gtk::{
     BoxExt,
     ButtonExt,
-    ContainerExt,
-    ToggleButtonExt,
     WidgetExt,
 };
 use relm::ContainerWidget;
@@ -47,9 +45,10 @@ pub struct Model {
 pub struct Widget {
     page: ::gtk::Box,
     pub level: ::relm::Component<::widget::PreciseScale>,
-    single_button: ::gtk::Button,
+    pub single_button: ::gtk::Button,
     pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
+    radio: ::relm::Component<::widget::RadioGroup<Mode>>,
 }
 
 impl ::relm::Widget for Widget {
@@ -105,37 +104,16 @@ impl ::relm::Widget for Widget {
         let frame = ::gtk::Frame::new("Mode");
         page.pack_start(&frame, false, true, 0);
 
-        let flow_box = ::gtk::FlowBox::new();
-        frame.add(&flow_box);
-
-        let modes = vec![Mode::Auto, Mode::Normal, Mode::Single];
-
-        let mut group_member = None;
-
-        for mode in modes {
-            let button = ::gtk::RadioButton::new_with_label_from_widget(
-                group_member.as_ref(),
-                format!("{}", mode).as_str()
-            );
-            flow_box.add(&button);
-
-            let stream = relm.stream().clone();
-            button.connect_toggled(move |f| {
-                if f.get_active() {
-                    stream.emit(
-                        Signal::Mode(mode)
-                    );
-                }
-            });
-
-            if mode == model.mode {
-                button.set_active(true);
-            }
-
-            if group_member == None {
-                group_member = Some(button);
-            }
-        }
+        let args = ::widget::radio::Model {
+            options: vec![Mode::Auto, Mode::Normal, Mode::Single],
+            current: Some(model.mode),
+        };
+        let radio = frame.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
+        connect!(
+            radio@::widget::radio::Signal::Change(mode),
+            relm,
+            Signal::Mode(mode)
+        );
 
         let single_button = ::gtk::Button::new_with_label("Single");
         page.pack_start(&single_button, false, false, 0);
@@ -188,6 +166,7 @@ impl ::relm::Widget for Widget {
             delay,
             level,
             stream,
+            radio,
         }
     }
 }

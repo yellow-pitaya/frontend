@@ -1,10 +1,5 @@
 use color::Colorable;
-use gtk::{
-    BoxExt,
-    ButtonExt,
-    ContainerExt,
-    ToggleButtonExt,
-};
+use gtk::BoxExt;
 use relm::ContainerWidget;
 
 #[derive(Clone)]
@@ -39,7 +34,7 @@ pub struct Widget {
     pub page: ::gtk::Box,
     pub palette: ::relm::Component<::widget::Palette>,
     pub amplitude: ::relm::Component<::widget::PreciseScale>,
-    form: ::gtk::RadioButton,
+    form: ::relm::Component<::widget::RadioGroup<::redpitaya_scpi::generator::Form>>,
     pub offset: ::relm::Component<::widget::PreciseScale>,
     pub frequency: ::relm::Component<::widget::PreciseScale>,
     level: ::relm::Component<::widget::PreciseScale>,
@@ -61,42 +56,28 @@ impl Widget {
     fn draw_data(&self, context: &::cairo::Context, scales: ::Scales) {
         context.set_line_width(0.05);
 
-        let form = self.get_form();
-        let amplitude = self.amplitude.widget().get_value();
-        let frequency = self.frequency.widget().get_value() / 1_000_000.0;
+        if let Some(form) = self.form.widget().get_current() {
+            let amplitude = self.amplitude.widget().get_value();
+            let frequency = self.frequency.widget().get_value() / 1_000_000.0;
 
-        for sample in 0..scales.n_samples {
-            let x = scales.sample_to_ms(sample);
-            let y = match form {
-                ::redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
-                ::redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
-                ::redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
-                ::redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
-                ::redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
-                ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency),
-                _ => unimplemented!(),
-            };
+            for sample in 0..scales.n_samples {
+                let x = scales.sample_to_ms(sample);
+                let y = match form {
+                    ::redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency),
+                    _ => unimplemented!(),
+                };
 
-            context.line_to(x, y);
-            context.move_to(x, y);
-        }
-
-        context.stroke();
-    }
-
-    fn get_form(&self) -> ::redpitaya_scpi::generator::Form {
-        let default = ::redpitaya_scpi::generator::Form::SINE;
-
-        for radio in self.form.get_group() {
-            if radio.get_active() {
-                return match radio.get_label() {
-                    Some(label) => label.parse().unwrap(),
-                    None => default,
-                }
+                context.line_to(x, y);
+                context.move_to(x, y);
             }
-        }
 
-        default
+            context.stroke();
+        }
     }
 
     fn sine(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
@@ -162,10 +143,8 @@ impl ::relm::Widget for Widget {
         let frame = ::gtk::Frame::new("Form");
         vbox.pack_start(&frame, false, true, 0);
 
-        let flow_box = ::gtk::FlowBox::new();
-        frame.add(&flow_box);
-
-        let forms = vec![
+        let args = ::widget::radio::Model {
+            options: vec![
             ::redpitaya_scpi::generator::Form::SINE,
             ::redpitaya_scpi::generator::Form::SQUARE,
             ::redpitaya_scpi::generator::Form::TRIANGLE,
@@ -173,32 +152,15 @@ impl ::relm::Widget for Widget {
             ::redpitaya_scpi::generator::Form::SAWD,
             ::redpitaya_scpi::generator::Form::PWM,
             // @TODO ::redpitaya_scpi::generator::Form::ARBITRARY,
-        ];
-
-        let mut group_member = None;
-
-        for form in forms {
-            let button = ::gtk::RadioButton::new_with_label_from_widget(
-                group_member.as_ref(),
-                Into::<String>::into(form).as_str()
-            );
-            flow_box.add(&button);
-
-            let stream = relm.stream().clone();
-            button.connect_toggled(move |f| {
-                if f.get_active() {
-                    stream.emit(
-                        Signal::Signal(::redpitaya_scpi::generator::Source::OUT1, form.clone())
-                    );
-                }
-            });
-
-            if group_member == None {
-                group_member = Some(button);
-            }
-        }
-
-        let form = group_member.unwrap();
+            ],
+            current: Some(::redpitaya_scpi::generator::Form::SINE),
+        };
+        let form = frame.add_widget::<::widget::RadioGroup<::redpitaya_scpi::generator::Form>, _>(&relm, args);
+        connect!(
+            form@::widget::radio::Signal::Change(form),
+            relm,
+            Signal::Signal(::redpitaya_scpi::generator::Source::OUT1, form)
+        );
 
         let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         amplitude.widget().set_label("Amplitude (V)");

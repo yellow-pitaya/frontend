@@ -326,5 +326,6 @@ impl ::relm::Widget for Application {
         self.acquire.widget().palette.widget().fold();
         self.generator.widget().duty_cycle.widget().set_visible(false);
         self.generator.widget().palette.widget().fold();
+        self.trigger.widget().single_button.set_visible(false);
     }
 }

@@ -1,8 +1,4 @@
-use gtk::{
-    BoxExt,
-    ContainerExt,
-    ToggleButtonExt,
-};
+use gtk::BoxExt;
 use color::Colorable;
 use relm::ContainerWidget;
 
@@ -38,6 +34,7 @@ pub struct Widget {
     level: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
     page: ::gtk::Box,
+    rate: ::relm::Component<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>>,
     pub palette: ::relm::Component<::widget::Palette>,
 }
 
@@ -151,44 +148,23 @@ impl ::relm::Widget for Widget {
         let frame = ::gtk::Frame::new("Sampling Rate");
         page.pack_start(&frame, false, true, 0);
 
-        let flow_box = ::gtk::FlowBox::new();
-        frame.add(&flow_box);
-
-        let rates = vec![
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_103_8kHz,
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9MHz,
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
-            ::redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
-        ];
-
-        let mut group_member = None;
-
-        for rate in rates {
-            let button = ::gtk::RadioButton::new_with_label_from_widget(
-                group_member.as_ref(),
-                format!("{}", rate).as_str()
-            );
-            flow_box.add(&button);
-
-            let stream = relm.stream().clone();
-            button.connect_toggled(move |f| {
-                if f.get_active() {
-                    stream.emit(
-                        Signal::Rate(rate.clone())
-                    );
-                }
-            });
-
-            if rate == model.rate {
-                button.set_active(true);
-            }
-
-            if group_member == None {
-                group_member = Some(button);
-            }
-        }
+        let args = ::widget::radio::Model {
+            options: vec![
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_103_8kHz,
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9MHz,
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
+                ::redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
+            ],
+            current: Some(model.rate),
+        };
+        let rate = frame.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>, _>(&relm, args);
+        connect!(
+            rate@::widget::radio::Signal::Change(rate),
+            relm,
+            Signal::Rate(rate)
+        );
 
         let buffer = ::std::cell::RefCell::new(String::new());
         let stream = relm.stream().clone();
@@ -199,6 +175,7 @@ impl ::relm::Widget for Widget {
             page,
             palette,
             stream,
+            rate,
         }
     }
 }
