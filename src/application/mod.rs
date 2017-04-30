@@ -118,8 +118,6 @@ impl Application {
             model.redpitaya.trigger.get_level() as f64
         );
 
-        self.trigger.widget().set_mode(trigger::Mode::Normal);
-
         self.window.show_all();
 
         // @FIXME

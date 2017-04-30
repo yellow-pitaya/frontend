@@ -2,47 +2,45 @@ use color::Colorable;
 use gtk::{
     BoxExt,
     ButtonExt,
-    ComboBoxExt,
+    ContainerExt,
+    ToggleButtonExt,
     WidgetExt,
 };
 use relm::ContainerWidget;
 
+#[derive(Copy, Clone, PartialEq)]
 pub enum Mode {
-    Auto = 0,
-    Normal = 1,
-    Single = 2,
+    Auto,
+    Normal,
+    Single,
 }
 
-impl ::std::convert::From<i32> for Mode {
-    fn from(x: i32) -> Self {
-        match x {
-            0 => Mode::Auto,
-            1 => Mode::Normal,
-            2 => Mode::Single,
-            _ => Mode::Auto,
-        }
-    }
-}
+impl ::std::fmt::Display for Mode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        let display = match self {
+            &Mode::Auto => "Auto",
+            &Mode::Normal => "Normal",
+            &Mode::Single => "Single",
+        };
 
-impl ::std::convert::From<Mode> for i32 {
-    fn from(x: Mode) -> Self {
-        match x {
-            Mode::Auto => 0,
-            Mode::Normal => 1,
-            Mode::Single => 2,
-        }
+        write!(f, "{}", display)
     }
 }
 
 #[derive(Msg)]
 pub enum Signal {
     Auto,
-    InternalTick,
     Normal,
     Single,
-    Mode,
+    Mode(Mode),
+    InternalTick,
     Delay(u16),
     Level(f32),
+}
+
+#[derive(Clone)]
+pub struct Model {
+    mode: Mode,
 }
 
 #[derive(Clone)]
@@ -50,46 +48,39 @@ pub struct Widget {
     page: ::gtk::Box,
     pub level: ::relm::Component<::widget::PreciseScale>,
     single_button: ::gtk::Button,
-    pub mode_combo: ::gtk::ComboBoxText,
     pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
 }
 
-impl Widget {
-    pub fn set_mode(&self, mode: Mode) {
-        self.mode_combo.set_active(mode.into());
-    }
-
-    fn get_mode(&self) -> Mode {
-        self.mode_combo.get_active()
-            .into()
-    }
-}
-
 impl ::relm::Widget for Widget {
-    type Model = ();
+    type Model = Model;
     type Msg = Signal;
     type Root = ::gtk::Box;
     type ModelParam = ();
 
     fn model(_: Self::ModelParam) -> Self::Model {
+        Model {
+            mode: Mode::Normal,
+        }
     }
 
     fn root(&self) -> &Self::Root {
         &self.page
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
             Signal::InternalTick => {
-                match self.get_mode() {
+                match model.mode {
                     Mode::Auto => self.stream.emit(Signal::Auto),
                     Mode::Normal => self.stream.emit(Signal::Normal),
                     Mode::Single => (),
                 };
             },
-            Signal::Mode => {
-                match self.get_mode() {
+            Signal::Mode(mode) => {
+                model.mode = mode;
+
+                match mode {
                     Mode::Auto => {
                         self.level.widget().set_visible(false);
                         self.single_button.set_visible(false);
@@ -108,15 +99,43 @@ impl ::relm::Widget for Widget {
         }
     }
 
-    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
-        let mode_combo = ::gtk::ComboBoxText::new();
-        mode_combo.append_text("Auto");
-        mode_combo.append_text("Normal");
-        mode_combo.append_text("Single");
-        page.pack_start(&mode_combo, false, false, 0);
-        connect!(relm, mode_combo, connect_changed(_), Signal::Mode);
+        let frame = ::gtk::Frame::new("Mode");
+        page.pack_start(&frame, false, true, 0);
+
+        let flow_box = ::gtk::FlowBox::new();
+        frame.add(&flow_box);
+
+        let modes = vec![Mode::Auto, Mode::Normal, Mode::Single];
+
+        let mut group_member = None;
+
+        for mode in modes {
+            let button = ::gtk::RadioButton::new_with_label_from_widget(
+                group_member.as_ref(),
+                format!("{}", mode).as_str()
+            );
+            flow_box.add(&button);
+
+            let stream = relm.stream().clone();
+            button.connect_toggled(move |f| {
+                if f.get_active() {
+                    stream.emit(
+                        Signal::Mode(mode)
+                    );
+                }
+            });
+
+            if mode == model.mode {
+                button.set_active(true);
+            }
+
+            if group_member == None {
+                group_member = Some(button);
+            }
+        }
 
         let single_button = ::gtk::Button::new_with_label("Single");
         page.pack_start(&single_button, false, false, 0);
@@ -168,7 +187,6 @@ impl ::relm::Widget for Widget {
             single_button,
             delay,
             level,
-            mode_combo,
             stream,
         }
     }
