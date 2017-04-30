@@ -90,7 +90,7 @@ impl Widget {
         for radio in self.form.get_group() {
             if radio.get_active() {
                 return match radio.get_label() {
-                    Some(label) => label.into(),
+                    Some(label) => label.parse().unwrap(),
                     None => default,
                 }
             }
@@ -180,7 +180,7 @@ impl ::relm::Widget for Widget {
         for form in forms {
             let button = ::gtk::RadioButton::new_with_label_from_widget(
                 group_member.as_ref(),
-                format!("{}", form).as_str()
+                Into::<String>::into(form).as_str()
             );
             flow_box.add(&button);
 

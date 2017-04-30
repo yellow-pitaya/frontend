@@ -40,8 +40,8 @@ impl Scales {
         self.v.1 - self.v.0
     }
 
-    pub fn from_decimation(&mut self, decimation: ::redpitaya_scpi::acquire::Decimation) {
-        let duration = decimation.get_buffer_duration();
+    pub fn from_sampling_rate(&mut self, rate: ::redpitaya_scpi::acquire::SamplingRate) {
+        let duration = rate.get_buffer_duration();
         let h1 = (duration.as_secs() * 1_000_000 + duration.subsec_nanos() as u64 / 1_000) as f64;
 
         self.h.1 = h1;

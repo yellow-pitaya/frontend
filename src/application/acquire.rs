@@ -9,7 +9,7 @@ use relm::ContainerWidget;
 #[derive(Clone)]
 pub enum Signal {
     Data,
-    Decimation(::redpitaya_scpi::acquire::Decimation),
+    Rate(::redpitaya_scpi::acquire::SamplingRate),
     Level(::redpitaya_scpi::acquire::Source, u32),
     Start,
     Stop,
@@ -19,12 +19,17 @@ impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Data => "Signal::Data",
-            Signal::Decimation(_) => "Signal::Decimation",
+            Signal::Rate(_) => "Signal::Rate",
             Signal::Level(_, _) => "Signal::Level",
             Signal::Start => "Signal::Start",
             Signal::Stop => "Signal::Stop",
         }
     }
+}
+
+#[derive(Clone)]
+pub struct Model {
+    rate: ::redpitaya_scpi::acquire::SamplingRate,
 }
 
 #[derive(Clone)]
@@ -102,12 +107,15 @@ impl ::application::Panel for Widget {
 }
 
 impl ::relm::Widget for Widget {
-    type Model = ();
+    type Model = Model;
     type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = ();
+    type ModelParam = ::redpitaya_scpi::acquire::SamplingRate;
 
-    fn model(_: Self::ModelParam) -> Self::Model {
+    fn model(rate: ::redpitaya_scpi::acquire::SamplingRate) -> Self::Model {
+        Model {
+            rate,
+        }
     }
 
     fn root(&self) -> &Self::Root {
@@ -117,7 +125,7 @@ impl ::relm::Widget for Widget {
     fn update(&mut self, _: Signal, _: &mut Self::Model) {
     }
 
-    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
@@ -140,27 +148,27 @@ impl ::relm::Widget for Widget {
             Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
         );
 
-        let frame = ::gtk::Frame::new("Decimation");
+        let frame = ::gtk::Frame::new("Sampling Rate");
         page.pack_start(&frame, false, true, 0);
 
         let flow_box = ::gtk::FlowBox::new();
         frame.add(&flow_box);
 
-        let decimations = vec![
-            ::redpitaya_scpi::acquire::Decimation::DEC_1,
-            ::redpitaya_scpi::acquire::Decimation::DEC_8,
-            ::redpitaya_scpi::acquire::Decimation::DEC_64,
-            ::redpitaya_scpi::acquire::Decimation::DEC_1024,
-            ::redpitaya_scpi::acquire::Decimation::DEC_8192,
-            ::redpitaya_scpi::acquire::Decimation::DEC_65536,
+        let rates = vec![
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_103_8kHz,
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_1_9MHz,
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
+            ::redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
         ];
 
         let mut group_member = None;
 
-        for decimation in decimations {
+        for rate in rates {
             let button = ::gtk::RadioButton::new_with_label_from_widget(
                 group_member.as_ref(),
-                decimation.get_sampling_rate()
+                format!("{}", rate).as_str()
             );
             flow_box.add(&button);
 
@@ -168,10 +176,14 @@ impl ::relm::Widget for Widget {
             button.connect_toggled(move |f| {
                 if f.get_active() {
                     stream.emit(
-                        Signal::Decimation(decimation.clone())
+                        Signal::Rate(rate.clone())
                     );
                 }
             });
+
+            if rate == model.rate {
+                button.set_active(true);
+            }
 
             if group_member == None {
                 group_member = Some(button);

@@ -20,7 +20,7 @@ trait Panel {
 pub enum Signal {
     AcquireStart,
     AcquireStop,
-    AcquireDecimation(::redpitaya_scpi::acquire::Decimation),
+    AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
@@ -42,7 +42,7 @@ impl ::relm::DisplayVariant for Signal {
         match *self {
             Signal::AcquireStart => "Signal::AcquireStart",
             Signal::AcquireStop => "Signal::AcquireStop",
-            Signal::AcquireDecimation(_) => "Signal::AcquireDecimation",
+            Signal::AcquireRate(_) => "Signal::AcquireRate",
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
             Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
@@ -65,7 +65,7 @@ impl ::relm::DisplayVariant for Signal {
 pub struct Model {
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
-    rate: String,
+    rate: ::redpitaya_scpi::acquire::SamplingRate,
 }
 
 #[derive(Clone)]
@@ -94,29 +94,40 @@ impl Application {
     }
 
     fn init(&self, model: &Model) {
-        self.generator.widget().amplitude.widget().set_value(
-            model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
+        match model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(amplitude) => self.generator.widget().amplitude.widget().set_value(amplitude as f64),
+            Err(err) => error!("{}", err),
+        };
 
-        self.generator.widget().offset.widget().set_value(
-            model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
+        match model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(offset) => self.generator.widget().offset.widget().set_value(offset as f64),
+            Err(err) => error!("{}", err),
+        };
 
-        self.generator.widget().frequency.widget().set_value(
-            model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
+        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
+            Err(err) => error!("{}", err),
+        };
 
-        self.generator.widget().duty_cycle.widget().set_value(
-            model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) as f64
-        );
+        match model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(duty_cycle) => self.generator.widget().duty_cycle.widget().set_value(duty_cycle as f64),
+            Err(err) => error!("{}", err),
+        };
 
-        self.trigger.widget().delay.widget().set_value(
-            model.redpitaya.trigger.get_delay() as f64
-        );
+        match model.redpitaya.trigger.get_delay() {
+            Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
+            Err(err) => error!("{}", err),
+        };
 
-        self.trigger.widget().level.widget().set_value(
-            model.redpitaya.trigger.get_level() as f64
-        );
+        match model.redpitaya.trigger.get_level() {
+            Ok(level) => self.trigger.widget().level.widget().set_value(level as f64),
+            Err(err) => error!("{}", err),
+        };
+
+        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
+            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
+            Err(err) => error!("{}", err),
+        };
 
         self.window.show_all();
 
@@ -176,13 +187,13 @@ impl ::relm::Widget for Application {
         let mut scales = ::Scales {
             h: (0.0, 0.0),
             v: (-5.0, 5.0),
-            n_samples: redpitaya.data.buffer_size(),
+            n_samples: redpitaya.data.buffer_size().unwrap(),
         };
 
-        let decimation = redpitaya.acquire.get_decimation();
-        scales.from_decimation(decimation);
-
-        let rate = decimation.get_sampling_rate().into();
+        let rate = redpitaya.acquire.get_decimation()
+            .unwrap()
+            .into();
+        scales.from_sampling_rate(rate);
 
         Model {
             redpitaya,
@@ -199,9 +210,10 @@ impl ::relm::Widget for Application {
         match event {
             Signal::AcquireStart => model.redpitaya.acquire.start(),
             Signal::AcquireStop => model.redpitaya.acquire.stop(),
-            Signal::AcquireDecimation(decimation) => {
-                model.redpitaya.acquire.set_decimation(decimation);
-                model.scales.from_decimation(decimation);
+            Signal::AcquireRate(rate) => {
+                model.rate = rate;
+                model.redpitaya.acquire.set_decimation(rate.into());
+                model.scales.from_sampling_rate(rate);
                 self.draw(model);
             }
 
@@ -254,9 +266,9 @@ impl ::relm::Widget for Application {
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
-        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, ());
+        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.rate);
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
-        connect!(acquire@acquire::Signal::Decimation(decimation), relm, Signal::AcquireDecimation(decimation));
+        connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
