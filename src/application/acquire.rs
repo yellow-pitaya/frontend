@@ -131,8 +131,8 @@ impl ::relm::Widget for Widget {
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("IN 1");
         palette.widget().set_color(::color::IN1);
-        connect!(palette@::widget::Signal::Expand, relm, Signal::Start);
-        connect!(palette@::widget::Signal::Fold, relm, Signal::Stop);
+        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
+        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
@@ -143,7 +143,7 @@ impl ::relm::Widget for Widget {
             0.0, -10.0, 10.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            level@::widget::Signal::Changed(value),
+            level@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
         );

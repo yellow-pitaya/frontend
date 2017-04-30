@@ -153,8 +153,8 @@ impl ::relm::Widget for Widget {
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label("OUT 1");
         palette.widget().set_color(::color::OUT1);
-        connect!(palette@::widget::Signal::Expand, relm, Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
-        connect!(palette@::widget::Signal::Fold, relm, Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
+        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start(::redpitaya_scpi::generator::Source::OUT1));
+        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop(::redpitaya_scpi::generator::Source::OUT1));
 
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
@@ -207,7 +207,7 @@ impl ::relm::Widget for Widget {
             0.0, -1.0, 1.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            amplitude@::widget::Signal::Changed(value),
+            amplitude@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
@@ -219,7 +219,7 @@ impl ::relm::Widget for Widget {
             0.0, -1.0, 1.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            offset@::widget::Signal::Changed(value),
+            offset@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );
@@ -230,7 +230,7 @@ impl ::relm::Widget for Widget {
             0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0
         ));
         connect!(
-            frequency@::widget::Signal::Changed(value),
+            frequency@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
@@ -241,7 +241,7 @@ impl ::relm::Widget for Widget {
             0.0, -10.0, 10.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            level@::widget::Signal::Changed(value),
+            level@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Level(::redpitaya_scpi::generator::Source::OUT1, value as u32)
         );
@@ -253,7 +253,7 @@ impl ::relm::Widget for Widget {
             0.0, 0.0, 1.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            duty_cycle@::widget::Signal::Changed(value),
+            duty_cycle@::widget::precise::Signal::Changed(value),
             relm,
             Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, value as f32)
         );

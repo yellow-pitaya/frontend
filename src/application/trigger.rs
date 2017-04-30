@@ -148,7 +148,7 @@ impl ::relm::Widget for Widget {
             0.0, -10.0, 10.0, 0.1, 1.0, 0.0
         ));
         connect!(
-            level@::widget::Signal::Changed(value),
+            level@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Level(value as f32)
         );
@@ -160,7 +160,7 @@ impl ::relm::Widget for Widget {
             0.0, 0.0, 131_072.0, 1.1, 10.0, 0.0
         ));
         connect!(
-            delay@::widget::Signal::Changed(value),
+            delay@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Delay(value as u16)
         );
