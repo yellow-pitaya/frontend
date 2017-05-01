@@ -77,7 +77,8 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    mode: Mode,
+    pub trigger: ::redpitaya_scpi::trigger::Trigger,
+    pub mode: Mode,
 }
 
 #[derive(Clone)]
@@ -129,10 +130,11 @@ impl ::relm::Widget for Widget {
     type Model = Model;
     type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = ();
+    type ModelParam = ::redpitaya_scpi::trigger::Trigger;
 
-    fn model(_: Self::ModelParam) -> Self::Model {
+    fn model(trigger: Self::ModelParam) -> Self::Model {
         Model {
+            trigger: trigger,
             mode: Mode::Normal,
         }
     }
@@ -171,8 +173,11 @@ impl ::relm::Widget for Widget {
             Signal::Channel(_) | Signal::Edge(_) => {
                 if let Some(source) = self.get_source() {
                     self.stream.emit(Signal::Source(source));
+                    model.trigger.enable(source);
                 }
             },
+            Signal::Delay(delay) => model.trigger.set_delay_in_ns(delay),
+            Signal::Level(level) => model.trigger.set_level(level),
             _ => (),
         }
     }

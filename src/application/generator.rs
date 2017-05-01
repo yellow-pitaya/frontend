@@ -105,25 +105,33 @@ impl Widget {
 }
 
 impl ::relm::Widget for Widget {
-    type Model = ();
+    type Model = ::redpitaya_scpi::generator::Generator;
     type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = ();
+    type ModelParam = ::redpitaya_scpi::generator::Generator;
 
-    fn model(_: Self::ModelParam) -> Self::Model {
+    fn model(generator: Self::ModelParam) -> Self::Model {
+        generator
     }
 
     fn root(&self) -> &Self::Root {
         &self.page
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal, generator: &mut Self::Model) {
         match event {
-            Signal::Signal(_, form) => {
+            Signal::Amplitude(source, value) => generator.set_amplitude(source, value),
+            Signal::Offset(source, value) => generator.set_offset(source, value),
+            Signal::Frequency(source, value) => generator.set_frequency(source, value),
+            Signal::DutyCycle(source, value) => generator.set_duty_cycle(source, value),
+            Signal::Start(source) => generator.start(source),
+            Signal::Stop(source) => generator.stop(source),
+            Signal::Signal(source, form) => {
                 let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
                 self.duty_cycle.widget().set_visible(is_pwm);
+                generator.set_form(source, form);
             },
-            _ => (),
+            Signal::Level(_, _) => (),
         };
     }
 

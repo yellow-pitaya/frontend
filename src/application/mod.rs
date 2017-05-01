@@ -16,53 +16,14 @@ trait Panel {
     fn draw(&self, context: &::cairo::Context, scales: ::Scales);
 }
 
-#[derive(Clone)]
+#[derive(Msg)]
 pub enum Signal {
-    AcquireStart,
-    AcquireStop,
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
-    AcquireAverage(bool),
-    GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
-    GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
-    GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
-    GeneratorDutyCycle(::redpitaya_scpi::generator::Source, f32),
-    GeneratorStart(::redpitaya_scpi::generator::Source),
-    GeneratorStop(::redpitaya_scpi::generator::Source),
-    GeneratorSignal(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
     GraphDraw,
     TriggerAuto,
     TriggerNormal,
     TriggerSingle,
-    TriggerDelay(u8),
-    TriggerLevel(f32),
-    TriggerSource(::redpitaya_scpi::trigger::Source),
     Quit,
-}
-
-impl ::relm::DisplayVariant for Signal {
-    fn display_variant(&self) -> &'static str {
-        match *self {
-            Signal::AcquireStart => "Signal::AcquireStart",
-            Signal::AcquireStop => "Signal::AcquireStop",
-            Signal::AcquireRate(_) => "Signal::AcquireRate",
-            Signal::AcquireAverage(_) => "Signal::AcquireAverage",
-            Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
-            Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
-            Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
-            Signal::GeneratorDutyCycle(_, _) => "Signal::GeneratorDutyCycle",
-            Signal::GeneratorStart(_) => "Signal::GeneratorStart",
-            Signal::GeneratorStop(_) => "Signal::GeneratorStop",
-            Signal::GeneratorSignal(_, _) => "Signal::GeneratorSignal",
-            Signal::TriggerAuto => "Signal::TriggerAuto",
-            Signal::TriggerNormal => "Signal::TriggerNormal",
-            Signal::TriggerSingle => "Signal::Single",
-            Signal::TriggerDelay(_) => "Signal::TriggerDelay",
-            Signal::TriggerLevel(_) => "Signal::TriggerLevel",
-            Signal::TriggerSource(_) => "Signal::TriggerSource",
-            Signal::GraphDraw => "Signal::GraphDraw",
-            Signal::Quit => "Signal::Quit",
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -168,46 +129,20 @@ impl ::relm::Widget for Application {
 
     fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
-            Signal::AcquireStart => model.redpitaya.acquire.start(),
-            Signal::AcquireStop => model.redpitaya.acquire.stop(),
             Signal::AcquireRate(rate) => {
                 model.rate = rate;
-                model.redpitaya.acquire.set_decimation(rate.into());
                 model.scales.from_sampling_rate(rate);
                 self.draw(model);
             },
-            Signal::AcquireAverage(enable) => {
-                if enable {
-                    model.redpitaya.acquire.enable_average();
-                } else {
-                    model.redpitaya.acquire.disable_average();
-                }
-            },
-
-            Signal::GeneratorAmplitude(source, value) => model.redpitaya.generator.set_amplitude(source, value),
-            Signal::GeneratorOffset(source, value) => model.redpitaya.generator.set_offset(source, value),
-            Signal::GeneratorFrequency(source, value) => model.redpitaya.generator.set_frequency(source, value),
-            Signal::GeneratorDutyCycle(source, value) => model.redpitaya.generator.set_duty_cycle(source, value),
-            Signal::GeneratorStart(source) => model.redpitaya.generator.start(source),
-            Signal::GeneratorStop(source) => model.redpitaya.generator.stop(source),
-            Signal::GeneratorSignal(source, form) => model.redpitaya.generator.set_form(source, form),
 
             Signal::GraphDraw => self.draw(model),
 
-            Signal::TriggerAuto | Signal::TriggerSingle => if model.redpitaya.acquire.is_started() {
-                    self.acquire.widget().set_buffer(
-                        model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
-                    );
-            },
-            Signal::TriggerNormal => if model.redpitaya.acquire.is_started() {
-                self.acquire.widget().set_buffer(
-                    model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
-                );
-            },
-            Signal::TriggerDelay(value) => model.redpitaya.trigger.set_delay_in_ns(value),
-            Signal::TriggerLevel(value) => model.redpitaya.trigger.set_level(value),
-            Signal::TriggerSource(value) => model.redpitaya.trigger.enable(value),
-
+            Signal::TriggerAuto | Signal::TriggerSingle => self.acquire.widget().set_buffer(
+                model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
+            ),
+            Signal::TriggerNormal => self.acquire.widget().set_buffer(
+                model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
+            ),
             Signal::Quit => {
                 model.redpitaya.acquire.stop();
                 model.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
@@ -235,17 +170,10 @@ impl ::relm::Widget for Application {
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
 
-        let model = acquire::Model {
-            rate: model.rate,
-            average: model.redpitaya.acquire.is_average_enabled(),
-        };
-        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model);
+        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.redpitaya.acquire.clone());
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
-        connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
-        connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
-        connect!(acquire@acquire::Signal::Average(value), relm, Signal::AcquireAverage(value));
 
         notebook.append_page(
             &acquire_page,
@@ -254,14 +182,8 @@ impl ::relm::Widget for Application {
 
         let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         generator_page.set_border_width(10);
-        let generator = generator_page.add_widget::<generator::Widget, _>(&relm, ());
-        connect!(generator@generator::Signal::Start(source), relm, Signal::GeneratorStart(source));
-        connect!(generator@generator::Signal::Stop(source), relm, Signal::GeneratorStop(source));
-        connect!(generator@generator::Signal::Amplitude(source, value), relm, Signal::GeneratorAmplitude(source, value));
-        connect!(generator@generator::Signal::Offset(source, value), relm, Signal::GeneratorOffset(source, value));
-        connect!(generator@generator::Signal::Frequency(source, value), relm, Signal::GeneratorFrequency(source, value));
-        connect!(generator@generator::Signal::DutyCycle(source, value), relm, Signal::GeneratorDutyCycle(source, value));
-        connect!(generator@generator::Signal::Signal(source, value), relm, Signal::GeneratorSignal(source, value));
+        let generator = generator_page.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
+        connect!(generator@generator::Signal::Level(_, _), relm, Signal::GraphDraw);
 
         notebook.append_page(
             &generator_page,
@@ -278,13 +200,10 @@ impl ::relm::Widget for Application {
 
         let trigger_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         trigger_page.set_border_width(10);
-        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm, ());
+        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm, model.redpitaya.trigger.clone());
         connect!(trigger@trigger::Signal::Auto, relm, Signal::TriggerAuto);
         connect!(trigger@trigger::Signal::Normal, relm, Signal::TriggerNormal);
         connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);
-        connect!(trigger@trigger::Signal::Delay(value), relm, Signal::TriggerDelay(value));
-        connect!(trigger@trigger::Signal::Level(value), relm, Signal::TriggerLevel(value));
-        connect!(trigger@trigger::Signal::Source(value), relm, Signal::TriggerSource(value));
 
         notebook.append_page(
             &trigger_page,

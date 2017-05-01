@@ -29,12 +29,6 @@ impl ::relm::DisplayVariant for Signal {
 }
 
 #[derive(Clone)]
-pub struct Model {
-    pub rate: ::redpitaya_scpi::acquire::SamplingRate,
-    pub average: bool,
-}
-
-#[derive(Clone)]
 pub struct Widget {
     buffer: ::std::cell::RefCell<String>,
     level: ::relm::Component<::widget::PreciseScale>,
@@ -111,23 +105,34 @@ impl ::application::Panel for Widget {
 }
 
 impl ::relm::Widget for Widget {
-    type Model = Model;
+    type Model = ::redpitaya_scpi::acquire::Acquire;
     type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = Model;
+    type ModelParam = ::redpitaya_scpi::acquire::Acquire;
 
-    fn model(model: Self::ModelParam) -> Self::Model {
-        model
+    fn model(acquire: Self::ModelParam) -> Self::Model {
+        acquire
     }
 
     fn root(&self) -> &Self::Root {
         &self.page
     }
 
-    fn update(&mut self, _: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal, acquire: &mut Self::Model) {
+        match event {
+            Signal::Start => acquire.start(),
+            Signal::Stop => acquire.stop(),
+            Signal::Rate(rate) => acquire.set_decimation(rate.into()),
+            Signal::Average(enable) => if enable {
+                acquire.enable_average();
+            } else {
+                acquire.disable_average();
+            },
+            _ => (),
+        };
     }
 
-    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+    fn view(relm: &::relm::RemoteRelm<Self>, acquire: &Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
@@ -160,7 +165,10 @@ impl ::relm::Widget for Widget {
                 ::redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
                 ::redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
             ],
-            current: Some(model.rate),
+            current: match acquire.get_decimation() {
+                Ok(sampling_rate) => Some(sampling_rate.into()),
+                Err(_) => None,
+            },
         };
         let rate = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>, _>(&relm, args);
         connect!(
@@ -170,7 +178,7 @@ impl ::relm::Widget for Widget {
         );
 
         let average = ::gtk::CheckButton::new_with_label("Average");
-        average.set_active(model.average);
+        average.set_active(acquire.is_average_enabled());
         page.add(&average);
         connect!(
             relm, average, connect_toggled(w), Signal::Average(w.get_active())
