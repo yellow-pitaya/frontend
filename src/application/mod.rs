@@ -215,6 +215,14 @@ impl ::relm::Widget for Application {
         );
 
         let generator = scrolled_window.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
+        connect!(generator@generator::Signal::Amplitude(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::DutyCycle(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Frequency(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Level(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Offset(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Form(_, _), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Start(_), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Stop(_), relm, Signal::GraphDraw);
 
         let status_bar = ::gtk::Statusbar::new();
         vbox.pack_start(&status_bar, false, true, 0);

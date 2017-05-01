@@ -4,7 +4,7 @@ use super::Model;
 use super::Signal;
 
 #[derive(Clone)]
-pub struct Output {
+pub struct Widget {
     pub page: ::gtk::Box,
     pub palette: ::relm::Component<::widget::Palette>,
     pub amplitude: ::relm::Component<::widget::PreciseScale>,
@@ -16,7 +16,7 @@ pub struct Output {
     source: ::redpitaya_scpi::generator::Source,
 }
 
-impl Output {
+impl Widget {
     fn is_started(&self) -> bool {
         self.palette.widget().get_active()
     }
@@ -80,7 +80,7 @@ impl Output {
     }
 }
 
-impl ::relm::Widget for Output {
+impl ::relm::Widget for Widget {
     type Model = Model;
     type Msg = Signal;
     type Root = ::gtk::Box;
@@ -96,18 +96,18 @@ impl ::relm::Widget for Output {
 
     fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
-            Signal::Amplitude(source, value) => model.generator.set_amplitude(source, value),
-            Signal::Offset(source, value) => model.generator.set_offset(source, value),
-            Signal::Frequency(source, value) => model.generator.set_frequency(source, value),
-            Signal::DutyCycle(source, value) => model.generator.set_duty_cycle(source, value),
-            Signal::Start(source) => model.generator.start(source),
-            Signal::Stop(source) => model.generator.stop(source),
-            Signal::Signal(source, form) => {
+            Signal::Amplitude(value) => model.generator.set_amplitude(model.source, value),
+            Signal::Offset(value) => model.generator.set_offset(model.source, value),
+            Signal::Frequency(value) => model.generator.set_frequency(model.source, value),
+            Signal::DutyCycle(value) => model.generator.set_duty_cycle(model.source, value),
+            Signal::Start => model.generator.start(model.source),
+            Signal::Stop => model.generator.stop(model.source),
+            Signal::Form(form) => {
                 let is_pwm = form == ::redpitaya_scpi::generator::Form::PWM;
                 self.duty_cycle.widget().set_visible(is_pwm);
-                model.generator.set_form(source, form);
+                model.generator.set_form(model.source, form);
             },
-            Signal::Level(_, _) => (),
+            Signal::Level(_) => (),
         };
     }
 
@@ -119,8 +119,8 @@ impl ::relm::Widget for Output {
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label(format!("{}", model.source).as_str());
         palette.widget().set_color(model.source.into());
-        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start(source));
-        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop(source));
+        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
+        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
@@ -142,7 +142,7 @@ impl ::relm::Widget for Output {
         connect!(
             form@::widget::radio::Signal::Change(form),
             relm,
-            Signal::Signal(source, form)
+            Signal::Form(form)
         );
 
         let amplitude = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
@@ -154,7 +154,7 @@ impl ::relm::Widget for Output {
         connect!(
             amplitude@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::Amplitude(source, value as f32)
+            Signal::Amplitude(value as f32)
         );
 
         let offset = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
@@ -166,7 +166,7 @@ impl ::relm::Widget for Output {
         connect!(
             offset@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::Offset(source, value as f32)
+            Signal::Offset(value as f32)
         );
 
         let frequency = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
@@ -177,7 +177,7 @@ impl ::relm::Widget for Output {
         connect!(
             frequency@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::Frequency(source, value as u32)
+            Signal::Frequency(value as u32)
         );
 
         let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
@@ -188,7 +188,7 @@ impl ::relm::Widget for Output {
         connect!(
             level@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::Level(source, value as u32)
+            Signal::Level(value as u32)
         );
 
         let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
@@ -202,10 +202,10 @@ impl ::relm::Widget for Output {
         connect!(
             duty_cycle@::widget::precise::Signal::Changed(value),
             relm,
-            Signal::DutyCycle(source, value as f32)
+            Signal::DutyCycle(value as f32)
         );
 
-        Output {
+        Widget {
             page,
             palette,
             amplitude,
@@ -251,7 +251,7 @@ impl ::relm::Widget for Output {
     }
 }
 
-impl ::application::Panel for Output {
+impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         if !self.is_started() {
             return;
