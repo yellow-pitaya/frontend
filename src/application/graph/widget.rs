@@ -2,11 +2,7 @@ use color::Colorable;
 use gtk::{
     WidgetExt,
 };
-
-#[derive(Msg)]
-pub enum Signal {
-    Draw,
-}
+use super::Signal;
 
 #[derive(Clone)]
 pub struct Widget {

@@ -5,81 +5,11 @@ use gtk::{
     WidgetExt,
 };
 use relm::ContainerWidget;
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum Mode {
-    Auto,
-    Normal,
-    Single,
-}
-
-impl ::std::fmt::Display for Mode {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        let display = match self {
-            &Mode::Auto => "Auto",
-            &Mode::Normal => "Normal",
-            &Mode::Single => "Single",
-        };
-
-        write!(f, "{}", display)
-    }
-}
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum Channel {
-    CH1,
-    CH2,
-    EXT,
-}
-
-impl ::std::fmt::Display for Channel {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        let display = match self {
-            &Channel::CH1 => "CH1",
-            &Channel::CH2 => "CH2",
-            &Channel::EXT => "EXT",
-        };
-
-        write!(f, "{}", display)
-    }
-}
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum Edge {
-    Positive,
-    Negative,
-}
-
-impl ::std::fmt::Display for Edge {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        let display = match self {
-            &Edge::Positive => "Positive",
-            &Edge::Negative => "Negative",
-        };
-
-        write!(f, "{}", display)
-    }
-}
-
-#[derive(Msg)]
-pub enum Signal {
-    Auto,
-    Normal,
-    Single,
-    Mode(Mode),
-    Channel(Channel),
-    Source(::redpitaya_scpi::trigger::Source),
-    Edge(Edge),
-    InternalTick,
-    Delay(u8),
-    Level(f32),
-}
-
-#[derive(Clone)]
-pub struct Model {
-    pub trigger: ::redpitaya_scpi::trigger::Trigger,
-    pub mode: Mode,
-}
+use super::Channel;
+use super::Edge;
+use super::Model;
+use super::Mode;
+use super::Signal;
 
 #[derive(Clone)]
 pub struct Widget {
