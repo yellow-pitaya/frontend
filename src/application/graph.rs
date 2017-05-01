@@ -43,17 +43,17 @@ impl Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
-        let width = scales.get_width();
-        let height = scales.get_height();
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+        let width = model.scales.get_width();
+        let height = model.scales.get_height();
 
         context.set_color(::color::BACKGROUND);
-        context.rectangle(scales.h.0, scales.v.0, width, height);
+        context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
         context.fill();
 
         context.set_color(::color::MAIN_SCALE);
 
-        context.rectangle(scales.h.0, scales.v.0, width, height);
+        context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
         context.stroke();
 
         for i in 1..10 {
@@ -65,14 +65,14 @@ impl ::application::Panel for Widget {
 
             let x = width / 10.0 * (i as f64);
 
-            context.move_to(scales.h.0 + x, scales.v.0);
-            context.line_to(scales.h.0 + x, scales.v.1);
+            context.move_to(model.scales.h.0 + x, model.scales.v.0);
+            context.line_to(model.scales.h.0 + x, model.scales.v.1);
             context.stroke();
 
             let y = height / 10.0 * (i as f64);
 
-            context.move_to(scales.h.0, scales.v.0 + y);
-            context.line_to(scales.h.1, scales.v.0 + y);
+            context.move_to(model.scales.h.0, model.scales.v.0 + y);
+            context.line_to(model.scales.h.1, model.scales.v.0 + y);
             context.stroke();
         }
     }

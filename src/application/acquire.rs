@@ -7,6 +7,7 @@ use relm::ContainerWidget;
 
 #[derive(Clone)]
 pub enum Signal {
+    Attenuation(::redpitaya_scpi::acquire::Source, u8),
     Average(bool),
     Data,
     Gain(::redpitaya_scpi::acquire::Source, ::redpitaya_scpi::acquire::Gain),
@@ -19,6 +20,7 @@ pub enum Signal {
 impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
+            Signal::Attenuation(_, _) => "Signal::Attenuation",
             Signal::Average(_) => "Signal::Average",
             Signal::Data => "Signal::Data",
             Signal::Gain(_, _) => "Signal::Gain",
@@ -58,7 +60,7 @@ impl Widget {
         context.stroke();
     }
 
-    fn draw_data(&self, context: &::cairo::Context, scales: ::Scales) {
+    fn draw_data(&self, context: &::cairo::Context, scales: ::Scales, attenuation: u8) {
         let buffer = self.buffer.borrow();
         let mut data = buffer
             .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
@@ -80,8 +82,8 @@ impl Widget {
 
             match data.next() {
                 Some(y) => {
-                    context.line_to(x, y);
-                    context.move_to(x, y);
+                    context.line_to(x, y * attenuation as f64);
+                    context.move_to(x, y * attenuation as f64);
                 },
                 None => break,
             }
@@ -91,7 +93,7 @@ impl Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         if !self.is_started() {
             return;
         }
@@ -101,8 +103,8 @@ impl ::application::Panel for Widget {
         let level = self.level.widget().get_value();
         context.translate(0.0, level);
 
-        self.draw_level(&context, scales);
-        self.draw_data(&context, scales);
+        self.draw_level(&context, model.scales);
+        self.draw_data(&context, model.scales, model.attenuation);
     }
 }
 
@@ -127,12 +129,11 @@ impl ::relm::Widget for Widget {
             } else {
                 acquire.disable_average();
             },
-            Signal::Data => (),
             Signal::Gain(source, gain) => acquire.set_gain(source, gain),
             Signal::Rate(rate) => acquire.set_decimation(rate.into()),
             Signal::Start => acquire.start(),
             Signal::Stop => acquire.stop(),
-            Signal::Level(_, _) => (),
+            _ => (),
         };
     }
 
@@ -175,6 +176,18 @@ impl ::relm::Widget for Widget {
             gain@::widget::radio::Signal::Change(gain),
             relm,
             Signal::Gain(::redpitaya_scpi::acquire::Source::IN1, gain)
+        );
+
+        let args = ::widget::radio::Model {
+            title: String::from("Probe attenuation"),
+            options: vec![1, 10, 100],
+            current: Some(1),
+        };
+        let attenuation = vbox.add_widget::<::widget::RadioGroup<u8>, _>(&relm, args);
+        connect!(
+            attenuation@::widget::radio::Signal::Change(attenuation),
+            relm,
+            Signal::Attenuation(::redpitaya_scpi::acquire::Source::IN1, attenuation)
         );
 
         let args = ::widget::radio::Model {

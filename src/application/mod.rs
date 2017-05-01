@@ -13,11 +13,12 @@ use gtk::{
 use relm::ContainerWidget;
 
 trait Panel {
-    fn draw(&self, context: &::cairo::Context, scales: ::Scales);
+    fn draw(&self, context: &::cairo::Context, model: &Model);
 }
 
-#[derive(Msg)]
+#[derive(Clone)]
 pub enum Signal {
+    AcquireAttenuation(::redpitaya_scpi::acquire::Source, u8),
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
     TriggerAuto,
@@ -26,11 +27,26 @@ pub enum Signal {
     Quit,
 }
 
+impl ::relm::DisplayVariant for Signal {
+    fn display_variant(&self) -> &'static str {
+        match *self {
+            Signal::AcquireAttenuation(_, _) => "Signal::AcquireAttenuation",
+            Signal::AcquireRate(_) => "Signal::AcquireRate",
+            Signal::GraphDraw => "Signal::GraphDraw",
+            Signal::TriggerAuto => "Signal::TriggerAuto",
+            Signal::TriggerNormal => "Signal::TriggerNormal",
+            Signal::TriggerSingle => "Signal::TriggerSingle",
+            Signal::Quit => "Signal::Quit",
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Model {
+    attenuation: u8,
+    rate: ::redpitaya_scpi::acquire::SamplingRate,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
-    rate: ::redpitaya_scpi::acquire::SamplingRate,
 }
 
 #[derive(Clone)]
@@ -71,18 +87,18 @@ impl Application {
         self.transform(model.scales, &context, width, height);
         context.set_line_width(0.01);
 
-        self.draw_panel(self.graph.widget(), model.scales, &context);
-        self.draw_panel(self.trigger.widget(), model.scales, &context);
-        self.draw_panel(self.generator.widget(), model.scales, &context);
-        self.draw_panel(self.acquire.widget(), model.scales, &context);
+        self.draw_panel(self.graph.widget(), &model, &context);
+        self.draw_panel(self.trigger.widget(), &model, &context);
+        self.draw_panel(self.generator.widget(), &model, &context);
+        self.draw_panel(self.acquire.widget(), &model, &context);
 
         image.flush();
         graph.set_image(&image);
     }
 
-    fn draw_panel(&self, panel: &Panel, scales: ::Scales, context: &::cairo::Context) {
+    fn draw_panel(&self, panel: &Panel, model: &Model, context: &::cairo::Context) {
         context.save();
-        panel.draw(&context, scales);
+        panel.draw(&context, model);
         context.restore();
     }
 
@@ -117,9 +133,10 @@ impl ::relm::Widget for Application {
         scales.from_sampling_rate(rate);
 
         Model {
-            redpitaya,
-            scales,
-            rate,
+            attenuation: 1,
+            rate: rate,
+            redpitaya: redpitaya,
+            scales: scales,
         }
     }
 
@@ -129,6 +146,7 @@ impl ::relm::Widget for Application {
 
     fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
+            Signal::AcquireAttenuation(source, attenuation) => model.attenuation = attenuation,
             Signal::AcquireRate(rate) => {
                 model.rate = rate;
                 model.scales.from_sampling_rate(rate);
@@ -174,6 +192,7 @@ impl ::relm::Widget for Application {
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Attenuation(source, attenuation), relm, Signal::AcquireAttenuation(source, attenuation));
 
         notebook.append_page(
             &acquire_page,

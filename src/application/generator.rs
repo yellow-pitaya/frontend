@@ -239,7 +239,7 @@ impl ::relm::Widget for Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, scales: ::Scales) {
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         if !self.is_started() {
             return;
         }
@@ -249,7 +249,7 @@ impl ::application::Panel for Widget {
         let level = self.level.widget().get_value();
         context.translate(0.0, level);
 
-        self.draw_level(&context, scales);
-        self.draw_data(&context, scales);
+        self.draw_level(&context, model.scales);
+        self.draw_data(&context, model.scales);
     }
 }
