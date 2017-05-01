@@ -22,13 +22,12 @@ impl ::relm::Widget for Palette {
 
     fn update(&mut self, event: Signal, _: &mut Self::Model) {
         match event {
-            Signal::Expand => self.parent.show(),
+            Signal::Expand => {
+                self.parent.set_no_show_all(false);
+                self.parent.show_all();
+            },
             Signal::Fold => self.parent.hide(),
         };
-    }
-
-    fn init_view(&self, _: &mut Self::Model) {
-        self.parent.hide();
     }
 
     view! {
@@ -49,6 +48,7 @@ impl ::relm::Widget for Palette {
             #[name="parent"]
             gtk::Box {
                 orientation: gtk::Orientation::Vertical,
+                no_show_all: true,
             },
         },
     }
@@ -67,17 +67,12 @@ impl Palette {
         self.toggle.get_active()
     }
 
-    pub fn fold(&self) {
-        self.parent.hide();
-        self.toggle.set_active(false);
-    }
-
     pub fn set_color(&self, color: ::color::Color) {
         let color = ::gdk_sys::GdkColor {
             pixel: 32,
-            red: color.0 as u16 * ::std::u16::MAX,
-            green: color.1 as u16 * ::std::u16::MAX,
-            blue: color.2 as u16 * ::std::u16::MAX,
+            red: color.r as u16 * ::std::u16::MAX,
+            green: color.g as u16 * ::std::u16::MAX,
+            blue: color.b as u16 * ::std::u16::MAX,
         };
 
         unsafe {

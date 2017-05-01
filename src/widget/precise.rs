@@ -112,4 +112,8 @@ impl PreciseScale {
     pub fn set_digits(&self, digits: u32) {
         self.spin.set_digits(digits);
     }
+
+    pub fn set_no_show_all(&self, no_show_all: bool) {
+        self.frame.set_no_show_all(no_show_all);
+    }
 }

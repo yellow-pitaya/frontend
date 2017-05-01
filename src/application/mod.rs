@@ -199,15 +199,14 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Acquire")))
         );
 
-        let generator_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
-        generator_page.set_border_width(10);
-        let generator = generator_page.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
-        connect!(generator@generator::Signal::Level(_, _), relm, Signal::GraphDraw);
-
+        let scrolled_window = ::gtk::ScrolledWindow::new(None, None);
+        scrolled_window.set_border_width(10);
         notebook.append_page(
-            &generator_page,
+            &scrolled_window,
             Some(&::gtk::Label::new(Some("Generator")))
         );
+
+        let generator = scrolled_window.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
 
         let status_bar = ::gtk::Statusbar::new();
         vbox.pack_start(&status_bar, false, true, 0);
@@ -242,26 +241,6 @@ impl ::relm::Widget for Application {
     }
 
     fn init_view(&self, model: &mut Model) {
-        match model.redpitaya.generator.get_amplitude(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(amplitude) => self.generator.widget().amplitude.widget().set_value(amplitude as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_offset(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(offset) => self.generator.widget().offset.widget().set_value(offset as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.generator.get_duty_cycle(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(duty_cycle) => self.generator.widget().duty_cycle.widget().set_value(duty_cycle as f64),
-            Err(err) => error!("{}", err),
-        };
-
         match model.redpitaya.trigger.get_delay() {
             Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
             Err(err) => error!("{}", err),
@@ -272,17 +251,9 @@ impl ::relm::Widget for Application {
             Err(err) => error!("{}", err),
         };
 
-        match model.redpitaya.generator.get_frequency(::redpitaya_scpi::generator::Source::OUT1) {
-            Ok(frequency) => self.generator.widget().frequency.widget().set_value(frequency as f64),
-            Err(err) => error!("{}", err),
-        };
-
         self.window.show_all();
 
         // @FIXME
-        self.acquire.widget().palette.widget().fold();
-        self.generator.widget().duty_cycle.widget().set_visible(false);
-        self.generator.widget().palette.widget().fold();
         self.trigger.widget().single_button.set_visible(false);
     }
 }

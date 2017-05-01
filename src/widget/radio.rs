@@ -30,7 +30,7 @@ pub struct RadioGroup<T> {
     phantom: ::std::marker::PhantomData<T>,
 }
 
-impl<T: ::std::clone::Clone> RadioGroup<T> {
+impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> RadioGroup<T> {
     pub fn get_current(&self) -> Option<T> {
         for &(ref radio, ref signal) in self.radio.iter() {
             if radio.get_active() {
@@ -39,6 +39,15 @@ impl<T: ::std::clone::Clone> RadioGroup<T> {
         }
 
         None
+    }
+
+    pub fn set_current(&self, current: T) {
+        for &(ref radio, ref signal) in self.radio.iter() {
+            if current == *signal {
+                radio.set_active(true);
+                break;
+            }
+        }
     }
 }
 
