@@ -1,3 +1,7 @@
+use gtk::{
+    ContainerExt,
+    ToggleButtonExt,
+};
 use color::Colorable;
 use relm::ContainerWidget;
 
@@ -8,6 +12,7 @@ pub enum Signal {
     Level(::redpitaya_scpi::acquire::Source, u32),
     Start,
     Stop,
+    Average(bool),
 }
 
 impl ::relm::DisplayVariant for Signal {
@@ -18,13 +23,15 @@ impl ::relm::DisplayVariant for Signal {
             Signal::Level(_, _) => "Signal::Level",
             Signal::Start => "Signal::Start",
             Signal::Stop => "Signal::Stop",
+            Signal::Average(_) => "Signal::Average",
         }
     }
 }
 
 #[derive(Clone)]
 pub struct Model {
-    rate: ::redpitaya_scpi::acquire::SamplingRate,
+    pub rate: ::redpitaya_scpi::acquire::SamplingRate,
+    pub average: bool,
 }
 
 #[derive(Clone)]
@@ -35,6 +42,7 @@ pub struct Widget {
     page: ::gtk::Box,
     rate: ::relm::Component<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>>,
     pub palette: ::relm::Component<::widget::Palette>,
+    average: ::gtk::CheckButton,
 }
 
 impl Widget {
@@ -106,12 +114,10 @@ impl ::relm::Widget for Widget {
     type Model = Model;
     type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = ::redpitaya_scpi::acquire::SamplingRate;
+    type ModelParam = Model;
 
-    fn model(rate: ::redpitaya_scpi::acquire::SamplingRate) -> Self::Model {
-        Model {
-            rate,
-        }
+    fn model(model: Self::ModelParam) -> Self::Model {
+        model
     }
 
     fn root(&self) -> &Self::Root {
@@ -163,6 +169,13 @@ impl ::relm::Widget for Widget {
             Signal::Rate(rate)
         );
 
+        let average = ::gtk::CheckButton::new_with_label("Average");
+        average.set_active(model.average);
+        page.add(&average);
+        connect!(
+            relm, average, connect_toggled(w), Signal::Average(w.get_active())
+        );
+
         let buffer = ::std::cell::RefCell::new(String::new());
         let stream = relm.stream().clone();
 
@@ -173,6 +186,7 @@ impl ::relm::Widget for Widget {
             palette,
             stream,
             rate,
+            average,
         }
     }
 }

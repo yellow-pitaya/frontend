@@ -21,6 +21,7 @@ pub enum Signal {
     AcquireStart,
     AcquireStop,
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
+    AcquireAverage(bool),
     GeneratorAmplitude(::redpitaya_scpi::generator::Source, f32),
     GeneratorOffset(::redpitaya_scpi::generator::Source, f32),
     GeneratorFrequency(::redpitaya_scpi::generator::Source, u32),
@@ -44,6 +45,7 @@ impl ::relm::DisplayVariant for Signal {
             Signal::AcquireStart => "Signal::AcquireStart",
             Signal::AcquireStop => "Signal::AcquireStop",
             Signal::AcquireRate(_) => "Signal::AcquireRate",
+            Signal::AcquireAverage(_) => "Signal::AcquireAverage",
             Signal::GeneratorAmplitude(_, _) => "Signal::GeneratorAmplitude",
             Signal::GeneratorOffset(_, _) => "Signal::GeneratorOffset",
             Signal::GeneratorFrequency(_, _) => "Signal::GeneratorFrequency",
@@ -173,7 +175,14 @@ impl ::relm::Widget for Application {
                 model.redpitaya.acquire.set_decimation(rate.into());
                 model.scales.from_sampling_rate(rate);
                 self.draw(model);
-            }
+            },
+            Signal::AcquireAverage(enable) => {
+                if enable {
+                    model.redpitaya.acquire.enable_average();
+                } else {
+                    model.redpitaya.acquire.disable_average();
+                }
+            },
 
             Signal::GeneratorAmplitude(source, value) => model.redpitaya.generator.set_amplitude(source, value),
             Signal::GeneratorOffset(source, value) => model.redpitaya.generator.set_offset(source, value),
@@ -225,12 +234,18 @@ impl ::relm::Widget for Application {
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
-        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.rate);
+
+        let model = acquire::Model {
+            rate: model.rate,
+            average: model.redpitaya.acquire.is_average_enabled(),
+        };
+        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model);
         connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Start, relm, Signal::AcquireStart);
         connect!(acquire@acquire::Signal::Stop, relm, Signal::AcquireStop);
+        connect!(acquire@acquire::Signal::Average(value), relm, Signal::AcquireAverage(value));
 
         notebook.append_page(
             &acquire_page,
