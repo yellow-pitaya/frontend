@@ -7,23 +7,25 @@ use relm::ContainerWidget;
 
 #[derive(Clone)]
 pub enum Signal {
+    Average(bool),
     Data,
-    Rate(::redpitaya_scpi::acquire::SamplingRate),
+    Gain(::redpitaya_scpi::acquire::Source, ::redpitaya_scpi::acquire::Gain),
     Level(::redpitaya_scpi::acquire::Source, u32),
+    Rate(::redpitaya_scpi::acquire::SamplingRate),
     Start,
     Stop,
-    Average(bool),
 }
 
 impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
+            Signal::Average(_) => "Signal::Average",
             Signal::Data => "Signal::Data",
-            Signal::Rate(_) => "Signal::Rate",
+            Signal::Gain(_, _) => "Signal::Gain",
             Signal::Level(_, _) => "Signal::Level",
+            Signal::Rate(_) => "Signal::Rate",
             Signal::Start => "Signal::Start",
             Signal::Stop => "Signal::Stop",
-            Signal::Average(_) => "Signal::Average",
         }
     }
 }
@@ -120,15 +122,17 @@ impl ::relm::Widget for Widget {
 
     fn update(&mut self, event: Signal, acquire: &mut Self::Model) {
         match event {
-            Signal::Start => acquire.start(),
-            Signal::Stop => acquire.stop(),
-            Signal::Rate(rate) => acquire.set_decimation(rate.into()),
             Signal::Average(enable) => if enable {
                 acquire.enable_average();
             } else {
                 acquire.disable_average();
             },
-            _ => (),
+            Signal::Data => (),
+            Signal::Gain(source, gain) => acquire.set_gain(source, gain),
+            Signal::Rate(rate) => acquire.set_decimation(rate.into()),
+            Signal::Start => acquire.start(),
+            Signal::Stop => acquire.stop(),
+            Signal::Level(_, _) => (),
         };
     }
 
@@ -153,6 +157,24 @@ impl ::relm::Widget for Widget {
             level@::widget::precise::Signal::Changed(value),
             relm,
             Signal::Level(::redpitaya_scpi::acquire::Source::IN1, value as u32)
+        );
+
+        let args = ::widget::radio::Model {
+            title: String::from("Gain"),
+            options: vec![
+                ::redpitaya_scpi::acquire::Gain::LV,
+                ::redpitaya_scpi::acquire::Gain::HV,
+            ],
+            current: match acquire.get_gain(::redpitaya_scpi::acquire::Source::IN1) {
+                Ok(gain) => Some(gain),
+                Err(_) => None,
+            },
+        };
+        let gain = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::Gain>, _>(&relm, args);
+        connect!(
+            gain@::widget::radio::Signal::Change(gain),
+            relm,
+            Signal::Gain(::redpitaya_scpi::acquire::Source::IN1, gain)
         );
 
         let args = ::widget::radio::Model {
