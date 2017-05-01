@@ -18,7 +18,6 @@ trait Panel {
 
 #[derive(Clone)]
 pub enum Signal {
-    AcquireAttenuation(::redpitaya_scpi::acquire::Source, u8),
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
     TriggerAuto,
@@ -30,7 +29,6 @@ pub enum Signal {
 impl ::relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
-            Signal::AcquireAttenuation(_, _) => "Signal::AcquireAttenuation",
             Signal::AcquireRate(_) => "Signal::AcquireRate",
             Signal::GraphDraw => "Signal::GraphDraw",
             Signal::TriggerAuto => "Signal::TriggerAuto",
@@ -43,7 +41,6 @@ impl ::relm::DisplayVariant for Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    attenuation: u8,
     rate: ::redpitaya_scpi::acquire::SamplingRate,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
@@ -133,7 +130,6 @@ impl ::relm::Widget for Application {
         scales.from_sampling_rate(rate);
 
         Model {
-            attenuation: 1,
             rate: rate,
             redpitaya: redpitaya,
             scales: scales,
@@ -146,7 +142,6 @@ impl ::relm::Widget for Application {
 
     fn update(&mut self, event: Signal, model: &mut Self::Model) {
         match event {
-            Signal::AcquireAttenuation(source, attenuation) => model.attenuation = attenuation,
             Signal::AcquireRate(rate) => {
                 model.rate = rate;
                 model.scales.from_sampling_rate(rate);
@@ -155,12 +150,26 @@ impl ::relm::Widget for Application {
 
             Signal::GraphDraw => self.draw(model),
 
-            Signal::TriggerAuto | Signal::TriggerSingle => self.acquire.widget().set_buffer(
-                model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
-            ),
-            Signal::TriggerNormal => self.acquire.widget().set_buffer(
-                model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
-            ),
+            Signal::TriggerAuto | Signal::TriggerSingle => {
+                self.acquire.widget().set_buffer(
+                    ::redpitaya_scpi::acquire::Source::IN1,
+                    model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
+                );
+                self.acquire.widget().set_buffer(
+                    ::redpitaya_scpi::acquire::Source::IN2,
+                    model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN2)
+                );
+            },
+            Signal::TriggerNormal => {
+                self.acquire.widget().set_buffer(
+                    ::redpitaya_scpi::acquire::Source::IN1,
+                    model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
+                );
+                self.acquire.widget().set_buffer(
+                    ::redpitaya_scpi::acquire::Source::IN2,
+                    model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN2, 16_384)
+                );
+            },
             Signal::Quit => {
                 model.redpitaya.acquire.stop();
                 model.redpitaya.generator.stop(::redpitaya_scpi::generator::Source::OUT1);
@@ -189,10 +198,9 @@ impl ::relm::Widget for Application {
         acquire_page.set_border_width(10);
 
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.redpitaya.acquire.clone());
-        connect!(acquire@acquire::Signal::Data, relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Data(_), relm, Signal::GraphDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
-        connect!(acquire@acquire::Signal::Attenuation(source, attenuation), relm, Signal::AcquireAttenuation(source, attenuation));
 
         notebook.append_page(
             &acquire_page,
@@ -252,6 +260,8 @@ impl ::relm::Widget for Application {
         };
 
         self.window.show_all();
+
+        model.redpitaya.acquire.start();
 
         // @FIXME
         self.trigger.widget().single_button.set_visible(false);
