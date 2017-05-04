@@ -1,13 +1,10 @@
 use color::Colorable;
 use gtk::{
+    self,
     WidgetExt,
 };
 use super::Signal;
-
-#[derive(Clone)]
-pub struct Widget {
-    drawing_area: ::gtk::DrawingArea,
-}
+use relm_attributes::widget;
 
 impl Widget {
     pub fn get_width(&self) -> f64 {
@@ -83,28 +80,18 @@ impl ::application::Panel for Widget {
     }
 }
 
+#[widget]
 impl ::relm::Widget for Widget {
-    type Model = ();
-    type Msg = Signal;
-    type Root = ::gtk::DrawingArea;
-    type ModelParam = ();
-
-    fn model(_: Self::ModelParam) -> Self::Model {
-    }
-
-    fn root(&self) -> &Self::Root {
-        &self.drawing_area
+    fn model(_: ()) -> () {
     }
 
     fn update(&mut self, _: Signal, _: &mut Self::Model) {
     }
 
-    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
-        let drawing_area = ::gtk::DrawingArea::new();
-        connect!(relm, drawing_area, connect_draw(_, _) (Signal::Draw, ::gtk::Inhibit(false)));
-
-        Widget {
-            drawing_area,
+    view! {
+        #[name="drawing_area"]
+        gtk::DrawingArea {
+            draw(_, _) => (Signal::Draw, ::gtk::Inhibit(false)),
         }
     }
 }
