@@ -215,6 +215,11 @@ impl ::application::Panel for Widget {
 
         self.draw_level(context, model.scales);
     }
+
+    fn update_scales(&self, scales: ::Scales) {
+        self.level.widget().set_limit(scales.v);
+        self.delay.widget().set_limit(scales.h);
+    }
 }
 
 thread_local!(

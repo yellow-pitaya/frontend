@@ -66,6 +66,10 @@ impl ::application::Panel for Widget {
         };
         self.draw_data(&context, model.scales, attenuation);
     }
+
+    fn update_scales(&self, scales: ::Scales) {
+        self.level.widget().set_limit(scales.v);
+    }
 }
 
 impl ::relm::Widget for Widget {

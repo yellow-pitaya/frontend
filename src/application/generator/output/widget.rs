@@ -265,4 +265,8 @@ impl ::application::Panel for Widget {
         self.draw_level(&context, model.scales);
         self.draw_data(&context, model.scales);
     }
+
+    fn update_scales(&self, scales: ::Scales) {
+        self.level.widget().set_limit(scales.v);
+    }
 }

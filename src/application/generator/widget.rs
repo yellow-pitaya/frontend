@@ -73,4 +73,9 @@ impl ::application::Panel for Widget {
         self.out2.widget().draw(&context, &model);
         context.restore();
     }
+
+    fn update_scales(&self, scales: ::Scales) {
+        self.out1.widget().update_scales(scales);
+        self.out2.widget().update_scales(scales);
+    }
 }

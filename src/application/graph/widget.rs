@@ -78,6 +78,9 @@ impl ::application::Panel for Widget {
             context.stroke();
         }
     }
+
+    fn update_scales(&self, scales: ::Scales) {
+    }
 }
 
 #[widget]
