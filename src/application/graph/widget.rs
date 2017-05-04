@@ -25,6 +25,15 @@ impl Widget {
         context.paint();
     }
 
+    pub fn invalidate(&self) {
+        self.drawing_area.queue_draw_area(
+            0,
+            0,
+            self.get_width() as i32,
+            self.get_height() as i32,
+        );
+    }
+
     fn create_context(&self) -> ::cairo::Context {
         let window = self.drawing_area.get_window().unwrap();
 

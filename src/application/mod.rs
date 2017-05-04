@@ -3,7 +3,6 @@ mod generator;
 mod graph;
 mod trigger;
 
-use cairo::prelude::*;
 use gtk::{
     BoxExt,
     ContainerExt,
@@ -16,27 +15,15 @@ trait Panel {
     fn draw(&self, context: &::cairo::Context, model: &Model);
 }
 
-#[derive(Clone)]
+#[derive(Msg)]
 pub enum Signal {
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
+    NeedDraw,
     TriggerAuto,
     TriggerNormal,
     TriggerSingle,
     Quit,
-}
-
-impl ::relm::DisplayVariant for Signal {
-    fn display_variant(&self) -> &'static str {
-        match *self {
-            Signal::AcquireRate(_) => "Signal::AcquireRate",
-            Signal::GraphDraw => "Signal::GraphDraw",
-            Signal::TriggerAuto => "Signal::TriggerAuto",
-            Signal::TriggerNormal => "Signal::TriggerNormal",
-            Signal::TriggerSingle => "Signal::TriggerSingle",
-            Signal::Quit => "Signal::Quit",
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -79,24 +66,21 @@ impl Application {
         self.update_status(model);
 
         let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width as i32, height as i32);
-        let context = ::cairo::Context::new(&image);
 
-        self.transform(model.scales, &context, width, height);
-        context.set_line_width(0.01);
+        self.draw_panel(self.graph.widget(), &model, &image);
+        self.draw_panel(self.trigger.widget(), &model, &image);
+        self.draw_panel(self.generator.widget(), &model, &image);
+        self.draw_panel(self.acquire.widget(), &model, &image);
 
-        self.draw_panel(self.graph.widget(), &model, &context);
-        self.draw_panel(self.trigger.widget(), &model, &context);
-        self.draw_panel(self.generator.widget(), &model, &context);
-        self.draw_panel(self.acquire.widget(), &model, &context);
-
-        image.flush();
         graph.set_image(&image);
     }
 
-    fn draw_panel(&self, panel: &Panel, model: &Model, context: &::cairo::Context) {
-        context.save();
+    fn draw_panel(&self, panel: &Panel, model: &Model, image: &::cairo::ImageSurface) {
+        let context = ::cairo::Context::new(image);
+
+        self.transform(model.scales, &context, image.get_width() as f64, image.get_height() as f64);
+        context.set_line_width(0.01);
         panel.draw(&context, model);
-        context.restore();
     }
 
     fn transform(&self, scales: ::Scales, context: &::cairo::Context, width: f64, height: f64) {
@@ -145,27 +129,28 @@ impl ::relm::Widget for Application {
             Signal::AcquireRate(rate) => {
                 model.rate = rate;
                 model.scales.from_sampling_rate(rate);
-                self.draw(model);
+                self.graph.widget().invalidate();
             },
 
+            Signal::NeedDraw => self.graph.widget().invalidate(),
             Signal::GraphDraw => self.draw(model),
 
             Signal::TriggerAuto | Signal::TriggerSingle => {
-                self.acquire.widget().set_buffer(
+                self.acquire.widget().set_data(
                     ::redpitaya_scpi::acquire::Source::IN1,
                     model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN1)
                 );
-                self.acquire.widget().set_buffer(
+                self.acquire.widget().set_data(
                     ::redpitaya_scpi::acquire::Source::IN2,
                     model.redpitaya.data.read_all(::redpitaya_scpi::acquire::Source::IN2)
                 );
             },
             Signal::TriggerNormal => {
-                self.acquire.widget().set_buffer(
+                self.acquire.widget().set_data(
                     ::redpitaya_scpi::acquire::Source::IN1,
                     model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN1, 16_384)
                 );
-                self.acquire.widget().set_buffer(
+                self.acquire.widget().set_data(
                     ::redpitaya_scpi::acquire::Source::IN2,
                     model.redpitaya.data.read_oldest(::redpitaya_scpi::acquire::Source::IN2, 16_384)
                 );
@@ -198,9 +183,9 @@ impl ::relm::Widget for Application {
         acquire_page.set_border_width(10);
 
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.redpitaya.acquire.clone());
-        connect!(acquire@acquire::Signal::Data(_), relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Data(_), relm, Signal::NeedDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
-        connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::GraphDraw);
+        connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::NeedDraw);
 
         notebook.append_page(
             &acquire_page,
@@ -215,14 +200,14 @@ impl ::relm::Widget for Application {
         );
 
         let generator = scrolled_window.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
-        connect!(generator@generator::Signal::Amplitude(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::DutyCycle(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Frequency(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Level(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Offset(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Form(_, _), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Start(_), relm, Signal::GraphDraw);
-        connect!(generator@generator::Signal::Stop(_), relm, Signal::GraphDraw);
+        connect!(generator@generator::Signal::Amplitude(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::DutyCycle(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Frequency(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Level(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Offset(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Form(_, _), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Start(_), relm, Signal::NeedDraw);
+        connect!(generator@generator::Signal::Stop(_), relm, Signal::NeedDraw);
 
         let status_bar = ::gtk::Statusbar::new();
         vbox.pack_start(&status_bar, false, true, 0);
@@ -244,16 +229,14 @@ impl ::relm::Widget for Application {
             Some(&::gtk::Label::new(Some("Trigger")))
         );
 
-        let application = Application {
+        Application {
             window: window,
             graph: graph,
             status_bar: status_bar,
             acquire: acquire,
             generator: generator,
             trigger: trigger,
-        };
-
-        application
+        }
     }
 
     fn init_view(&self, model: &mut Model) {

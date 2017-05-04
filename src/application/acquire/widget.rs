@@ -115,9 +115,9 @@ impl ::application::Panel for Widget {
 }
 
 impl Widget {
-    pub fn set_buffer(&self, source: ::redpitaya_scpi::acquire::Source, buffer: String) {
+    pub fn set_data(&self, source: ::redpitaya_scpi::acquire::Source, data: Vec<f64>) {
         self.get_input(source)
-            .set_buffer(buffer);
+            .set_data(data);
     }
 
     fn get_input(&self, source: ::redpitaya_scpi::acquire::Source) -> &InputWidget {

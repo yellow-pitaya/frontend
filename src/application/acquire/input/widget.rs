@@ -5,7 +5,7 @@ use super::Signal;
 
 #[derive(Clone)]
 pub struct Widget {
-    buffer: ::std::cell::RefCell<String>,
+    data: ::std::cell::RefCell<Vec<f64>>,
     level: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
     page: ::gtk::Box,
@@ -19,8 +19,8 @@ impl Widget {
         self.palette.widget().get_active()
     }
 
-    pub fn set_buffer(&self, buffer: String) {
-        *self.buffer.borrow_mut() = buffer;
+    pub fn set_data(&self, data: Vec<f64>) {
+        *self.data.borrow_mut() = data;
         self.stream.emit(Signal::Data);
     }
 
@@ -32,32 +32,16 @@ impl Widget {
     }
 
     fn draw_data(&self, context: &::cairo::Context, scales: ::Scales, attenuation: u8) {
-        let buffer = self.buffer.borrow();
-        let mut data = buffer
-            .trim_matches(|c: char| c == '{' || c == '}' || c == '!' || c.is_alphabetic())
-            .split(",")
-            .map(|s| {
-                match s.parse::<f64>() {
-                    Ok(f) => f,
-                    Err(_) => {
-                        error!("Invalid data '{}'", s);
-                        0.0
-                    },
-                }
-            });
+        let data = self.data.borrow();
 
         context.set_line_width(0.05);
 
         for sample in 0..scales.n_samples {
             let x = scales.sample_to_ms(sample);
+            let y = data[sample as usize];
 
-            match data.next() {
-                Some(y) => {
-                    context.line_to(x, y * attenuation as f64);
-                    context.move_to(x, y * attenuation as f64);
-                },
-                None => break,
-            }
+            context.line_to(x, y * attenuation as f64);
+            context.move_to(x, y * attenuation as f64);
         }
         context.stroke();
     }
@@ -156,12 +140,12 @@ impl ::relm::Widget for Widget {
             Signal::Attenuation(attenuation)
         );
 
-        let buffer = ::std::cell::RefCell::new(String::new());
+        let data = ::std::cell::RefCell::new(Vec::new());
         let stream = relm.stream().clone();
         let source = model.source;
 
         Widget {
-            buffer,
+            data,
             level,
             page,
             palette,
