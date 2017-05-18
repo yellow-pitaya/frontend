@@ -43,6 +43,7 @@ impl Widget {
                     ::redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::DC => self.dc(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency),
                     _ => unimplemented!(),
                 };
@@ -73,6 +74,10 @@ impl Widget {
 
     fn sawd(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
         amplitude *  (1.0 - (x * frequency).fract())
+    }
+
+    fn dc(&self, _: f64, amplitude: f64, _: f64) -> f64 {
+        amplitude
     }
 
     fn pwm(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
@@ -134,6 +139,7 @@ impl ::relm::Widget for Widget {
             ::redpitaya_scpi::generator::Form::SAWU,
             ::redpitaya_scpi::generator::Form::SAWD,
             ::redpitaya_scpi::generator::Form::PWM,
+            ::redpitaya_scpi::generator::Form::DC,
             // @TODO ::redpitaya_scpi::generator::Form::ARBITRARY,
             ],
             current: None,
