@@ -35,10 +35,11 @@ impl Widget {
             let amplitude = self.amplitude.widget().get_value();
             let frequency = self.frequency.widget().get_value() / 1_000_000.0;
             let duty_cycle = self.duty_cycle.widget().get_value();
+            let offset = self.offset.widget().get_value();
 
             for sample in 0..scales.n_samples {
                 let x = scales.sample_to_ms(sample);
-                let y = match form {
+                let mut y = match form {
                     ::redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
@@ -48,6 +49,16 @@ impl Widget {
                     ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency, duty_cycle),
                     _ => unimplemented!(),
                 };
+
+                y += offset;
+
+                if y < -1.0 {
+                    y = -1.0;
+                }
+
+                if y > 1.0 {
+                    y = 1.0;
+                }
 
                 context.line_to(x, y);
                 context.move_to(x, y);
