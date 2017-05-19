@@ -10,7 +10,6 @@ use gtk::{
     ToggleButtonExt,
     WidgetExt,
 };
-use relm::gtk_ext::BoxExtManual;
 
 #[derive(Msg)]
 pub enum Signal {
