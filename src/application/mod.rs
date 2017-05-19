@@ -249,6 +249,8 @@ impl ::relm::Widget for Application {
     }
 
     fn init_view(&self, model: &mut Model) {
+        model.redpitaya.data.set_units(::redpitaya_scpi::data::Unit::VOLTS);
+
         self.update_scales(model.scales);
 
         match model.redpitaya.trigger.get_delay() {
