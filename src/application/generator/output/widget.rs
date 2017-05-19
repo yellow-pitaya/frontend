@@ -34,6 +34,7 @@ impl Widget {
         if let Some(form) = self.form.widget().get_current() {
             let amplitude = self.amplitude.widget().get_value();
             let frequency = self.frequency.widget().get_value() / 1_000_000.0;
+            let duty_cycle = self.duty_cycle.widget().get_value();
 
             for sample in 0..scales.n_samples {
                 let x = scales.sample_to_ms(sample);
@@ -44,7 +45,7 @@ impl Widget {
                     ::redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::DC => self.dc(x, amplitude, frequency),
-                    ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency),
+                    ::redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency, duty_cycle),
                     _ => unimplemented!(),
                 };
 
@@ -80,8 +81,18 @@ impl Widget {
         amplitude
     }
 
-    fn pwm(&self, x: f64, amplitude: f64, frequency: f64) -> f64 {
-        amplitude * (x * frequency * 2.0 * ::std::f64::consts::PI).sin()
+    fn pwm(&self, x: f64, amplitude: f64, frequency: f64, duty_cycle: f64) -> f64 {
+        let v = self.sawu(x, amplitude, frequency) - amplitude * duty_cycle;
+
+        if v > 0.0 {
+            -amplitude
+        }
+        else if v < 0.0 {
+            amplitude
+        }
+        else {
+            0.0
+        }
     }
 }
 
