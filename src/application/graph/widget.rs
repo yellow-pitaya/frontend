@@ -67,19 +67,21 @@ impl ::application::Panel for Widget {
 
             let x = width / 10.0 * (i as f64);
 
+            context.set_line_width(width / 1000.0);
             context.move_to(model.scales.h.0 + x, model.scales.v.0);
             context.line_to(model.scales.h.0 + x, model.scales.v.1);
             context.stroke();
 
             let y = height / 10.0 * (i as f64);
 
+            context.set_line_width(height / 1000.0);
             context.move_to(model.scales.h.0, model.scales.v.0 + y);
             context.line_to(model.scales.h.1, model.scales.v.0 + y);
             context.stroke();
         }
     }
 
-    fn update_scales(&self, scales: ::Scales) {
+    fn update_scales(&self, _: ::Scales) {
     }
 }
 
