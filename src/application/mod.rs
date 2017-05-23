@@ -11,9 +11,35 @@ use gtk::{
 };
 use relm::ContainerWidget;
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum LevelPosition {
+    Right,
+    Left,
+}
+
 trait Panel {
     fn draw(&self, context: &::cairo::Context, model: &Model);
     fn update_scales(&self, scales: ::Scales);
+
+    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales, position: LevelPosition) {
+        context.move_to(scales.h.0, 0.0);
+        context.line_to(scales.h.1, 0.0);
+
+        context.stroke();
+
+        let height = scales.get_height() / 150.0;
+        let (start, end) = scales.trigger_zone(position);
+        let middle = (end - start) / 2.0;
+
+        context.move_to(start, height);
+        context.line_to(end - middle, height);
+        context.line_to(end, 0.0);
+        context.line_to(end - middle, -height);
+        context.line_to(start, -height);
+
+        context.close_path();
+        context.fill();
+    }
 }
 
 #[derive(Msg)]
@@ -59,10 +85,13 @@ impl Application {
         );
     }
 
-    fn draw(&self, model: &Model) {
+    fn draw(&self, model: &mut Model) {
         let graph = self.graph.widget();
         let width = graph.get_width();
         let height = graph.get_height();
+
+        model.scales.window.width = width;
+        model.scales.window.height = height;
 
         self.update_status(model);
 
@@ -86,11 +115,11 @@ impl Application {
 
     fn transform(&self, scales: ::Scales, context: &::cairo::Context, width: f64, height: f64) {
         context.set_matrix(::cairo::Matrix {
-            xx: width / scales.get_width(),
+            xx: (width - 40.0) / scales.get_width(),
             xy: 0.0,
             yy: -height / scales.get_height(),
             yx: 0.0,
-            x0: scales.h.0 * width / scales.get_width(),
+            x0: scales.h.0 * width / scales.get_width() + 20.0,
             y0: scales.v.1 * height / scales.get_height(),
         });
     }
@@ -114,6 +143,7 @@ impl ::relm::Widget for Application {
             h: (0.0, 0.0),
             v: (-5.0, 5.0),
             n_samples: redpitaya.data.buffer_size().unwrap(),
+            window: ::scales::Rect { width: 0.0, height: 0.0 },
         };
 
         let rate = redpitaya.acquire.get_decimation()

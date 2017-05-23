@@ -42,12 +42,26 @@ impl Widget {
             ::std::mem::transmute(context)
         }
     }
+
+    fn draw_trigger(&self, context: &::cairo::Context, model: &::application::Model) {
+        for position in [::application::LevelPosition::Right, ::application::LevelPosition::Left].iter() {
+            let (start, end) = model.scales.trigger_zone(*position);
+            let width = end - start;
+            let height = model.scales.get_height();
+
+            context.set_color(::color::BACKGROUND);
+            context.rectangle(start, model.scales.v.0, width, height);
+            context.fill();
+        }
+    }
 }
 
 impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
+
+        self.draw_trigger(context, model);
 
         context.set_color(::color::BACKGROUND);
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
@@ -58,8 +72,8 @@ impl ::application::Panel for Widget {
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
         context.stroke();
 
-        for i in 1..10 {
-            if i == 5 {
+        for i in 0..11 {
+            if i % 5 == 0 {
                 context.set_color(::color::MAIN_SCALE);
             } else {
                 context.set_color(::color::SECONDARY_SCALE);

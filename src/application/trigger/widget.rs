@@ -24,16 +24,6 @@ pub struct Widget {
 }
 
 impl Widget {
-    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
-        context.move_to(scales.h.0, self.level.widget().get_value());
-        context.line_to(scales.h.1, self.level.widget().get_value());
-
-        context.move_to(self.delay.widget().get_value(), scales.v.0);
-        context.line_to(self.delay.widget().get_value(), scales.v.1);
-
-        context.stroke();
-    }
-
     fn get_source(&self) -> Option<::redpitaya_scpi::trigger::Source> {
         let channel = self.channel.widget().get_current();
         let edge = self.edge.widget().get_current();
@@ -213,7 +203,7 @@ impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         context.set_color(::color::TRIGGER);
 
-        self.draw_level(context, model.scales);
+        self.draw_level(context, model.scales, ::application::LevelPosition::Right);
     }
 
     fn update_scales(&self, scales: ::Scales) {

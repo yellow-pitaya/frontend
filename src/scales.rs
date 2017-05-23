@@ -1,8 +1,15 @@
 #[derive(Copy, Clone)]
+pub struct Rect {
+    pub width: f64,
+    pub height: f64,
+}
+
+#[derive(Copy, Clone)]
 pub struct Scales {
     pub h: (f64, f64),
     pub v: (f64, f64),
     pub n_samples: u32,
+    pub window: Rect,
 }
 
 impl Scales {
@@ -31,5 +38,12 @@ impl Scales {
 
     pub fn sample_to_ms(&self, sample: u32) -> f64 {
         sample as f64 / self.n_samples as f64 * self.h.1
+    }
+
+    pub fn trigger_zone(&self, position: ::application::LevelPosition) -> (f64, f64) {
+        match position {
+            ::application::LevelPosition::Left => (-20.0 / self.window.width * self.h.1, self.h.0),
+            ::application::LevelPosition::Right => (self.h.1 * (1.0 + 20.0 / self.window.width), self.h.1),
+        }
     }
 }

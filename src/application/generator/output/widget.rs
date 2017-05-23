@@ -21,13 +21,6 @@ impl Widget {
         self.palette.widget().get_active()
     }
 
-    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
-        context.move_to(scales.h.0, 0.0);
-        context.line_to(scales.h.1, 0.0);
-
-        context.stroke();
-    }
-
     fn draw_data(&self, context: &::cairo::Context, scales: ::Scales) {
         context.set_line_width(0.05);
 
@@ -290,7 +283,7 @@ impl ::application::Panel for Widget {
         let level = self.level.widget().get_value();
         context.translate(0.0, level);
 
-        self.draw_level(&context, model.scales);
+        self.draw_level(&context, model.scales, ::application::LevelPosition::Left);
         self.draw_data(&context, model.scales);
     }
 

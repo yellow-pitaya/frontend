@@ -24,13 +24,6 @@ impl Widget {
         self.stream.emit(Signal::Data);
     }
 
-    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales) {
-        context.move_to(scales.h.0, 0.0);
-        context.line_to(scales.h.1, 0.0);
-
-        context.stroke();
-    }
-
     fn draw_data(&self, context: &::cairo::Context, scales: ::Scales, attenuation: u8) {
         let data = self.data.borrow();
 
@@ -58,7 +51,7 @@ impl ::application::Panel for Widget {
         let level = self.level.widget().get_value();
         context.translate(0.0, level);
 
-        self.draw_level(&context, model.scales);
+        self.draw_level(&context, model.scales, ::application::LevelPosition::Left);
 
         let attenuation = match self.attenuation.widget().get_current() {
             Some(attenuation) => attenuation,
