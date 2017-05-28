@@ -23,6 +23,19 @@ impl ::std::convert::Into<Color> for ::redpitaya_scpi::acquire::Source {
     }
 }
 
+impl ::std::convert::Into<Color> for String {
+    fn into(self) -> Color {
+        match self.as_str() {
+            "IN 1" => IN1,
+            "IN 2" => IN2,
+            "OUT 1" => OUT1,
+            "OUT 2" => OUT2,
+            "TRIG" => TRIGGER,
+            _ => MAIN_SCALE,
+        }
+    }
+}
+
 pub const BACKGROUND: Color = Color { r: 0.0, g:0.0, b: 0.0, a: 1.0 };
 pub const MAIN_SCALE: Color = Color { r: 1.0, g:1.0, b: 1.0, a: 1.0 };
 pub const SECONDARY_SCALE: Color = Color { r: 1.0, g:1.0, b: 1.0, a: 0.2 };

@@ -1,6 +1,7 @@
-pub mod signal;
+mod signal;
 pub mod widget;
-pub mod level;
+mod model;
 
+use self::model::Model;
 pub use self::signal::Signal;
 pub use self::widget::Widget;

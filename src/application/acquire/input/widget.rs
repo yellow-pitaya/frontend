@@ -6,7 +6,6 @@ use super::Signal;
 #[derive(Clone)]
 pub struct Widget {
     data: ::std::cell::RefCell<Vec<f64>>,
-    level: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
     page: ::gtk::Box,
     pub palette: ::relm::Component<::widget::Palette>,
@@ -48,10 +47,11 @@ impl ::application::Panel for Widget {
 
         context.set_color(self.source.into());
 
-        let level = self.level.widget().get_value();
-        context.translate(0.0, level);
+        context.translate(0.0, model.offset(self.source));
 
-        self.draw_level(&context, model.scales, ::application::LevelPosition::Left);
+        context.move_to(model.scales.h.0, 0.0);
+        context.line_to(model.scales.h.1, 0.0);
+        context.stroke();
 
         let attenuation = match self.attenuation.widget().get_current() {
             Some(attenuation) => attenuation,
@@ -60,8 +60,7 @@ impl ::application::Panel for Widget {
         self.draw_data(&context, model.scales, attenuation);
     }
 
-    fn update_scales(&self, scales: ::Scales) {
-        self.level.widget().set_limit(scales.v);
+    fn update_scales(&self, _: ::Scales) {
     }
 }
 
@@ -92,20 +91,11 @@ impl ::relm::Widget for Widget {
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
         palette.widget().set_label(format!("{}", model.source).as_str());
         palette.widget().set_color(model.source.into());
+        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
+        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
-
-        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
-        level.widget().set_label("Level (V)");
-        level.widget().set_adjustment(::gtk::Adjustment::new(
-            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
-        ));
-        connect!(
-            level@::widget::precise::Signal::Changed(value),
-            relm,
-            Signal::Level(value as u32)
-        );
 
         let args = ::widget::radio::Model {
             title: String::from("Gain"),
@@ -143,7 +133,6 @@ impl ::relm::Widget for Widget {
 
         Widget {
             data,
-            level,
             page,
             palette,
             stream,

@@ -40,10 +40,7 @@ impl Scales {
         sample as f64 / self.n_samples as f64 * self.h.1
     }
 
-    pub fn trigger_zone(&self, position: ::application::LevelPosition) -> (f64, f64) {
-        match position {
-            ::application::LevelPosition::Left => (-20.0 / self.window.width * self.h.1, self.h.0),
-            ::application::LevelPosition::Right => (self.h.1 * (1.0 + 20.0 / self.window.width), self.h.1),
-        }
+    pub fn y_to_offset(&self, y: i32) -> f64 {
+        y as f64 / -self.window.height * self.get_height() + self.v.1
     }
 }

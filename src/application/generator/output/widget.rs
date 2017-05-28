@@ -11,7 +11,6 @@ pub struct Widget {
     form: ::relm::Component<::widget::RadioGroup<::redpitaya_scpi::generator::Form>>,
     pub offset: ::relm::Component<::widget::PreciseScale>,
     pub frequency: ::relm::Component<::widget::PreciseScale>,
-    level: ::relm::Component<::widget::PreciseScale>,
     pub duty_cycle: ::relm::Component<::widget::PreciseScale>,
     source: ::redpitaya_scpi::generator::Source,
 }
@@ -127,7 +126,6 @@ impl ::relm::Widget for Widget {
                 self.duty_cycle.widget().set_visible(is_pwm);
                 model.generator.set_form(model.source, form);
             },
-            Signal::Level(_) => (),
         };
     }
 
@@ -201,17 +199,6 @@ impl ::relm::Widget for Widget {
             Signal::Frequency(value as u32)
         );
 
-        let level = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
-        level.widget().set_label("Level (V)");
-        level.widget().set_adjustment(::gtk::Adjustment::new(
-            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
-        ));
-        connect!(
-            level@::widget::precise::Signal::Changed(value),
-            relm,
-            Signal::Level(value as u32)
-        );
-
         let duty_cycle = vbox.add_widget::<::widget::PreciseScale, _>(&relm, ());
         duty_cycle.widget().set_no_show_all(true);
         duty_cycle.widget().set_visible(false);
@@ -233,7 +220,6 @@ impl ::relm::Widget for Widget {
             form,
             offset,
             frequency,
-            level,
             duty_cycle,
             source,
         }
@@ -280,14 +266,15 @@ impl ::application::Panel for Widget {
 
         context.set_color(self.source.into());
 
-        let level = self.level.widget().get_value();
-        context.translate(0.0, level);
+        context.translate(0.0, model.offset(self.source));
 
-        self.draw_level(&context, model.scales, ::application::LevelPosition::Left);
+        context.move_to(model.scales.h.0, 0.0);
+        context.line_to(model.scales.h.1, 0.0);
+        context.stroke();
+
         self.draw_data(&context, model.scales);
     }
 
-    fn update_scales(&self, scales: ::Scales) {
-        self.level.widget().set_limit(scales.v);
+    fn update_scales(&self, _: ::Scales) {
     }
 }

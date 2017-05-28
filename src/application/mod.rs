@@ -11,41 +11,16 @@ use gtk::{
 };
 use relm::ContainerWidget;
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum LevelPosition {
-    Right,
-    Left,
-}
-
 trait Panel {
     fn draw(&self, context: &::cairo::Context, model: &Model);
     fn update_scales(&self, scales: ::Scales);
-
-    fn draw_level(&self, context: &::cairo::Context, scales: ::Scales, position: LevelPosition) {
-        context.move_to(scales.h.0, 0.0);
-        context.line_to(scales.h.1, 0.0);
-
-        context.stroke();
-
-        let height = scales.get_height() / 150.0;
-        let (start, end) = scales.trigger_zone(position);
-        let middle = (end - start) / 2.0;
-
-        context.move_to(start, height);
-        context.line_to(end - middle, height);
-        context.line_to(end, 0.0);
-        context.line_to(end - middle, -height);
-        context.line_to(start, -height);
-
-        context.close_path();
-        context.fill();
-    }
 }
 
-#[derive(Msg)]
+#[derive(Clone)]
 pub enum Signal {
     AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
+    Level(String, i32),
     NeedDraw,
     TriggerAuto,
     TriggerNormal,
@@ -53,11 +28,40 @@ pub enum Signal {
     Quit,
 }
 
+impl ::relm::DisplayVariant for Signal {
+    fn display_variant(&self) -> &'static str {
+        match *self {
+            Signal::AcquireRate(_) => "Signal::AcquireRate",
+            Signal::GraphDraw => "Signal::GraphDraw",
+            Signal::Level(_, _) => "Signal::Level",
+            Signal::NeedDraw => "Signal::NeedDraw",
+            Signal::TriggerAuto => "Signal::TriggerAuto",
+            Signal::TriggerNormal => "Signal::TriggerNormal",
+            Signal::TriggerSingle => "Signal::TriggerSingle",
+            Signal::Quit => "Signal::Quit",
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Model {
     rate: ::redpitaya_scpi::acquire::SamplingRate,
     redpitaya: ::redpitaya_scpi::Redpitaya,
     scales: ::Scales,
+    levels: ::std::collections::HashMap<String, i32>,
+}
+
+impl Model {
+    pub fn offset<D>(&self, channel: D) -> f64 where D: ::std::fmt::Display {
+        let channel = format!("{}", channel);
+
+        let level = match self.levels.get(&channel) {
+            Some(level) => self.scales.y_to_offset(*level),
+            None => 0.0,
+        };
+
+        level
+    }
 }
 
 #[derive(Clone)]
@@ -115,11 +119,11 @@ impl Application {
 
     fn transform(&self, scales: ::Scales, context: &::cairo::Context, width: f64, height: f64) {
         context.set_matrix(::cairo::Matrix {
-            xx: (width - 40.0) / scales.get_width(),
+            xx: width / scales.get_width(),
             xy: 0.0,
             yy: -height / scales.get_height(),
             yx: 0.0,
-            x0: scales.h.0 * width / scales.get_width() + 20.0,
+            x0: scales.h.0 * width / scales.get_width(),
             y0: scales.v.1 * height / scales.get_height(),
         });
     }
@@ -155,6 +159,7 @@ impl ::relm::Widget for Application {
             rate: rate,
             redpitaya: redpitaya,
             scales: scales,
+            levels: ::std::collections::HashMap::new(),
         }
     }
 
@@ -173,6 +178,9 @@ impl ::relm::Widget for Application {
 
             Signal::NeedDraw => self.graph.widget().invalidate(),
             Signal::GraphDraw => self.draw(model),
+            Signal::Level(channel, level) => {
+                model.levels.insert(channel, level);
+            },
 
             Signal::TriggerAuto | Signal::TriggerSingle => {
                 self.acquire.widget().set_data(
@@ -211,6 +219,7 @@ impl ::relm::Widget for Application {
 
         let graph = graph_page.add_widget::<graph::Widget, _>(&relm, ());
         connect!(graph@graph::Signal::Draw, relm, Signal::GraphDraw);
+        connect!(graph@graph::Signal::Level(channel, offset), relm, Signal::Level(channel, offset));
 
         let vbox = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         main_box.pack_start(&vbox, false, false, 0);
@@ -224,7 +233,12 @@ impl ::relm::Widget for Application {
         let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.redpitaya.acquire.clone());
         connect!(acquire@acquire::Signal::Data(_), relm, Signal::NeedDraw);
         connect!(acquire@acquire::Signal::Rate(rate), relm, Signal::AcquireRate(rate));
-        connect!(acquire@acquire::Signal::Level(_, _), relm, Signal::NeedDraw);
+
+        {
+            let level_left = graph.widget().level_left();
+            connect!(acquire@acquire::Signal::Start(source), level_left, graph::level::Signal::SourceStart(format!("{}", source)));
+            connect!(acquire@acquire::Signal::Stop(source), level_left, graph::level::Signal::SourceStop(format!("{}", source)));
+        }
 
         notebook.append_page(
             &acquire_page,
@@ -242,11 +256,14 @@ impl ::relm::Widget for Application {
         connect!(generator@generator::Signal::Amplitude(_, _), relm, Signal::NeedDraw);
         connect!(generator@generator::Signal::DutyCycle(_, _), relm, Signal::NeedDraw);
         connect!(generator@generator::Signal::Frequency(_, _), relm, Signal::NeedDraw);
-        connect!(generator@generator::Signal::Level(_, _), relm, Signal::NeedDraw);
         connect!(generator@generator::Signal::Offset(_, _), relm, Signal::NeedDraw);
         connect!(generator@generator::Signal::Form(_, _), relm, Signal::NeedDraw);
-        connect!(generator@generator::Signal::Start(_), relm, Signal::NeedDraw);
-        connect!(generator@generator::Signal::Stop(_), relm, Signal::NeedDraw);
+
+        {
+            let level_left = graph.widget().level_left();
+            connect!(generator@generator::Signal::Start(source), level_left, graph::level::Signal::SourceStart(format!("{}", source)));
+            connect!(generator@generator::Signal::Stop(source), level_left, graph::level::Signal::SourceStop(format!("{}", source)));
+        }
 
         let status_bar = ::gtk::Statusbar::new();
         vbox.pack_start(&status_bar, false, true, 0);

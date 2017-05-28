@@ -82,7 +82,8 @@ impl ::relm::Widget for Widget {
         connect!(in1@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(::redpitaya_scpi::acquire::Source::IN1, attenuation));
         connect!(in1@InputSignal::Data, relm, Signal::Data(::redpitaya_scpi::acquire::Source::IN1));
         connect!(in1@InputSignal::Gain(gain), relm, Signal::Gain(::redpitaya_scpi::acquire::Source::IN1, gain));
-        connect!(in1@InputSignal::Level(level), relm, Signal::Level(::redpitaya_scpi::acquire::Source::IN1, level));
+        connect!(in1@InputSignal::Start, relm, Signal::Start(::redpitaya_scpi::acquire::Source::IN1));
+        connect!(in1@InputSignal::Stop, relm, Signal::Stop(::redpitaya_scpi::acquire::Source::IN1));
 
         let in2 = vbox.add_widget::<InputWidget, _>(&relm, InputModel {
             source: ::redpitaya_scpi::acquire::Source::IN2,
@@ -91,7 +92,8 @@ impl ::relm::Widget for Widget {
         connect!(in2@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(::redpitaya_scpi::acquire::Source::IN2, attenuation));
         connect!(in2@InputSignal::Data, relm, Signal::Data(::redpitaya_scpi::acquire::Source::IN2));
         connect!(in2@InputSignal::Gain(gain), relm, Signal::Gain(::redpitaya_scpi::acquire::Source::IN2, gain));
-        connect!(in2@InputSignal::Level(level), relm, Signal::Level(::redpitaya_scpi::acquire::Source::IN2, level));
+        connect!(in2@InputSignal::Start, relm, Signal::Start(::redpitaya_scpi::acquire::Source::IN2));
+        connect!(in2@InputSignal::Stop, relm, Signal::Stop(::redpitaya_scpi::acquire::Source::IN2));
 
         Widget {
             vbox,

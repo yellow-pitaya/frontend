@@ -200,10 +200,8 @@ impl ::relm::Widget for Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+    fn draw(&self, context: &::cairo::Context, _: &::application::Model) {
         context.set_color(::color::TRIGGER);
-
-        self.draw_level(context, model.scales, ::application::LevelPosition::Right);
     }
 
     fn update_scales(&self, scales: ::Scales) {
