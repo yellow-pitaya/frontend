@@ -20,6 +20,10 @@ impl Widget {
         &self.level_right
     }
 
+    pub fn level_top<'a>(&'a self) -> &'a ::relm::Component<LevelWidget> {
+        &self.level_top
+    }
+
     pub fn get_width(&self) -> f64 {
         self.drawing_area.get_allocated_width() as f64
     }
@@ -122,13 +126,30 @@ impl ::relm::Widget for Widget {
                 },
                 LevelSignal(name, offset) => Signal::Level(name, offset),
             },
-            #[name="drawing_area"]
-            gtk::DrawingArea {
+            gtk::Box {
                 packing: {
                     expand: true,
                     fill: true,
                 },
-                draw(_, _) => (Signal::Draw, ::gtk::Inhibit(false)),
+                orientation: gtk::Orientation::Vertical,
+                #[name="level_top"]
+                LevelWidget(
+                    Orientation::Top
+                    ) {
+                    packing: {
+                        expand: false,
+                        fill: true,
+                    },
+                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                },
+                #[name="drawing_area"]
+                gtk::DrawingArea {
+                    packing: {
+                        expand: true,
+                        fill: true,
+                    },
+                    draw(_, _) => (Signal::Draw, ::gtk::Inhibit(false)),
+                },
             },
             #[name="level_right"]
             LevelWidget(

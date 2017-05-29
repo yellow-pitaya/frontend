@@ -12,5 +12,4 @@ pub enum Signal {
     Source(::redpitaya_scpi::trigger::Source),
     Edge(Edge),
     InternalTick,
-    Delay(u8),
 }

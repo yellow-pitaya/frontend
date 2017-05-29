@@ -40,6 +40,10 @@ impl Scales {
         sample as f64 / self.n_samples as f64 * self.h.1
     }
 
+    pub fn x_to_offset(&self, x: i32) -> f64 {
+        x as f64 / self.window.width * self.get_width() + self.h.0
+    }
+
     pub fn y_to_offset(&self, y: i32) -> f64 {
         y as f64 / -self.window.height * self.get_height() + self.v.1
     }

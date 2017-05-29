@@ -30,7 +30,7 @@ impl ::std::convert::Into<Color> for String {
             "IN 2" => IN2,
             "OUT 1" => OUT1,
             "OUT 2" => OUT2,
-            "TRIG" => TRIGGER,
+            "TRIG" | "DELAY" => TRIGGER,
             _ => MAIN_SCALE,
         }
     }

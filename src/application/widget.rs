@@ -222,9 +222,18 @@ impl ::relm::Widget for Widget {
 
         {
             let level_right = graph.widget().level_right();
+
             connect!(trigger@trigger::Signal::Auto, level_right, graph::level::Signal::SourceStop("TRIG".to_owned()));
             connect!(trigger@trigger::Signal::Normal, level_right, graph::level::Signal::SourceStart("TRIG".to_owned()));
             connect!(trigger@trigger::Signal::Single, level_right, graph::level::Signal::SourceStart("TRIG".to_owned()));
+        }
+
+        {
+            let level_top = graph.widget().level_top();
+
+            connect!(trigger@trigger::Signal::Auto, level_top, graph::level::Signal::SourceStop("DELAY".to_owned()));
+            connect!(trigger@trigger::Signal::Normal, level_top, graph::level::Signal::SourceStart("DELAY".to_owned()));
+            connect!(trigger@trigger::Signal::Single, level_top, graph::level::Signal::SourceStart("DELAY".to_owned()));
         }
 
         notebook.append_page(
@@ -244,11 +253,6 @@ impl ::relm::Widget for Widget {
 
     fn init_view(&self, model: &mut super::Model) {
         model.redpitaya.data.set_units(::redpitaya_scpi::data::Unit::VOLTS);
-
-        match model.redpitaya.trigger.get_delay() {
-            Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
-            Err(err) => error!("{}", err),
-        };
 
         self.window.show_all();
 

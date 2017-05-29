@@ -15,7 +15,6 @@ use super::Signal;
 pub struct Widget {
     page: ::gtk::Box,
     pub single_button: ::gtk::Button,
-    pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
     mode: ::relm::Component<::widget::RadioGroup<Mode>>,
     channel: ::relm::Component<::widget::RadioGroup<Channel>>,
@@ -86,7 +85,6 @@ impl ::relm::Widget for Widget {
                     model.trigger.enable(source);
                 }
             },
-            Signal::Delay(delay) => model.trigger.set_delay_in_ns(delay),
             _ => (),
         }
     }
@@ -134,18 +132,6 @@ impl ::relm::Widget for Widget {
         page.pack_start(&single_button, false, false, 0);
         connect!(relm, single_button, connect_clicked(_), Signal::Single);
 
-        let delay = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
-        delay.widget().set_label("Delay (ns)");
-        delay.widget().set_digits(2);
-        delay.widget().set_adjustment(::gtk::Adjustment::new(
-            0.0, 0.0, 131_072.0, 1.1, 10.0, 0.0
-        ));
-        connect!(
-            delay@::widget::precise::Signal::Changed(value),
-            relm,
-            Signal::Delay(value as u8)
-        );
-
         let stream = relm.stream().clone();
         GLOBAL.with(move |global| {
             *global.borrow_mut() = Some(stream)
@@ -166,7 +152,6 @@ impl ::relm::Widget for Widget {
         Widget {
             page,
             single_button,
-            delay,
             stream,
             mode,
             channel,
@@ -180,12 +165,21 @@ impl ::application::Panel for Widget {
         let mode = self.mode.widget().get_current();
 
         if mode == Some(Mode::Normal) || mode == Some(Mode::Single) {
+            let width = model.scales.get_width();
+            let height = model.scales.get_height();
+            let delay = model.offset("DELAY");
+            let trigger = model.offset("TRIG");
+
             context.set_color(::color::TRIGGER);
 
-            context.translate(0.0, model.offset("TRIG"));
+            context.set_line_width(width / 1000.0);
+            context.move_to(delay, model.scales.v.0);
+            context.line_to(delay, model.scales.v.1);
+            context.stroke();
 
-            context.move_to(model.scales.h.0, 0.0);
-            context.line_to(model.scales.h.1, 0.0);
+            context.set_line_width(height / 1000.0);
+            context.move_to(model.scales.h.0, trigger);
+            context.line_to(model.scales.h.1, trigger);
             context.stroke();
         }
     }

@@ -11,7 +11,12 @@ impl Model {
         let channel = format!("{}", channel);
 
         let level = match self.levels.get(&channel) {
-            Some(level) => self.scales.y_to_offset(*level),
+            Some(level) => if channel == "DELAY" {
+                self.scales.x_to_offset(*level)
+            }
+            else {
+                self.scales.y_to_offset(*level)
+            },
             None => 0.0,
         };
 

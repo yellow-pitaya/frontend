@@ -8,8 +8,9 @@ use super::Signal;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Orientation {
-    Right,
     Left,
+    Right,
+    Top,
 }
 
 #[derive(Clone)]
@@ -101,6 +102,7 @@ impl Widget {
             let (start, end) = match model.orientation {
                 Orientation::Left => (0.0, width as f64),
                 Orientation::Right => (width as f64, 0.0),
+                Orientation::Top => (0.0, height as f64),
             };
 
             let middle = f64::max(start, end) / 2.0;
@@ -109,30 +111,44 @@ impl Widget {
 
             context.set_color(name.clone().into());
 
-            context.move_to(start, top);
-            context.line_to(middle, top);
-            context.line_to(end, level.offset as f64);
-            context.line_to(middle, bottom);
-            context.line_to(start, bottom);
-            context.close_path();
+            if model.orientation == Orientation::Top {
+                context.move_to(top, start);
+                context.line_to(top, middle);
+                context.line_to(level.offset as f64, end);
+                context.line_to(bottom, middle);
+                context.line_to(bottom, start);
+            }
+            else {
+                context.move_to(start, top);
+                context.line_to(middle, top);
+                context.line_to(end, level.offset as f64);
+                context.line_to(middle, bottom);
+                context.line_to(start, bottom);
+            }
 
+            context.close_path();
             context.fill();
         }
 
         self.set_image(&image);
     }
 
-    fn on_click(&self, model: &mut Model, _: i32, y: i32) {
-        model.current = self.find_level(model, y);
+    fn on_click(&self, model: &mut Model, x: i32, y: i32) {
+        let offset = match model.orientation {
+            Orientation::Left | Orientation::Right => y,
+            Orientation::Top => x,
+        };
+
+        model.current = self.find_level(model, offset);
     }
 
-    fn find_level(&self, model: &Model, y: i32) -> Option<String> {
+    fn find_level(&self, model: &Model, offset: i32) -> Option<String> {
         for (name, level) in &model.levels {
             if level.enable == false {
                 continue;
             }
 
-            if y + 7 >= level.offset && y - 7 <= level.offset {
+            if offset + 7 >= level.offset && offset - 7 <= level.offset {
                 return Some(name.clone());
             }
         }
@@ -160,9 +176,14 @@ impl Widget {
         result
     }
 
-    fn on_mouse_move(&self, model: &mut Model, _: i32, y: i32) {
+    fn on_mouse_move(&self, model: &mut Model, x: i32, y: i32) {
+        let offset = match model.orientation {
+            Orientation::Left | Orientation::Right => y,
+            Orientation::Top => x,
+        };
+
         if let Some(name) = model.current.clone() {
-            self.set_level(model, name, y);
+            self.set_level(model, name, offset);
         }
     }
 }
@@ -220,7 +241,10 @@ impl ::relm::Widget for Widget {
         }
     }
 
-    fn init_view(&self, _: &mut Self::Model) {
-        self.drawing_area.set_size_request(20, -1);
+    fn init_view(&self, model: &mut Self::Model) {
+        match model.orientation {
+            Orientation::Left | Orientation::Right => self.drawing_area.set_size_request(20, -1),
+            Orientation::Top => self.drawing_area.set_size_request(-1, 20),
+        };
     }
 }
