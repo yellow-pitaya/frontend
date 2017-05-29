@@ -13,7 +13,6 @@ use relm::ContainerWidget;
 
 trait Panel {
     fn draw(&self, context: &::cairo::Context, model: &Model);
-    fn update_scales(&self, scales: ::Scales);
 }
 
 #[derive(Clone)]
@@ -127,13 +126,6 @@ impl Application {
             y0: scales.v.1 * height / scales.get_height(),
         });
     }
-
-    fn update_scales(&self, scales: ::Scales) {
-        self.graph.widget().update_scales(scales);
-        self.trigger.widget().update_scales(scales);
-        self.generator.widget().update_scales(scales);
-        self.acquire.widget().update_scales(scales);
-    }
 }
 
 impl ::relm::Widget for Application {
@@ -172,7 +164,6 @@ impl ::relm::Widget for Application {
             Signal::AcquireRate(rate) => {
                 model.rate = rate;
                 model.scales.from_sampling_rate(rate);
-                self.update_scales(model.scales);
                 self.graph.widget().invalidate();
             },
 
@@ -304,8 +295,6 @@ impl ::relm::Widget for Application {
 
     fn init_view(&self, model: &mut Model) {
         model.redpitaya.data.set_units(::redpitaya_scpi::data::Unit::VOLTS);
-
-        self.update_scales(model.scales);
 
         match model.redpitaya.trigger.get_delay() {
             Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),

@@ -171,9 +171,6 @@ impl ::application::Panel for Widget {
     fn draw(&self, _: &::cairo::Context, _: &::application::Model) {
         self.invalidate();
     }
-
-    fn update_scales(&self, _: ::Scales) {
-    }
 }
 
 impl ::relm::Widget for Widget {

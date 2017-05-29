@@ -189,9 +189,6 @@ impl ::application::Panel for Widget {
             context.stroke();
         }
     }
-
-    fn update_scales(&self, _: ::Scales) {
-    }
 }
 
 thread_local!(

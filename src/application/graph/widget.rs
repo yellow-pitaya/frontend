@@ -99,11 +99,6 @@ impl ::application::Panel for Widget {
         self.level_left.widget().draw(context, model);
         self.level_right.widget().draw(context, model);
     }
-
-    fn update_scales(&self, scales: ::Scales) {
-        self.level_left.widget().update_scales(scales);
-        self.level_right.widget().update_scales(scales);
-    }
 }
 
 #[widget]

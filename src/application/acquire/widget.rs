@@ -114,11 +114,6 @@ impl ::application::Panel for Widget {
         self.in2.widget().draw(&context, &model);
         context.restore();
     }
-
-    fn update_scales(&self, scales: ::Scales) {
-        self.in1.widget().update_scales(scales);
-        self.in2.widget().update_scales(scales);
-    }
 }
 
 impl Widget {

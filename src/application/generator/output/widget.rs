@@ -274,7 +274,4 @@ impl ::application::Panel for Widget {
 
         self.draw_data(&context, model.scales);
     }
-
-    fn update_scales(&self, _: ::Scales) {
-    }
 }
