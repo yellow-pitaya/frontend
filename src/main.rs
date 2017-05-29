@@ -51,6 +51,6 @@ fn main() {
 
     let redpitaya = ::redpitaya_scpi::Redpitaya::new(args.arg_addr);
 
-    application::Application::run(redpitaya)
+    application::Widget::run(redpitaya)
         .unwrap();
 }
