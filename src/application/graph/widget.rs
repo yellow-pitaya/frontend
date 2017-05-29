@@ -16,6 +16,10 @@ impl Widget {
         &self.level_left
     }
 
+    pub fn level_right<'a>(&'a self) -> &'a ::relm::Component<LevelWidget> {
+        &self.level_right
+    }
+
     pub fn get_width(&self) -> f64 {
         self.drawing_area.get_allocated_width() as f64
     }

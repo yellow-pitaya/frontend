@@ -1,10 +1,10 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Rect {
     pub width: f64,
     pub height: f64,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Scales {
     pub h: (f64, f64),
     pub v: (f64, f64),

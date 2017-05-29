@@ -92,18 +92,6 @@ impl PreciseScale {
         self.spin.set_adjustment(&adjustment);
     }
 
-    pub fn set_limit(&self, limit: (f64, f64)) {
-        let adjustment = self.scale.get_adjustment();
-        adjustment.set_lower(limit.0);
-        adjustment.set_upper(limit.1);
-        self.scale.set_adjustment(&adjustment);
-
-        let adjustment = self.spin.get_adjustment();
-        adjustment.set_lower(limit.0);
-        adjustment.set_upper(limit.1);
-        self.spin.set_adjustment(&adjustment);
-    }
-
     pub fn set_value(&self, value: f64) {
         self.scale.set_value(value);
     }

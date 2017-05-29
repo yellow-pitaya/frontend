@@ -280,6 +280,13 @@ impl ::relm::Widget for Application {
         connect!(trigger@trigger::Signal::Normal, relm, Signal::TriggerNormal);
         connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);
 
+        {
+            let level_right = graph.widget().level_right();
+            connect!(trigger@trigger::Signal::Auto, level_right, graph::level::Signal::SourceStop("TRIG".to_owned()));
+            connect!(trigger@trigger::Signal::Normal, level_right, graph::level::Signal::SourceStart("TRIG".to_owned()));
+            connect!(trigger@trigger::Signal::Single, level_right, graph::level::Signal::SourceStart("TRIG".to_owned()));
+        }
+
         notebook.append_page(
             &trigger_page,
             Some(&::gtk::Label::new(Some("Trigger")))
@@ -302,11 +309,6 @@ impl ::relm::Widget for Application {
 
         match model.redpitaya.trigger.get_delay() {
             Ok(delay) => self.trigger.widget().delay.widget().set_value(delay as f64),
-            Err(err) => error!("{}", err),
-        };
-
-        match model.redpitaya.trigger.get_level() {
-            Ok(level) => self.trigger.widget().level.widget().set_value(level as f64),
             Err(err) => error!("{}", err),
         };
 

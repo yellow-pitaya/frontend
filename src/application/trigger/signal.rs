@@ -13,5 +13,4 @@ pub enum Signal {
     Edge(Edge),
     InternalTick,
     Delay(u8),
-    Level(f32),
 }

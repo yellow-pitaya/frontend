@@ -98,13 +98,22 @@ impl Widget {
                 continue;
             }
 
+            let (start, end) = match model.orientation {
+                Orientation::Left => (0.0, width as f64),
+                Orientation::Right => (width as f64, 0.0),
+            };
+
+            let middle = f64::max(start, end) / 2.0;
+            let top = (level.offset + 7) as f64;
+            let bottom = (level.offset - 7) as f64;
+
             context.set_color(name.clone().into());
 
-            context.move_to(0.0, (level.offset + 7) as f64);
-            context.line_to((width / 2) as f64, (level.offset + 7) as f64);
-            context.line_to(width as f64, level.offset as f64);
-            context.line_to((width / 2) as f64, (level.offset - 7) as f64);
-            context.line_to(0.0, (level.offset - 7) as f64);
+            context.move_to(start, top);
+            context.line_to(middle, top);
+            context.line_to(end, level.offset as f64);
+            context.line_to(middle, bottom);
+            context.line_to(start, bottom);
             context.close_path();
 
             context.fill();

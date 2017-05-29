@@ -14,7 +14,6 @@ use super::Signal;
 #[derive(Clone)]
 pub struct Widget {
     page: ::gtk::Box,
-    pub level: ::relm::Component<::widget::PreciseScale>,
     pub single_button: ::gtk::Button,
     pub delay: ::relm::Component<::widget::PreciseScale>,
     stream: ::relm::EventStream<Signal>,
@@ -76,18 +75,9 @@ impl ::relm::Widget for Widget {
                 model.mode = mode;
 
                 match mode {
-                    Mode::Auto => {
-                        self.level.widget().set_visible(false);
-                        self.single_button.set_visible(false);
-                    },
-                    Mode::Normal => {
-                        self.level.widget().set_visible(true);
-                        self.single_button.set_visible(false);
-                    },
-                    Mode::Single => {
-                        self.level.widget().set_visible(true);
-                        self.single_button.set_visible(true);
-                    },
+                    Mode::Auto => self.single_button.set_visible(false),
+                    Mode::Normal => self.single_button.set_visible(false),
+                    Mode::Single => self.single_button.set_visible(true),
                 };
             },
             Signal::Channel(_) | Signal::Edge(_) => {
@@ -97,7 +87,6 @@ impl ::relm::Widget for Widget {
                 }
             },
             Signal::Delay(delay) => model.trigger.set_delay_in_ns(delay),
-            Signal::Level(level) => model.trigger.set_level(level),
             _ => (),
         }
     }
@@ -145,18 +134,6 @@ impl ::relm::Widget for Widget {
         page.pack_start(&single_button, false, false, 0);
         connect!(relm, single_button, connect_clicked(_), Signal::Single);
 
-        let level = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
-        level.widget().set_label("Level (V)");
-        level.widget().set_digits(2);
-        level.widget().set_adjustment(::gtk::Adjustment::new(
-            0.0, -10.0, 10.0, 0.1, 1.0, 0.0
-        ));
-        connect!(
-            level@::widget::precise::Signal::Changed(value),
-            relm,
-            Signal::Level(value as f32)
-        );
-
         let delay = page.add_widget::<::widget::PreciseScale, _>(&relm, ());
         delay.widget().set_label("Delay (ns)");
         delay.widget().set_digits(2);
@@ -190,7 +167,6 @@ impl ::relm::Widget for Widget {
             page,
             single_button,
             delay,
-            level,
             stream,
             mode,
             channel,
@@ -200,13 +176,21 @@ impl ::relm::Widget for Widget {
 }
 
 impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, _: &::application::Model) {
-        context.set_color(::color::TRIGGER);
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+        let mode = self.mode.widget().get_current();
+
+        if mode == Some(Mode::Normal) || mode == Some(Mode::Single) {
+            context.set_color(::color::TRIGGER);
+
+            context.translate(0.0, model.offset("TRIG"));
+
+            context.move_to(model.scales.h.0, 0.0);
+            context.line_to(model.scales.h.1, 0.0);
+            context.stroke();
+        }
     }
 
-    fn update_scales(&self, scales: ::Scales) {
-        self.level.widget().set_limit(scales.v);
-        self.delay.widget().set_limit(scales.h);
+    fn update_scales(&self, _: ::Scales) {
     }
 }
 
