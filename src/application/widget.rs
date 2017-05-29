@@ -71,7 +71,7 @@ impl Widget {
             xy: 0.0,
             yy: -height / scales.get_height(),
             yx: 0.0,
-            x0: scales.h.0 * width / scales.get_width(),
+            x0: scales.h.1 * width / scales.get_width(),
             y0: scales.v.1 * height / scales.get_height(),
         });
     }
