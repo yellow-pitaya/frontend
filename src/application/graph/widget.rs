@@ -1,3 +1,4 @@
+use application::Panel;
 use color::Colorable;
 use gtk::{
     self,
@@ -6,6 +7,7 @@ use gtk::{
     WidgetExt,
 };
 use super::level::Widget as LevelWidget;
+use super::level::placeholder::Widget as Placeholder;
 use super::level::Signal::Level as LevelSignal;
 use super::level::widget::Orientation;
 use super::Signal;
@@ -33,7 +35,7 @@ impl Widget {
     }
 
     pub fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = self.create_context();
+        let context = self.create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
@@ -49,18 +51,6 @@ impl Widget {
 
         self.level_left.widget().invalidate();
         self.level_right.widget().invalidate();
-    }
-
-    fn create_context(&self) -> ::cairo::Context {
-        let window = self.drawing_area.get_window().unwrap();
-
-        unsafe {
-            use ::glib::translate::ToGlibPtr;
-
-            let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
-
-            ::std::mem::transmute(context)
-        }
     }
 }
 
@@ -116,26 +106,35 @@ impl ::relm::Widget for Widget {
     view! {
         gtk::Box {
             orientation: gtk::Orientation::Horizontal,
-            #[name="level_left"]
-            LevelWidget(
-                Orientation::Left
-            ) {
+            gtk::Box {
+                orientation: gtk::Orientation::Vertical,
                 packing: {
                     expand: false,
                     fill: true,
                 },
-                LevelSignal(name, offset) => Signal::Level(name, offset),
+                Placeholder {
+                    packing: {
+                        expand: false,
+                        fill: true,
+                    },
+                },
+                #[name="level_left"]
+                LevelWidget(Orientation::Left) {
+                    packing: {
+                        expand: true,
+                        fill: true,
+                    },
+                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                },
             },
             gtk::Box {
+                orientation: gtk::Orientation::Vertical,
                 packing: {
                     expand: true,
                     fill: true,
                 },
-                orientation: gtk::Orientation::Vertical,
                 #[name="level_top"]
-                LevelWidget(
-                    Orientation::Top
-                    ) {
+                LevelWidget(Orientation::Top) {
                     packing: {
                         expand: false,
                         fill: true,
@@ -151,15 +150,26 @@ impl ::relm::Widget for Widget {
                     draw(_, _) => (Signal::Draw, ::gtk::Inhibit(false)),
                 },
             },
-            #[name="level_right"]
-            LevelWidget(
-                Orientation::Right
-            ) {
+            gtk::Box {
+                orientation: gtk::Orientation::Vertical,
                 packing: {
                     expand: false,
                     fill: true,
                 },
-                LevelSignal(name, offset) => Signal::Level(name, offset),
+                Placeholder {
+                    packing: {
+                        expand: false,
+                        fill: true,
+                    },
+                },
+                #[name="level_right"]
+                LevelWidget(Orientation::Right) {
+                    packing: {
+                        expand: true,
+                        fill: true,
+                    },
+                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                },
             },
         },
     }

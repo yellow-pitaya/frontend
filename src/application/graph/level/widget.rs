@@ -1,3 +1,4 @@
+use application::Panel;
 use gtk::{
     ContainerExt,
     WidgetExt,
@@ -65,22 +66,10 @@ impl Widget {
     }
 
     fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = self.create_context();
+        let context = self.create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
-    }
-
-    fn create_context(&self) -> ::cairo::Context {
-        let window = self.drawing_area.get_window().unwrap();
-
-        unsafe {
-            use ::glib::translate::ToGlibPtr;
-
-            let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
-
-            ::std::mem::transmute(context)
-        }
     }
 
     fn draw_levels(&self, model: &Model) {
