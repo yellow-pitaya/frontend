@@ -38,7 +38,7 @@ impl Scales {
     }
 
     pub fn sample_to_ms(&self, sample: u32) -> f64 {
-        sample as f64 / self.n_samples as f64 * self.h.1
+        sample as f64 / self.n_samples as f64 * (self.h.1 - self.h.0) + self.h.0
     }
 
     pub fn x_to_offset(&self, x: i32) -> f64 {

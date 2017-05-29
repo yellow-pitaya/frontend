@@ -29,8 +29,8 @@ impl Widget {
             let duty_cycle = self.duty_cycle.widget().get_value();
             let offset = self.offset.widget().get_value();
 
-            for sample in 0..scales.n_samples {
-                let x = scales.sample_to_ms(sample);
+            for sample in (scales.h.0 as i32)..(scales.h.1 as i32) {
+                let x = scales.x_to_offset(sample);
                 let mut y = match form {
                     ::redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
                     ::redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
