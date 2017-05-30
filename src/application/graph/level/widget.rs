@@ -1,6 +1,6 @@
 use application::Panel;
 use gtk::{
-    ContainerExt,
+    GestureDragExt,
     WidgetExt,
 };
 use color::Colorable;
@@ -16,7 +16,7 @@ pub enum Orientation {
 
 #[derive(Clone)]
 pub struct Widget {
-    event_box: ::gtk::EventBox,
+    gesture_drag: ::gtk::GestureDrag,
     drawing_area: ::gtk::DrawingArea,
 }
 
@@ -145,35 +145,33 @@ impl Widget {
         None
     }
 
-    fn on_release(model: &mut Model) -> (Signal, ::gtk::Inhibit) {
-        let mut result = (Signal::Draw, ::gtk::Inhibit(false));
+    fn on_mouse_move(&self, model: &mut Model, x: i32, y: i32) {
+        if let Some((start_x, start_y)) = self.gesture_drag.get_start_point() {
+            let offset = match model.orientation {
+                Orientation::Left | Orientation::Right => start_y as i32 + y,
+                Orientation::Top => start_x as i32 + x,
+            };
 
+            if let Some(name) = model.current.clone() {
+                self.set_level(model, name, offset);
+            }
+        }
+    }
+
+    fn on_release(model: &mut Model) -> Signal {
         let name = match model.current.clone() {
             Some(name) => name,
-            None => return result,
+            None => return Signal::Draw,
         };
 
         let level = match model.levels.get(&name) {
             Some(level) => level,
-            None => return result,
+            None => return Signal::Draw,
         };
 
         model.current = None;
 
-        result.0 = Signal::Level(name.clone(), level.offset);
-
-        result
-    }
-
-    fn on_mouse_move(&self, model: &mut Model, x: i32, y: i32) {
-        let offset = match model.orientation {
-            Orientation::Left | Orientation::Right => y,
-            Orientation::Top => x,
-        };
-
-        if let Some(name) = model.current.clone() {
-            self.set_level(model, name, offset);
-        }
+        Signal::Level(name.clone(), level.offset)
     }
 }
 
@@ -186,7 +184,7 @@ impl ::application::Panel for Widget {
 impl ::relm::Widget for Widget {
     type Model = Model;
     type Msg = Signal;
-    type Root = ::gtk::EventBox;
+    type Root = ::gtk::DrawingArea;
     type ModelParam = Orientation;
 
     fn model(orientation: Orientation) -> Self::Model {
@@ -198,13 +196,13 @@ impl ::relm::Widget for Widget {
     }
 
     fn root(&self) -> &Self::Root {
-        &self.event_box
+        &self.drawing_area
     }
 
     fn update(&mut self, signal: Signal, model: &mut Self::Model) {
         match signal {
-            Signal::Click((x, y)) => self.on_click(model, x as i32, y as i32),
-            Signal::Move((x, y)) => self.on_mouse_move(model, x as i32, y as i32),
+            Signal::Click(x, y) => self.on_click(model, x as i32, y as i32),
+            Signal::Move(x, y) => self.on_mouse_move(model, x as i32, y as i32),
             Signal::Draw => self.draw_levels(model),
             Signal::SourceStart(source) => self.start(model, source),
             Signal::SourceStop(source) => self.stop(model, source),
@@ -213,20 +211,17 @@ impl ::relm::Widget for Widget {
     }
 
     fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
-        let event_box = ::gtk::EventBox::new();
-
-        connect!(relm, event_box, connect_button_press_event(_, event) (Signal::Click(event.get_position()), ::gtk::Inhibit(false)));
-        connect!(relm, event_box, connect_button_release_event(_, _) with model Self::on_release(model));
-        connect!(relm, event_box, connect_motion_notify_event(_, event) (Signal::Move(event.get_position()), ::gtk::Inhibit(false)));
-
         let drawing_area = ::gtk::DrawingArea::new();
-        event_box.add(&drawing_area);
-
         connect!(relm, drawing_area, connect_draw(_, _) (Signal::Draw, ::gtk::Inhibit(false)));
 
+        let gesture_drag = ::gtk::GestureDrag::new(&drawing_area);
+        connect!(gesture_drag, connect_drag_begin(_, x, y), relm, Signal::Click(x, y));
+        connect!(gesture_drag, connect_drag_update(_, x, y), relm, Signal::Move(x, y));
+        connect!(relm, gesture_drag, connect_drag_end(_, _, _) with model (Self::on_release(model), ()));
+
         Widget {
-            event_box: event_box,
-            drawing_area: drawing_area,
+            gesture_drag,
+            drawing_area,
         }
     }
 

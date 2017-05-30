@@ -21,4 +21,4 @@ rustc-serialize = "0.3"
 
 [dependencies.gtk]
 version = "0.1"
-features = ["v3_12"]
+features = ["v3_14"]
