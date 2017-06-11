@@ -17,7 +17,9 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate redpitaya_scpi;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 
 mod application;
 mod color;
@@ -29,7 +31,7 @@ use scales::Scales;
 
 static USAGE: &'static str = "Usage: yellow-pitaya <addr>";
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args
 {
     arg_addr: String,
@@ -44,7 +46,7 @@ fn main() {
         Err(error) => error.exit(),
     };
 
-    let args: Args = match docopt.decode() {
+    let args: Args = match docopt.deserialize() {
         Ok(args) => args,
         Err(e) => e.exit(),
     };
