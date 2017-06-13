@@ -165,6 +165,7 @@ impl ::relm::Widget for Widget {
         main_box.pack_start(&vbox, false, false, 0);
 
         let notebook = ::gtk::Notebook::new();
+        notebook.set_scrollable(true);
         vbox.pack_start(&notebook, true, true, 0);
 
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
