@@ -5,7 +5,6 @@ extern crate glib;
 extern crate gdk;
 extern crate gdk_sys;
 extern crate gtk;
-extern crate gtk_sys;
 #[macro_use]
 extern crate log;
 #[macro_use]

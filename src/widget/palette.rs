@@ -1,4 +1,3 @@
-use glib::translate::ToGlibPtr;
 use gtk::{
     self,
     ButtonExt,
@@ -64,20 +63,17 @@ impl Palette {
     }
 
     pub fn set_color(&self, color: ::color::Color) {
-        let color = ::gdk_sys::GdkColor {
-            pixel: 32,
-            red: color.r as u16 * ::std::u16::MAX,
-            green: color.g as u16 * ::std::u16::MAX,
-            blue: color.b as u16 * ::std::u16::MAX,
+        let color = ::gdk::RGBA {
+            alpha: 1.,
+            red: color.r,
+            green: color.g,
+            blue: color.b,
         };
 
-        unsafe {
-            ::gtk_sys::gtk_widget_modify_bg(
-                self.border.to_glib_none().0,
-                ::gtk_sys::GTK_STATE_NORMAL,
-                &color
-            );
-        }
+        self.border.override_color(
+            ::gtk::StateFlags::NORMAL,
+            Some(&color)
+        );
     }
 }
 

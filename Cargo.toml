@@ -4,23 +4,22 @@ version = "0.1.0"
 authors = ["Sanpi <sanpi@homecomputing.fr>"]
 
 [dependencies]
-cairo-rs = "0.5"
+cairo-rs = "0.6"
 docopt = "0.8"
 env_logger = "0.4"
-glib = "0.6"
-gdk = "0.9"
-gdk-sys = "0.7"
-gtk-sys = "0.7"
+glib = "0.7"
+gdk = "0.10"
+gdk-sys = "0.8"
 log = "0.3"
 redpitaya-scpi = "0.27"
-relm = "0.15"
-relm-core = "0.15"
-relm-attributes = "0.15"
-relm-derive = "0.15"
-relm-state = "0.15"
+relm = "0.16"
+relm-core = "0.16"
+relm-attributes = "0.16"
+relm-derive = "0.16"
+relm-state = "0.16"
 serde = "1.0"
 serde_derive = "1.0"
 
 [dependencies.gtk]
-version = "0.5"
-features = ["v3_14"]
+version = "0.6"
+features = ["v3_16"]

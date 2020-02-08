@@ -195,7 +195,7 @@ impl ::relm::Widget for Widget {
             Some(&::gtk::Label::new(Some("Acquire")))
         );
 
-        let scrolled_window = ::gtk::ScrolledWindow::new(None, None);
+        let scrolled_window = ::gtk::ScrolledWindow::new::<::gtk::Adjustment, _, ::gtk::Adjustment, _>(None, None);
         scrolled_window.set_border_width(10);
         notebook.append_page(
             &scrolled_window,
