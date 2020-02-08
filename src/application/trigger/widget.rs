@@ -130,7 +130,7 @@ impl ::relm::Widget for Widget {
             options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
             current: Some(Channel::CH1),
         };
-        let channel = page.add_widget::<::widget::RadioGroup<Channel>, _>(&relm, args);
+        let channel = page.add_widget::<::widget::RadioGroup<Channel>>(args);
         connect!(
             channel@::widget::radio::Signal::Change(channel),
             relm,
@@ -142,7 +142,7 @@ impl ::relm::Widget for Widget {
             options: vec![Edge::Positive, Edge::Negative],
             current: Some(Edge::Positive),
         };
-        let edge = page.add_widget::<::widget::RadioGroup<Edge>, _>(&relm, args);
+        let edge = page.add_widget::<::widget::RadioGroup<Edge>>(args);
         connect!(
             edge@::widget::radio::Signal::Change(edge),
             relm,
@@ -154,7 +154,7 @@ impl ::relm::Widget for Widget {
             options: vec![Mode::Auto, Mode::Normal, Mode::Single],
             current: Some(model.mode),
         };
-        let mode = page.add_widget::<::widget::RadioGroup<Mode>, _>(&relm, args);
+        let mode = page.add_widget::<::widget::RadioGroup<Mode>>(args);
         connect!(
             mode@::widget::radio::Signal::Change(mode),
             relm,

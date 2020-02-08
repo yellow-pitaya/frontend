@@ -67,7 +67,7 @@ impl ::relm::Widget for Widget {
                 Err(_) => None,
             },
         };
-        let rate = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>, _>(&relm, args);
+        let rate = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::SamplingRate>>(args);
         connect!(
             rate@::widget::radio::Signal::Change(rate),
             relm,
@@ -81,7 +81,7 @@ impl ::relm::Widget for Widget {
             relm, average, connect_toggled(w), Signal::Average(w.get_active())
         );
 
-        let in1 = vbox.add_widget::<InputWidget, _>(&relm, InputModel {
+        let in1 = vbox.add_widget::<InputWidget>(InputModel {
             attenuation: 1,
             started: false,
             source: ::redpitaya_scpi::acquire::Source::IN1,
@@ -92,7 +92,7 @@ impl ::relm::Widget for Widget {
         connect!(in1@InputSignal::Start, relm, Signal::Start(::redpitaya_scpi::acquire::Source::IN1));
         connect!(in1@InputSignal::Stop, relm, Signal::Stop(::redpitaya_scpi::acquire::Source::IN1));
 
-        let in2 = vbox.add_widget::<InputWidget, _>(&relm, InputModel {
+        let in2 = vbox.add_widget::<InputWidget>(InputModel {
             attenuation: 1,
             started: false,
             source: ::redpitaya_scpi::acquire::Source::IN2,

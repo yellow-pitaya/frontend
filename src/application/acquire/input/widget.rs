@@ -82,7 +82,7 @@ impl ::relm::Widget for Widget {
     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
-        let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
+        let palette = page.add_widget::<::widget::Palette>(());
         palette.emit(::widget::palette::Signal::SetLabel(format!("{}", model.source)));
         palette.emit(::widget::palette::Signal::SetColor(model.source.into()));
         connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
@@ -103,7 +103,7 @@ impl ::relm::Widget for Widget {
                 Err(_) => None,
             },
         };
-        let gain = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::Gain>, _>(&relm, args);
+        let gain = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::Gain>>(args);
         connect!(
             gain@::widget::radio::Signal::Change(gain),
             relm,
@@ -115,7 +115,7 @@ impl ::relm::Widget for Widget {
             options: vec![1, 10, 100],
             current: Some(1),
         };
-        let attenuation = vbox.add_widget::<::widget::RadioGroup<u8>, _>(&relm, args);
+        let attenuation = vbox.add_widget::<::widget::RadioGroup<u8>>(args);
         connect!(
             attenuation@::widget::radio::Signal::Change(attenuation),
             relm,

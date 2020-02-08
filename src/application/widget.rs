@@ -170,7 +170,7 @@ impl ::relm::Widget for Widget {
         let graph_page = ::gtk::EventBox::new();
         main_box.pack_start(&graph_page, true, true, 0);
 
-        let graph = graph_page.add_widget::<graph::Widget, _>(&relm, ());
+        let graph = graph_page.add_widget::<graph::Widget>(());
         connect!(graph@graph::Signal::Draw, relm, super::Signal::GraphDraw);
         connect!(graph@graph::Signal::Level(ref channel, offset), relm, super::Signal::Level(channel.clone(), offset));
         connect!(graph@graph::Signal::Resize(w, h), relm, super::Signal::Resize(w, h));
@@ -185,7 +185,7 @@ impl ::relm::Widget for Widget {
         let acquire_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         acquire_page.set_border_width(10);
 
-        let acquire = acquire_page.add_widget::<acquire::Widget, _>(&relm, model.redpitaya.acquire.clone());
+        let acquire = acquire_page.add_widget::<acquire::Widget>(model.redpitaya.acquire.clone());
         connect!(acquire@acquire::Signal::Rate(rate), relm, super::Signal::AcquireRate(rate));
         connect!(acquire@acquire::Signal::Start(source), graph, graph::Signal::SourceStart(super::graph::level::widget::Orientation::Left, format!("{}", source)));
         connect!(acquire@acquire::Signal::Stop(source), graph, graph::Signal::SourceStop(super::graph::level::widget::Orientation::Left, format!("{}", source)));
@@ -202,7 +202,7 @@ impl ::relm::Widget for Widget {
             Some(&::gtk::Label::new(Some("Generator")))
         );
 
-        let generator = scrolled_window.add_widget::<generator::Widget, _>(&relm, model.redpitaya.generator.clone());
+        let generator = scrolled_window.add_widget::<generator::Widget>(model.redpitaya.generator.clone());
         connect!(generator@generator::Signal::Amplitude(_, _), relm, super::Signal::NeedDraw);
         connect!(generator@generator::Signal::DutyCycle(_, _), relm, super::Signal::NeedDraw);
         connect!(generator@generator::Signal::Frequency(_, _), relm, super::Signal::NeedDraw);
@@ -221,7 +221,7 @@ impl ::relm::Widget for Widget {
 
         let trigger_page = ::gtk::Box::new(::gtk::Orientation::Vertical, 0);
         trigger_page.set_border_width(10);
-        let trigger = trigger_page.add_widget::<trigger::Widget, _>(&relm, model.redpitaya.trigger.clone());
+        let trigger = trigger_page.add_widget::<trigger::Widget>(model.redpitaya.trigger.clone());
         connect!(trigger@trigger::Signal::Auto, relm, super::Signal::TriggerAuto);
         connect!(trigger@trigger::Signal::Normal, relm, super::Signal::TriggerNormal);
         connect!(trigger@trigger::Signal::Single, relm, super::Signal::TriggerSingle);
