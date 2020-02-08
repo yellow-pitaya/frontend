@@ -56,6 +56,9 @@ fn main() {
 }
 
 fn create_context(widget: &::gtk::DrawingArea) -> ::cairo::Context {
+    use glib::translate::FromGlibPtrBorrow;
+    use gtk::WidgetExt;
+
     let window = widget.get_window().unwrap();
 
     unsafe {
@@ -63,6 +66,6 @@ fn create_context(widget: &::gtk::DrawingArea) -> ::cairo::Context {
 
         let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
 
-        ::std::mem::transmute(context)
+        ::cairo::Context::from_glib_borrow(context)
     }
 }

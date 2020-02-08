@@ -11,7 +11,7 @@ use gtk::{
     NotebookExtManual,
     StatusbarExt,
     WidgetExt,
-    WindowExt,
+    GtkWindowExt,
 };
 use relm::ContainerWidget;
 

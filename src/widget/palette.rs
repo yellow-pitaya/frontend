@@ -74,7 +74,7 @@ impl Palette {
         unsafe {
             ::gtk_sys::gtk_widget_modify_bg(
                 self.border.to_glib_none().0,
-                ::gtk_sys::GtkStateType::Normal,
+                ::gtk_sys::GTK_STATE_NORMAL,
                 &color
             );
         }
