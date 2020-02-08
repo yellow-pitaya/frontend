@@ -71,7 +71,7 @@ impl<T> ::relm::Widget for RadioGroup<T>
     }
 
     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
-        let frame = ::gtk::Frame::new(model.title.as_str());
+        let frame = ::gtk::Frame::new(Some(&model.title));
 
         let flow_box = ::gtk::FlowBox::new();
         frame.add(&flow_box);

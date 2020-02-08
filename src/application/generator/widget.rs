@@ -3,7 +3,7 @@ use gtk::{
     BoxExt,
     OrientableExt,
 };
-use relm_attributes::widget;
+use relm_derive::widget;
 use super::Signal;
 use super::output::Widget as OutputWidget;
 use super::output::Model as OutputModel;

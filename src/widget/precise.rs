@@ -1,4 +1,4 @@
-use relm_attributes::widget;
+use relm_derive::widget;
 use gtk::{
     self,
     AdjustmentExt,
@@ -112,7 +112,7 @@ impl PreciseScale {
     }
 
     pub fn set_label(&self, label: &str) {
-        self.frame.set_label(label);
+        self.frame.set_label(Some(label));
     }
 
     pub fn set_digits(&self, digits: u32) {

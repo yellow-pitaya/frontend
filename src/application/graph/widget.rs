@@ -10,7 +10,7 @@ use super::level::placeholder::Widget as Placeholder;
 use super::level::Signal::Level as LevelSignal;
 use super::level::widget::Orientation;
 use super::Signal;
-use relm_attributes::widget;
+use relm_derive::widget;
 
 impl Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {

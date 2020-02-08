@@ -6,7 +6,7 @@ use gtk::{
     ToggleButtonExt,
     WidgetExt,
 };
-use relm_attributes::widget;
+use relm_derive::widget;
 
 #[derive(Msg, Clone)]
 pub enum Signal {

@@ -3,7 +3,7 @@ use gtk::{
     WidgetExt,
 };
 use color::Colorable;
-use relm_attributes::widget;
+use relm_derive::widget;
 
 #[widget]
 impl ::relm::Widget for Widget {
