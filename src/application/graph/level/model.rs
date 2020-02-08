@@ -8,5 +8,5 @@ pub struct Level {
 pub struct Model {
     pub current: Option<String>,
     pub orientation: super::widget::Orientation,
-    pub levels: ::std::collections::HashMap<String, Level>,
+    pub levels: std::collections::HashMap<String, Level>,
 }

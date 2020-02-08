@@ -2,6 +2,7 @@
 name = "yellow-pitaya"
 version = "0.1.0"
 authors = ["Sanpi <sanpi@homecomputing.fr>"]
+edition = "2018"
 
 [dependencies]
 cairo-rs = "0.8"

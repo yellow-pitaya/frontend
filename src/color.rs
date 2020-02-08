@@ -6,25 +6,25 @@ pub struct Color {
     pub a: f64,
 }
 
-impl ::std::convert::Into<Color> for ::redpitaya_scpi::generator::Source {
+impl std::convert::Into<Color> for redpitaya_scpi::generator::Source {
     fn into(self) -> Color {
         match self {
-            ::redpitaya_scpi::generator::Source::OUT1 => OUT1,
-            ::redpitaya_scpi::generator::Source::OUT2 => OUT2,
+            redpitaya_scpi::generator::Source::OUT1 => OUT1,
+            redpitaya_scpi::generator::Source::OUT2 => OUT2,
         }
     }
 }
 
-impl ::std::convert::Into<Color> for ::redpitaya_scpi::acquire::Source {
+impl std::convert::Into<Color> for redpitaya_scpi::acquire::Source {
     fn into(self) -> Color {
         match self {
-            ::redpitaya_scpi::acquire::Source::IN1 => IN1,
-            ::redpitaya_scpi::acquire::Source::IN2 => IN2,
+            redpitaya_scpi::acquire::Source::IN1 => IN1,
+            redpitaya_scpi::acquire::Source::IN2 => IN2,
         }
     }
 }
 
-impl ::std::convert::Into<Color> for String {
+impl std::convert::Into<Color> for String {
     fn into(self) -> Color {
         match self.as_str() {
             "IN 1" => IN1,
@@ -50,7 +50,7 @@ pub trait Colorable {
     fn set_color(&self, color: Color);
 }
 
-impl Colorable for ::cairo::Context {
+impl Colorable for cairo::Context {
     fn set_color(&self, color: Color) {
         self.set_source_rgba(
             color.r, color.g, color.b, color.a

@@ -1,4 +1,4 @@
-use color::Colorable;
+use crate::color::Colorable;
 use gtk::{
     self,
     BoxExt,
@@ -10,27 +10,26 @@ use super::level::placeholder::Widget as Placeholder;
 use super::level::Signal::Level as LevelSignal;
 use super::level::widget::Orientation;
 use super::Signal;
-use relm_derive::widget;
 
 impl Widget {
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
 
-        context.set_color(::color::BACKGROUND);
+        context.set_color(crate::color::BACKGROUND);
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
         context.fill();
 
-        context.set_color(::color::MAIN_SCALE);
+        context.set_color(crate::color::MAIN_SCALE);
 
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
         context.stroke();
 
         for i in 0..11 {
             if i % 5 == 0 {
-                context.set_color(::color::MAIN_SCALE);
+                context.set_color(crate::color::MAIN_SCALE);
             } else {
-                context.set_color(::color::SECONDARY_SCALE);
+                context.set_color(crate::color::SECONDARY_SCALE);
             }
 
             let x = width / 10.0 * (i as f64);
@@ -60,8 +59,8 @@ impl Widget {
         self.drawing_area.get_allocated_height() as f64
     }
 
-    pub fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = ::create_context(&self.drawing_area);
+    pub fn set_image(&self, image: &cairo::ImageSurface) {
+        let context = crate::create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
@@ -80,8 +79,8 @@ impl Widget {
     }
 }
 
-#[widget]
-impl ::relm::Widget for Widget {
+#[relm_derive::widget]
+impl relm::Widget for Widget {
     fn model(_: ()) -> () {
     }
 
@@ -148,7 +147,7 @@ impl ::relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    draw(_, _) => (Signal::Draw, ::gtk::Inhibit(false)),
+                    draw(_, _) => (Signal::Draw, gtk::Inhibit(false)),
                 },
             },
             gtk::Box {

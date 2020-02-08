@@ -3,14 +3,14 @@ pub enum Signal {
     Invalidate,
     Draw,
     Level(String, i32),
-    Redraw(::cairo::Context, ::application::Model),
+    Redraw(cairo::Context, crate::application::Model),
     Resize(i32, i32),
-    SetImage(::cairo::ImageSurface),
+    SetImage(cairo::ImageSurface),
     SourceStart(super::level::widget::Orientation, String),
     SourceStop(super::level::widget::Orientation, String),
 }
 
-impl ::relm::DisplayVariant for Signal {
+impl relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Invalidate => "Signal::Invalidate",
@@ -25,7 +25,7 @@ impl ::relm::DisplayVariant for Signal {
     }
 }
 
-impl ::relm::IntoOption<Self> for Signal {
+impl relm::IntoOption<Self> for Signal {
     fn into_option(self) -> Option<Self> {
         Some(self)
     }

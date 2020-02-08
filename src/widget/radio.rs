@@ -5,12 +5,12 @@ use gtk::{
 };
 
 #[derive(Clone)]
-pub enum Signal<T: ::std::clone::Clone + ::std::cmp::PartialEq> {
+pub enum Signal<T: std::clone::Clone + std::cmp::PartialEq> {
     Change(T),
     Set(T),
 }
 
-impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> ::relm::DisplayVariant for Signal<T> {
+impl<T: std::clone::Clone + std::cmp::PartialEq> relm::DisplayVariant for Signal<T> {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Change(_) => "Signal::Change",
@@ -28,12 +28,12 @@ pub struct Model<T> {
 
 #[derive(Clone)]
 pub struct RadioGroup<T> {
-    frame: ::gtk::Frame,
-    radio: Vec<(::gtk::RadioButton, T)>,
-    phantom: ::std::marker::PhantomData<T>,
+    frame: gtk::Frame,
+    radio: Vec<(gtk::RadioButton, T)>,
+    phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> RadioGroup<T> {
+impl<T: std::clone::Clone + std::cmp::PartialEq> RadioGroup<T> {
     pub fn set_current(&self, current: T) {
         for &(ref radio, ref signal) in self.radio.iter() {
             if current == *signal {
@@ -44,7 +44,7 @@ impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> RadioGroup<T> {
     }
 }
 
-impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> ::relm::Update for RadioGroup<T> {
+impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> {
     type Model = Model<T>;
     type Msg = Signal<T>;
     type ModelParam = Model<T>;
@@ -61,26 +61,26 @@ impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> ::relm::Update for RadioGro
     }
 }
 
-impl<T> ::relm::Widget for RadioGroup<T>
-    where T: ::std::clone::Clone + ::std::fmt::Display + ::std::cmp::PartialEq + 'static
+impl<T> relm::Widget for RadioGroup<T>
+    where T: std::clone::Clone + std::fmt::Display + std::cmp::PartialEq + 'static
 {
-    type Root = ::gtk::Frame;
+    type Root = gtk::Frame;
 
     fn root(&self) -> Self::Root {
         self.frame.clone()
     }
 
-    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
-        let frame = ::gtk::Frame::new(Some(&model.title));
+    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
+        let frame = gtk::Frame::new(Some(&model.title));
 
-        let flow_box = ::gtk::FlowBox::new();
+        let flow_box = gtk::FlowBox::new();
         frame.add(&flow_box);
 
         let mut radio = Vec::new();
         let mut group_member = None;
 
         for option in model.options.iter() {
-            let button = ::gtk::RadioButton::new_with_label(
+            let button = gtk::RadioButton::new_with_label(
                 format!("{}", option).as_str()
             );
             button.join_group(group_member.as_ref());
@@ -113,7 +113,7 @@ impl<T> ::relm::Widget for RadioGroup<T>
         RadioGroup {
             frame: frame,
             radio: radio,
-            phantom: ::std::marker::PhantomData,
+            phantom: std::marker::PhantomData,
         }
     }
 }

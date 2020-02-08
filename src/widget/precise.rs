@@ -1,4 +1,3 @@
-use relm_derive::widget;
 use gtk::{
     self,
     AdjustmentExt,
@@ -14,7 +13,7 @@ use gtk::{
     WidgetExt,
 };
 
-#[derive(Msg, Clone)]
+#[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
     Expand,
     Fold,
@@ -22,13 +21,13 @@ pub enum Signal {
     SetValue(f64),
     SetVisible(bool),
     SetDigits(u32),
-    SetAdjustement(::gtk::Adjustment),
+    SetAdjustement(gtk::Adjustment),
     SetLabel(String),
     SetNoShowAll(bool),
 }
 
-#[widget]
-impl ::relm::Widget for PreciseScale {
+#[relm_derive::widget]
+impl relm::Widget for PreciseScale {
     fn model(_: ()) -> () {
     }
 
@@ -54,7 +53,7 @@ impl ::relm::Widget for PreciseScale {
 
     fn init_view(&mut self) {
         self.spin.hide();
-        self.scale.add_mark(0.0, ::gtk::PositionType::Top, None);
+        self.scale.add_mark(0.0, gtk::PositionType::Top, None);
     }
 
     view! {
@@ -81,7 +80,7 @@ impl ::relm::Widget for PreciseScale {
                     #[name="scale"]
                     gtk::Scale {
                         value_pos: gtk::PositionType::Bottom,
-                        change_value(_, _, value) => (Signal::Changed(value), ::gtk::Inhibit(false)),
+                        change_value(_, _, value) => (Signal::Changed(value), gtk::Inhibit(false)),
                     },
                     #[name="spin"]
                     gtk::SpinButton {
@@ -95,7 +94,7 @@ impl ::relm::Widget for PreciseScale {
 }
 
 impl PreciseScale {
-    pub fn set_adjustment(&self, adjustment: ::gtk::Adjustment) {
+    pub fn set_adjustment(&self, adjustment: gtk::Adjustment) {
         self.scale.set_adjustment(&adjustment);
 
         adjustment.set_step_increment(

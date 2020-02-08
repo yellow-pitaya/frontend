@@ -6,18 +6,17 @@ use gtk::{
     ToggleButtonExt,
     WidgetExt,
 };
-use relm_derive::widget;
 
-#[derive(Msg, Clone)]
+#[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
     Expand,
     Fold,
-    SetColor(::color::Color),
+    SetColor(crate::color::Color),
     SetLabel(String),
 }
 
-#[widget]
-impl ::relm::Widget for Palette {
+#[relm_derive::widget]
+impl relm::Widget for Palette {
     fn model(_: ()) -> () {
     }
 
@@ -62,8 +61,8 @@ impl Palette {
         self.toggle.set_label(label);
     }
 
-    pub fn set_color(&self, color: ::color::Color) {
-        let color = ::gdk::RGBA {
+    pub fn set_color(&self, color: crate::color::Color) {
+        let color = gdk::RGBA {
             alpha: 1.,
             red: color.r,
             green: color.g,
@@ -71,7 +70,7 @@ impl Palette {
         };
 
         self.border.override_color(
-            ::gtk::StateFlags::NORMAL,
+            gtk::StateFlags::NORMAL,
             Some(&color)
         );
     }

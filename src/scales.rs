@@ -21,7 +21,7 @@ impl Scales {
         self.v.1 - self.v.0
     }
 
-    pub fn from_sampling_rate(&mut self, rate: ::redpitaya_scpi::acquire::SamplingRate) {
+    pub fn from_sampling_rate(&mut self, rate: redpitaya_scpi::acquire::SamplingRate) {
         let duration = rate.get_buffer_duration();
         let h = (duration.as_secs() * 1_000_000 + duration.subsec_nanos() as u64 / 1_000) as f64 / 2.0;
 

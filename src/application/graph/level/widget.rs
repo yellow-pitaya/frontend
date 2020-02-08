@@ -1,8 +1,8 @@
+use crate::color::Colorable;
 use gtk::{
     GestureDragExt,
     WidgetExt,
 };
-use color::Colorable;
 use super::Model;
 use super::Signal;
 
@@ -15,10 +15,10 @@ pub enum Orientation {
 
 #[derive(Clone)]
 pub struct Widget {
-    relm: ::relm::Relm<Self>,
+    relm: relm::Relm<Self>,
     model: Model,
-    gesture_drag: ::gtk::GestureDrag,
-    drawing_area: ::gtk::DrawingArea,
+    gesture_drag: gtk::GestureDrag,
+    drawing_area: gtk::DrawingArea,
 }
 
 impl Widget {
@@ -66,8 +66,8 @@ impl Widget {
         self.drawing_area.get_allocated_height()
     }
 
-    fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = ::create_context(&self.drawing_area);
+    fn set_image(&self, image: &cairo::ImageSurface) {
+        let context = crate::create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
@@ -77,11 +77,11 @@ impl Widget {
         let width = self.get_width();
         let height = self.get_height();
 
-        let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width, height)
+        let image = cairo::ImageSurface::create(cairo::Format::ARgb32, width, height)
             .unwrap();
-        let context = ::cairo::Context::new(&image);
+        let context = cairo::Context::new(&image);
 
-        context.set_color(::color::BACKGROUND);
+        context.set_color(crate::color::BACKGROUND);
         context.rectangle(0.0, 0.0, width as f64, height as f64);
         context.fill();
 
@@ -183,16 +183,16 @@ impl Widget {
     }
 }
 
-impl ::relm::Update for Widget {
+impl relm::Update for Widget {
     type Model = Model;
     type Msg = Signal;
     type ModelParam = Orientation;
 
-    fn model(_: &::relm::Relm<Self>, orientation: Orientation) -> Self::Model {
+    fn model(_: &relm::Relm<Self>, orientation: Orientation) -> Self::Model {
         Model {
             current: None,
             orientation: orientation,
-            levels: ::std::collections::HashMap::new(),
+            levels: std::collections::HashMap::new(),
         }
     }
 
@@ -210,21 +210,21 @@ impl ::relm::Update for Widget {
     }
 }
 
-impl ::relm::Widget for Widget {
-    type Root = ::gtk::DrawingArea;
+impl relm::Widget for Widget {
+    type Root = gtk::DrawingArea;
 
     fn root(&self) -> Self::Root {
         self.drawing_area.clone()
     }
 
-    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
-        let drawing_area = ::gtk::DrawingArea::new();
-        connect!(relm, drawing_area, connect_draw(_, _), return (Signal::Draw, ::gtk::Inhibit(false)));
+    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
+        let drawing_area = gtk::DrawingArea::new();
+        relm::connect!(relm, drawing_area, connect_draw(_, _), return (Signal::Draw, gtk::Inhibit(false)));
 
-        let gesture_drag = ::gtk::GestureDrag::new(&drawing_area);
-        connect!(gesture_drag, connect_drag_begin(_, x, y), relm, Signal::Click(x, y));
-        connect!(gesture_drag, connect_drag_update(_, x, y), relm, Signal::Move(x, y));
-        connect!(gesture_drag, connect_drag_end(_, _, _), relm, Signal::Release);
+        let gesture_drag = gtk::GestureDrag::new(&drawing_area);
+        relm::connect!(gesture_drag, connect_drag_begin(_, x, y), relm, Signal::Click(x, y));
+        relm::connect!(gesture_drag, connect_drag_update(_, x, y), relm, Signal::Move(x, y));
+        relm::connect!(gesture_drag, connect_drag_end(_, _, _), relm, Signal::Release);
 
         Widget {
             relm: relm.clone(),

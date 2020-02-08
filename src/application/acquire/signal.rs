@@ -1,16 +1,16 @@
 #[derive(Clone)]
 pub enum Signal {
-    Attenuation(::redpitaya_scpi::acquire::Source, u8),
+    Attenuation(redpitaya_scpi::acquire::Source, u8),
     Average(bool),
-    Gain(::redpitaya_scpi::acquire::Source, ::redpitaya_scpi::acquire::Gain),
-    Rate(::redpitaya_scpi::acquire::SamplingRate),
-    SetData(::redpitaya_scpi::acquire::Source, Vec<f64>),
-    Start(::redpitaya_scpi::acquire::Source),
-    Stop(::redpitaya_scpi::acquire::Source),
-    Redraw(::cairo::Context, ::application::Model),
+    Gain(redpitaya_scpi::acquire::Source, redpitaya_scpi::acquire::Gain),
+    Rate(redpitaya_scpi::acquire::SamplingRate),
+    SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
+    Start(redpitaya_scpi::acquire::Source),
+    Stop(redpitaya_scpi::acquire::Source),
+    Redraw(cairo::Context, crate::application::Model),
 }
 
-impl ::relm::DisplayVariant for Signal {
+impl relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Attenuation(_, _) => "Signal::Attenuation",
@@ -25,7 +25,7 @@ impl ::relm::DisplayVariant for Signal {
     }
 }
 
-impl ::relm::IntoOption<Self> for Signal {
+impl relm::IntoOption<Self> for Signal {
     fn into_option(self) -> Option<Self> {
         Some(self)
     }

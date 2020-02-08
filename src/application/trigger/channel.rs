@@ -5,8 +5,8 @@ pub enum Channel {
     EXT,
 }
 
-impl ::std::fmt::Display for Channel {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl std::fmt::Display for Channel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let display = match self {
             &Channel::CH1 => "CH1",
             &Channel::CH2 => "CH2",

@@ -1,20 +1,19 @@
+use crate::color::Colorable;
 use gtk::{
     self,
     WidgetExt,
 };
-use color::Colorable;
-use relm_derive::widget;
 
-#[widget]
-impl ::relm::Widget for Widget {
+#[relm_derive::widget]
+impl relm::Widget for Widget {
     fn model(_: ()) -> () {
     }
 
     fn update(&mut self, signal: super::Signal) {
         match signal {
             super::Signal::Draw => {
-                let context = ::create_context(&self.drawing_area);
-                context.set_color(::color::BACKGROUND);
+                let context = crate::create_context(&self.drawing_area);
+                context.set_color(crate::color::BACKGROUND);
                 context.rectangle(0.0, 0.0, 20.0, 20.0);
                 context.fill();
             },
@@ -24,7 +23,7 @@ impl ::relm::Widget for Widget {
     view! {
         #[name="drawing_area"]
         gtk::DrawingArea {
-            draw(_, context) => (super::Signal::Draw, ::gtk::Inhibit(false)),
+            draw(_, context) => (super::Signal::Draw, gtk::Inhibit(false)),
         },
     }
 

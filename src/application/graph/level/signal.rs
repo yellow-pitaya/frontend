@@ -10,7 +10,7 @@ pub enum Signal {
     Level(String, i32),
 }
 
-impl ::relm::DisplayVariant for Signal {
+impl relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Click(_, _) => "Signal::Click",
@@ -25,7 +25,7 @@ impl ::relm::DisplayVariant for Signal {
     }
 }
 
-impl ::relm::IntoOption<Self> for Signal {
+impl relm::IntoOption<Self> for Signal {
     fn into_option(self) -> Option<Self> {
         Some(self)
     }

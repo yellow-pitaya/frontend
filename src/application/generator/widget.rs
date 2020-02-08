@@ -18,8 +18,8 @@ use super::output::Signal::{
 };
 
 #[widget]
-impl ::relm::Widget for Widget {
-    fn model(generator: ::redpitaya_scpi::generator::Generator) -> ::redpitaya_scpi::generator::Generator {
+impl relm::Widget for Widget {
+    fn model(generator: redpitaya_scpi::generator::Generator) -> redpitaya_scpi::generator::Generator {
         generator
     }
 
@@ -36,36 +36,36 @@ impl ::relm::Widget for Widget {
             spacing: 10,
             #[name="out1"]
             OutputWidget(OutputModel {
-                source: ::redpitaya_scpi::generator::Source::OUT1,
+                source: redpitaya_scpi::generator::Source::OUT1,
                 generator: self.model.clone(),
             }) {
-                Amplitude(amplitude) => Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, amplitude),
-                DutyCycle(duty_cycle) => Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, duty_cycle),
-                Frequency(frequency) => Signal::Frequency(::redpitaya_scpi::generator::Source::OUT1, frequency),
-                Offset(offset) => Signal::Offset(::redpitaya_scpi::generator::Source::OUT1, offset),
-                Form(form) => Signal::Form(::redpitaya_scpi::generator::Source::OUT1, form),
-                Start => Signal::Start(::redpitaya_scpi::generator::Source::OUT1),
-                Stop => Signal::Stop(::redpitaya_scpi::generator::Source::OUT1),
+                Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT1, amplitude),
+                DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT1, duty_cycle),
+                Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT1, frequency),
+                Offset(offset) => Signal::Offset(redpitaya_scpi::generator::Source::OUT1, offset),
+                Form(form) => Signal::Form(redpitaya_scpi::generator::Source::OUT1, form),
+                Start => Signal::Start(redpitaya_scpi::generator::Source::OUT1),
+                Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT1),
             },
             #[name="out2"]
             OutputWidget(OutputModel {
-                source: ::redpitaya_scpi::generator::Source::OUT2,
+                source: redpitaya_scpi::generator::Source::OUT2,
                 generator: self.model.clone(),
             }) {
-                Amplitude(amplitude) => Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT2, amplitude),
-                DutyCycle(duty_cycle) => Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT2, duty_cycle),
-                Frequency(frequency) => Signal::Frequency(::redpitaya_scpi::generator::Source::OUT2, frequency),
-                Offset(offset) => Signal::Offset(::redpitaya_scpi::generator::Source::OUT2, offset),
-                Form(form) => Signal::Form(::redpitaya_scpi::generator::Source::OUT2, form),
-                Start => Signal::Start(::redpitaya_scpi::generator::Source::OUT2),
-                Stop => Signal::Stop(::redpitaya_scpi::generator::Source::OUT2),
+                Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT2, amplitude),
+                DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT2, duty_cycle),
+                Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT2, frequency),
+                Offset(offset) => Signal::Offset(redpitaya_scpi::generator::Source::OUT2, offset),
+                Form(form) => Signal::Form(redpitaya_scpi::generator::Source::OUT2, form),
+                Start => Signal::Start(redpitaya_scpi::generator::Source::OUT2),
+                Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT2),
             },
         },
     }
 }
 
 impl Widget {
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
         context.save();
         self.out1.emit(super::output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();

@@ -5,8 +5,8 @@ pub enum Mode {
     Single,
 }
 
-impl ::std::fmt::Display for Mode {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl std::fmt::Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let display = match self {
             &Mode::Auto => "Auto",
             &Mode::Normal => "Normal",

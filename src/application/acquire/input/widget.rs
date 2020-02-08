@@ -1,4 +1,4 @@
-use color::Colorable;
+use crate::color::Colorable;
 use relm::ContainerWidget;
 use super::Model;
 use super::Signal;
@@ -6,12 +6,12 @@ use super::Signal;
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
-    data: ::std::cell::RefCell<Vec<f64>>,
-    stream: ::relm::EventStream<Signal>,
-    page: ::gtk::Box,
-    pub palette: ::relm::Component<::widget::Palette>,
-    source: ::redpitaya_scpi::acquire::Source,
-    attenuation: ::relm::Component<::widget::RadioGroup<u8>>,
+    data: std::cell::RefCell<Vec<f64>>,
+    stream: relm::EventStream<Signal>,
+    page: gtk::Box,
+    pub palette: relm::Component<crate::widget::Palette>,
+    source: redpitaya_scpi::acquire::Source,
+    attenuation: relm::Component<crate::widget::RadioGroup<u8>>,
 }
 
 impl Widget {
@@ -19,7 +19,7 @@ impl Widget {
         self.model.started
     }
 
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
         if !self.is_started() {
             return;
         }
@@ -35,7 +35,7 @@ impl Widget {
         self.draw_data(&context, model.scales, self.model.attenuation);
     }
 
-    fn draw_data(&self, context: &::cairo::Context, scales: ::Scales, attenuation: u8) {
+    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) {
         let data = self.data.borrow();
 
         context.set_line_width(0.05);
@@ -51,12 +51,12 @@ impl Widget {
     }
 }
 
-impl ::relm::Update for Widget {
+impl relm::Update for Widget {
     type Model = Model;
     type Msg = Signal;
     type ModelParam = Model;
 
-    fn model(_: &::relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
+    fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
         model
     }
 
@@ -72,57 +72,57 @@ impl ::relm::Update for Widget {
     }
 }
 
-impl ::relm::Widget for Widget {
-    type Root = ::gtk::Box;
+impl relm::Widget for Widget {
+    type Root = gtk::Box;
 
     fn root(&self) -> Self::Root {
         self.page.clone()
     }
 
-    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
-        let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
+    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
+        let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
-        let palette = page.add_widget::<::widget::Palette>(());
-        palette.emit(::widget::palette::Signal::SetLabel(format!("{}", model.source)));
-        palette.emit(::widget::palette::Signal::SetColor(model.source.into()));
-        connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
-        connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop);
+        let palette = page.add_widget::<crate::widget::Palette>(());
+        palette.emit(crate::widget::palette::Signal::SetLabel(format!("{}", model.source)));
+        palette.emit(crate::widget::palette::Signal::SetColor(model.source.into()));
+        relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
+        relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         use gtk::ContainerExt;
-        let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
+        let vbox  = gtk::Box::new(gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
-        let args = ::widget::radio::Model {
+        let args = crate::widget::radio::Model {
             title: String::from("Gain"),
             options: vec![
-                ::redpitaya_scpi::acquire::Gain::LV,
-                ::redpitaya_scpi::acquire::Gain::HV,
+                redpitaya_scpi::acquire::Gain::LV,
+                redpitaya_scpi::acquire::Gain::HV,
             ],
             current: match model.acquire.get_gain(model.source) {
                 Ok(gain) => Some(gain),
                 Err(_) => None,
             },
         };
-        let gain = vbox.add_widget::<::widget::RadioGroup<::redpitaya_scpi::acquire::Gain>>(args);
-        connect!(
-            gain@::widget::radio::Signal::Change(gain),
+        let gain = vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>(args);
+        relm::connect!(
+            gain@crate::widget::radio::Signal::Change(gain),
             relm,
             Signal::Gain(gain)
         );
 
-        let args = ::widget::radio::Model {
+        let args = crate::widget::radio::Model {
             title: String::from("Probe attenuation"),
             options: vec![1, 10, 100],
             current: Some(1),
         };
-        let attenuation = vbox.add_widget::<::widget::RadioGroup<u8>>(args);
-        connect!(
-            attenuation@::widget::radio::Signal::Change(attenuation),
+        let attenuation = vbox.add_widget::<crate::widget::RadioGroup<u8>>(args);
+        relm::connect!(
+            attenuation@crate::widget::radio::Signal::Change(attenuation),
             relm,
             Signal::Attenuation(attenuation)
         );
 
-        let data = ::std::cell::RefCell::new(Vec::new());
+        let data = std::cell::RefCell::new(Vec::new());
         let stream = relm.stream().clone();
         let source = model.source;
 

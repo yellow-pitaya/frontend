@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub enum Signal {
-    AcquireRate(::redpitaya_scpi::acquire::SamplingRate),
+    AcquireRate(redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
     Level(String, i32),
     NeedDraw,
@@ -11,7 +11,7 @@ pub enum Signal {
     Quit,
 }
 
-impl ::relm::DisplayVariant for Signal {
+impl relm::DisplayVariant for Signal {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::AcquireRate(_) => "Signal::AcquireRate",
@@ -27,7 +27,7 @@ impl ::relm::DisplayVariant for Signal {
     }
 }
 
-impl ::relm::IntoOption<Self> for Signal {
+impl relm::IntoOption<Self> for Signal {
     fn into_option(self) -> Option<Self> {
         Some(self)
     }
