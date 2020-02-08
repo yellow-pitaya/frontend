@@ -6,7 +6,7 @@ authors = ["Sanpi <sanpi@homecomputing.fr>"]
 [dependencies]
 cairo-rs = "0.8"
 docopt = "0.8"
-env_logger = "0.4"
+env_logger = "0.7"
 glib = "0.9"
 gdk = "0.12"
 log = "0.3"

@@ -32,8 +32,7 @@ struct Args
 }
 
 fn main() {
-    env_logger::init()
-        .unwrap();
+    env_logger::init();
 
     let docopt = match ::docopt::Docopt::new(USAGE) {
         Ok(docopt) => docopt,
