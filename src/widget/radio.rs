@@ -1,17 +1,20 @@
 use gtk::{
     ContainerExt,
+    RadioButtonExt,
     ToggleButtonExt,
 };
 
 #[derive(Clone)]
-pub enum Signal<T> {
+pub enum Signal<T: ::std::clone::Clone + ::std::cmp::PartialEq> {
     Change(T),
+    Set(T),
 }
 
-impl<T> ::relm::DisplayVariant for Signal<T> {
+impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> ::relm::DisplayVariant for Signal<T> {
     fn display_variant(&self) -> &'static str {
         match *self {
             Signal::Change(_) => "Signal::Change",
+            Signal::Set(_) => "Signal::Set",
         }
     }
 }
@@ -31,16 +34,6 @@ pub struct RadioGroup<T> {
 }
 
 impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> RadioGroup<T> {
-    pub fn get_current(&self) -> Option<T> {
-        for &(ref radio, ref signal) in self.radio.iter() {
-            if radio.get_active() {
-                return Some(signal.clone());
-            }
-        }
-
-        None
-    }
-
     pub fn set_current(&self, current: T) {
         for &(ref radio, ref signal) in self.radio.iter() {
             if current == *signal {
@@ -51,26 +44,33 @@ impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> RadioGroup<T> {
     }
 }
 
-impl<T> ::relm::Widget for RadioGroup<T>
-    where T: ::std::clone::Clone + ::std::fmt::Display + ::std::cmp::PartialEq + 'static
-{
+impl<T: ::std::clone::Clone + ::std::cmp::PartialEq> ::relm::Update for RadioGroup<T> {
     type Model = Model<T>;
     type Msg = Signal<T>;
-    type Root = ::gtk::Frame;
     type ModelParam = Model<T>;
 
-    fn model(model: Self::ModelParam) -> Self::Model {
+    fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
         model
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.frame
+    fn update(&mut self, event: Signal<T>) {
+        match event {
+            Signal::Set(value) => self.set_current(value),
+            _ => (),
+        }
+    }
+}
+
+impl<T> ::relm::Widget for RadioGroup<T>
+    where T: ::std::clone::Clone + ::std::fmt::Display + ::std::cmp::PartialEq + 'static
+{
+    type Root = ::gtk::Frame;
+
+    fn root(&self) -> Self::Root {
+        self.frame.clone()
     }
 
-    fn update(&mut self, _: Signal<T>, _: &mut Self::Model) {
-    }
-
-    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
         let frame = ::gtk::Frame::new(model.title.as_str());
 
         let flow_box = ::gtk::FlowBox::new();
@@ -80,10 +80,10 @@ impl<T> ::relm::Widget for RadioGroup<T>
         let mut group_member = None;
 
         for option in model.options.iter() {
-            let button = ::gtk::RadioButton::new_with_label_from_widget(
-                group_member.as_ref(),
+            let button = ::gtk::RadioButton::new_with_label(
                 format!("{}", option).as_str()
             );
+            button.join_group(group_member.as_ref());
             flow_box.add(&button);
 
             {

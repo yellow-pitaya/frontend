@@ -1,21 +1,30 @@
 use relm_attributes::widget;
 use gtk::{
     self,
+    AdjustmentExt,
     BoxExt,
     ContainerExt,
     FrameExt,
     OrientableExt,
     RangeExt,
+    ScaleExt,
+    SpinButtonExt,
     SpinButtonSignals,
     ToggleButtonExt,
     WidgetExt,
 };
 
-#[derive(Msg)]
+#[derive(Msg, Clone)]
 pub enum Signal {
     Expand,
     Fold,
     Changed(f64),
+    SetValue(f64),
+    SetVisible(bool),
+    SetDigits(u32),
+    SetAdjustement(::gtk::Adjustment),
+    SetLabel(String),
+    SetNoShowAll(bool),
 }
 
 #[widget]
@@ -23,7 +32,7 @@ impl ::relm::Widget for PreciseScale {
     fn model(_: ()) -> () {
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal) {
         match event {
             Signal::Expand => {
                 self.scale.set_draw_value(false);
@@ -33,11 +42,17 @@ impl ::relm::Widget for PreciseScale {
                 self.scale.set_draw_value(true);
                 self.spin.hide();
             },
+            Signal::SetValue(value) => self.set_value(value),
+            Signal::SetVisible(visible) => self.set_no_show_all(visible),
+            Signal::SetDigits(digits) => self.set_digits(digits),
+            Signal::SetAdjustement(adjustment) => self.set_adjustment(adjustment),
+            Signal::SetLabel(ref label) => self.set_label(label),
+            Signal::SetNoShowAll(no_show_all) => self.set_no_show_all(no_show_all),
             _ => (),
         };
     }
 
-    fn init_view(&self, _: &mut Self::Model) {
+    fn init_view(&mut self) {
         self.spin.hide();
         self.scale.add_mark(0.0, ::gtk::PositionType::Top, None);
     }
@@ -92,20 +107,12 @@ impl PreciseScale {
         self.spin.set_adjustment(&adjustment);
     }
 
-    pub fn set_value(&self, value: f64) {
+    fn set_value(&self, value: f64) {
         self.scale.set_value(value);
-    }
-
-    pub fn get_value(&self) -> f64 {
-        self.scale.get_value()
     }
 
     pub fn set_label(&self, label: &str) {
         self.frame.set_label(label);
-    }
-
-    pub fn set_visible(&self, visible: bool) {
-        self.frame.set_visible(visible);
     }
 
     pub fn set_digits(&self, digits: u32) {
@@ -114,5 +121,17 @@ impl PreciseScale {
 
     pub fn set_no_show_all(&self, no_show_all: bool) {
         self.frame.set_no_show_all(no_show_all);
+    }
+}
+
+impl Clone for PreciseScale {
+    fn clone(&self) -> Self {
+        Self {
+            frame: self.frame.clone(),
+            model: self.model.clone(),
+            scale: self.scale.clone(),
+            spin: self.spin.clone(),
+            toggle: self.toggle.clone(),
+        }
     }
 }

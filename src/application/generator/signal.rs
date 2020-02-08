@@ -7,6 +7,7 @@ pub enum Signal {
     Form(::redpitaya_scpi::generator::Source, ::redpitaya_scpi::generator::Form),
     Start(::redpitaya_scpi::generator::Source),
     Stop(::redpitaya_scpi::generator::Source),
+    Redraw(::cairo::Context, ::application::Model),
 }
 
 impl ::relm::DisplayVariant for Signal {
@@ -19,6 +20,13 @@ impl ::relm::DisplayVariant for Signal {
             Signal::Form(_, _) => "Signal::Signal",
             Signal::Start(_) => "Signal::Start",
             Signal::Stop(_) => "Signal::Stop",
+            Signal::Redraw(_, _) => "Signal::Redraw",
         }
+    }
+}
+
+impl ::relm::IntoOption<Self> for Signal {
+    fn into_option(self) -> Option<Self> {
+        Some(self)
     }
 }

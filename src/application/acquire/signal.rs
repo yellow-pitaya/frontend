@@ -2,11 +2,12 @@
 pub enum Signal {
     Attenuation(::redpitaya_scpi::acquire::Source, u8),
     Average(bool),
-    Data(::redpitaya_scpi::acquire::Source),
     Gain(::redpitaya_scpi::acquire::Source, ::redpitaya_scpi::acquire::Gain),
     Rate(::redpitaya_scpi::acquire::SamplingRate),
+    SetData(::redpitaya_scpi::acquire::Source, Vec<f64>),
     Start(::redpitaya_scpi::acquire::Source),
     Stop(::redpitaya_scpi::acquire::Source),
+    Redraw(::cairo::Context, ::application::Model),
 }
 
 impl ::relm::DisplayVariant for Signal {
@@ -14,11 +15,18 @@ impl ::relm::DisplayVariant for Signal {
         match *self {
             Signal::Attenuation(_, _) => "Signal::Attenuation",
             Signal::Average(_) => "Signal::Average",
-            Signal::Data(_) => "Signal::Data",
             Signal::Start(_) => "Signal::Start",
             Signal::Gain(_, _) => "Signal::Gain",
             Signal::Rate(_) => "Signal::Rate",
+            Signal::SetData(_, _) => "Signal::SetData",
             Signal::Stop(_) => "Signal::Stop",
+            Signal::Redraw(_, _) => "Signal::Redraw",
         }
+    }
+}
+
+impl ::relm::IntoOption<Self> for Signal {
+    fn into_option(self) -> Option<Self> {
+        Some(self)
     }
 }

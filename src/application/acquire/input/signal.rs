@@ -1,8 +1,9 @@
-#[derive(Msg)]
+#[derive(Msg, Clone)]
 pub enum Signal {
     Attenuation(u8),
-    Data,
     Gain(::redpitaya_scpi::acquire::Gain),
+    SetData(Vec<f64>),
     Start,
     Stop,
+    Redraw(::cairo::Context, ::application::Model),
 }

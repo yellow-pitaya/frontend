@@ -4,6 +4,7 @@ pub enum Signal {
     GraphDraw,
     Level(String, i32),
     NeedDraw,
+    Resize(i32, i32),
     TriggerAuto,
     TriggerNormal,
     TriggerSingle,
@@ -17,10 +18,17 @@ impl ::relm::DisplayVariant for Signal {
             Signal::GraphDraw => "Signal::GraphDraw",
             Signal::Level(_, _) => "Signal::Level",
             Signal::NeedDraw => "Signal::NeedDraw",
+            Signal::Resize(_, _) => "Signal::Resize",
             Signal::TriggerAuto => "Signal::TriggerAuto",
             Signal::TriggerNormal => "Signal::TriggerNormal",
             Signal::TriggerSingle => "Signal::TriggerSingle",
             Signal::Quit => "Signal::Quit",
         }
+    }
+}
+
+impl ::relm::IntoOption<Self> for Signal {
+    fn into_option(self) -> Option<Self> {
+        Some(self)
     }
 }

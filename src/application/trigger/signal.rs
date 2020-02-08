@@ -2,7 +2,7 @@ use super::Channel;
 use super::Edge;
 use super::Mode;
 
-#[derive(Msg)]
+#[derive(Msg, Clone)]
 pub enum Signal {
     Auto,
     Normal,
@@ -12,4 +12,5 @@ pub enum Signal {
     Source(::redpitaya_scpi::trigger::Source),
     Edge(Edge),
     InternalTick,
+    Redraw(::cairo::Context, ::application::Model),
 }

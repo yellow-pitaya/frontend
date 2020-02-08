@@ -1,4 +1,3 @@
-use application::Panel;
 use color::Colorable;
 use gtk::{
     self,
@@ -14,47 +13,6 @@ use super::Signal;
 use relm_attributes::widget;
 
 impl Widget {
-    pub fn level_left<'a>(&'a self) -> &'a ::relm::Component<LevelWidget> {
-        &self.level_left
-    }
-
-    pub fn level_right<'a>(&'a self) -> &'a ::relm::Component<LevelWidget> {
-        &self.level_right
-    }
-
-    pub fn level_top<'a>(&'a self) -> &'a ::relm::Component<LevelWidget> {
-        &self.level_top
-    }
-
-    pub fn get_width(&self) -> f64 {
-        self.drawing_area.get_allocated_width() as f64
-    }
-
-    pub fn get_height(&self) -> f64 {
-        self.drawing_area.get_allocated_height() as f64
-    }
-
-    pub fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = self.create_context(&self.drawing_area);
-
-        context.set_source_surface(image, 0.0, 0.0);
-        context.paint();
-    }
-
-    pub fn invalidate(&self) {
-        self.drawing_area.queue_draw_area(
-            0,
-            0,
-            self.get_width() as i32,
-            self.get_height() as i32,
-        );
-
-        self.level_left.widget().invalidate();
-        self.level_right.widget().invalidate();
-    }
-}
-
-impl ::application::Panel for Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
@@ -90,8 +48,35 @@ impl ::application::Panel for Widget {
             context.stroke();
         }
 
-        self.level_left.widget().draw(context, model);
-        self.level_right.widget().draw(context, model);
+        self.level_left.emit(super::level::Signal::Invalidate);
+        self.level_right.emit(super::level::Signal::Invalidate);
+    }
+
+    pub fn get_width(&self) -> f64 {
+        self.drawing_area.get_allocated_width() as f64
+    }
+
+    pub fn get_height(&self) -> f64 {
+        self.drawing_area.get_allocated_height() as f64
+    }
+
+    pub fn set_image(&self, image: &::cairo::ImageSurface) {
+        let context = ::create_context(&self.drawing_area);
+
+        context.set_source_surface(image, 0.0, 0.0);
+        context.paint();
+    }
+
+    pub fn invalidate(&self) {
+        self.drawing_area.queue_draw_area(
+            0,
+            0,
+            self.get_width() as i32,
+            self.get_height() as i32,
+        );
+
+        self.level_left.emit(super::level::Signal::Invalidate);
+        self.level_right.emit(super::level::Signal::Invalidate);
     }
 }
 
@@ -100,7 +85,23 @@ impl ::relm::Widget for Widget {
     fn model(_: ()) -> () {
     }
 
-    fn update(&mut self, _: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal) {
+        match event {
+            Signal::Invalidate => self.invalidate(),
+            Signal::SourceStart(orientation, source) => match orientation {
+                super::level::widget::Orientation::Left => self.level_left.emit(super::level::Signal::SourceStart(source)),
+                super::level::widget::Orientation::Right => self.level_right.emit(super::level::Signal::SourceStart(source)),
+                super::level::widget::Orientation::Top => self.level_top.emit(super::level::Signal::SourceStart(source)),
+            },
+            Signal::SourceStop(orientation, source) => match orientation {
+                super::level::widget::Orientation::Left => self.level_left.emit(super::level::Signal::SourceStop(source)),
+                super::level::widget::Orientation::Right => self.level_right.emit(super::level::Signal::SourceStop(source)),
+                super::level::widget::Orientation::Top => self.level_top.emit(super::level::Signal::SourceStop(source)),
+            },
+            Signal::Redraw(ref context, ref model) => self.draw(context, model),
+            Signal::SetImage(ref image) => self.set_image(image),
+            _ => (),
+        }
     }
 
     view! {
@@ -124,7 +125,7 @@ impl ::relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
                 },
             },
             gtk::Box {
@@ -139,7 +140,7 @@ impl ::relm::Widget for Widget {
                         expand: false,
                         fill: true,
                     },
-                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
                 },
                 #[name="drawing_area"]
                 gtk::DrawingArea {
@@ -168,9 +169,25 @@ impl ::relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    LevelSignal(name, offset) => Signal::Level(name, offset),
+                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
                 },
             },
+            size_allocate(_, allocation) => Signal::Resize(allocation.width, allocation.height),
         },
+    }
+}
+
+impl Clone for Widget {
+    fn clone(&self) -> Self {
+        Self {
+            drawing_area: self.drawing_area.clone(),
+            gtkbox5: self.gtkbox5.clone(),
+            level_left: self.level_left.clone(),
+            level_right: self.level_right.clone(),
+            level_top: self.level_top.clone(),
+            model: self.model.clone(),
+            _placeholder1: self._placeholder1.clone(),
+            _placeholder2: self._placeholder2.clone(),
+        }
     }
 }

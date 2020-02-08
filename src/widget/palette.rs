@@ -9,10 +9,12 @@ use gtk::{
 };
 use relm_attributes::widget;
 
-#[derive(Msg)]
+#[derive(Msg, Clone)]
 pub enum Signal {
     Expand,
     Fold,
+    SetColor(::color::Color),
+    SetLabel(String),
 }
 
 #[widget]
@@ -20,13 +22,15 @@ impl ::relm::Widget for Palette {
     fn model(_: ()) -> () {
     }
 
-    fn update(&mut self, event: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal) {
         match event {
             Signal::Expand => {
                 self.parent.set_no_show_all(false);
                 self.parent.show_all();
             },
             Signal::Fold => self.parent.hide(),
+            Signal::SetColor(color) => self.set_color(color),
+            Signal::SetLabel(label) => self.set_label(&label),
         };
     }
 
@@ -59,14 +63,6 @@ impl Palette {
         self.toggle.set_label(label);
     }
 
-    pub fn add<W>(&self, child: &W) where W: gtk::IsA<gtk::Widget> {
-        self.parent.add(child);
-    }
-
-    pub fn get_active(&self) -> bool {
-        self.toggle.get_active()
-    }
-
     pub fn set_color(&self, color: ::color::Color) {
         let color = ::gdk_sys::GdkColor {
             pixel: 32,
@@ -81,6 +77,18 @@ impl Palette {
                 ::gtk_sys::GtkStateType::Normal,
                 &color
             );
+        }
+    }
+}
+
+impl Clone for Palette {
+    fn clone(&self) -> Self {
+        Self {
+            border: self.border.clone(),
+            gtkbox7: self.gtkbox7.clone(),
+            model: self.model.clone(),
+            parent: self.parent.clone(),
+            toggle: self.toggle.clone(),
         }
     }
 }

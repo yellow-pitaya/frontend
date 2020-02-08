@@ -1,7 +1,7 @@
 #[derive(Copy, Clone, Debug)]
 pub struct Rect {
-    pub width: f64,
-    pub height: f64,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -42,10 +42,10 @@ impl Scales {
     }
 
     pub fn x_to_offset(&self, x: i32) -> f64 {
-        x as f64 / self.window.width * self.get_width() + self.h.0
+        x as f64 / self.window.width as f64 * self.get_width() + self.h.0
     }
 
     pub fn y_to_offset(&self, y: i32) -> f64 {
-        y as f64 / -self.window.height * self.get_height() + self.v.1
+        y as f64 / -self.window.height as f64 * self.get_height() + self.v.1
     }
 }

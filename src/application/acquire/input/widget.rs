@@ -5,6 +5,7 @@ use super::Signal;
 
 #[derive(Clone)]
 pub struct Widget {
+    model: Model,
     data: ::std::cell::RefCell<Vec<f64>>,
     stream: ::relm::EventStream<Signal>,
     page: ::gtk::Box,
@@ -15,12 +16,23 @@ pub struct Widget {
 
 impl Widget {
     fn is_started(&self) -> bool {
-        self.palette.widget().get_active()
+        self.model.started
     }
 
-    pub fn set_data(&self, data: Vec<f64>) {
-        *self.data.borrow_mut() = data;
-        self.stream.emit(Signal::Data);
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+        if !self.is_started() {
+            return;
+        }
+
+        context.set_color(self.source.into());
+
+        context.translate(0.0, model.offset(self.source));
+
+        context.move_to(model.scales.h.0, 0.0);
+        context.line_to(model.scales.h.1, 0.0);
+        context.stroke();
+
+        self.draw_data(&context, model.scales, self.model.attenuation);
     }
 
     fn draw_data(&self, context: &::cairo::Context, scales: ::Scales, attenuation: u8) {
@@ -39,58 +51,44 @@ impl Widget {
     }
 }
 
-impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
-        if !self.is_started() {
-            return;
-        }
+impl ::relm::Update for Widget {
+    type Model = Model;
+    type Msg = Signal;
+    type ModelParam = Model;
 
-        context.set_color(self.source.into());
+    fn model(_: &::relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
+        model
+    }
 
-        context.translate(0.0, model.offset(self.source));
-
-        context.move_to(model.scales.h.0, 0.0);
-        context.line_to(model.scales.h.1, 0.0);
-        context.stroke();
-
-        let attenuation = match self.attenuation.widget().get_current() {
-            Some(attenuation) => attenuation,
-            None => 1,
+    fn update(&mut self, event: Signal) {
+        match event {
+            Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
+            Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
+            Signal::Redraw(context, model) => self.draw(&context, &model),
+            Signal::Start => self.model.started = true,
+            Signal::Stop => self.model.started = false,
+            _ => (),
         };
-        self.draw_data(&context, model.scales, attenuation);
     }
 }
 
 impl ::relm::Widget for Widget {
-    type Model = Model;
-    type Msg = Signal;
     type Root = ::gtk::Box;
-    type ModelParam = Model;
 
-    fn model(model: Self::ModelParam) -> Self::Model {
-        model
+    fn root(&self) -> Self::Root {
+        self.page.clone()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.page
-    }
-
-    fn update(&mut self, event: Signal, model: &mut Self::Model) {
-        match event {
-            Signal::Gain(gain) => model.acquire.set_gain(model.source, gain),
-            _ => (),
-        };
-    }
-
-    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<::widget::Palette, _>(&relm, ());
-        palette.widget().set_label(format!("{}", model.source).as_str());
-        palette.widget().set_color(model.source.into());
+        palette.emit(::widget::palette::Signal::SetLabel(format!("{}", model.source)));
+        palette.emit(::widget::palette::Signal::SetColor(model.source.into()));
         connect!(palette@::widget::palette::Signal::Expand, relm, Signal::Start);
         connect!(palette@::widget::palette::Signal::Fold, relm, Signal::Stop);
 
+        use gtk::ContainerExt;
         let vbox  = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
@@ -129,6 +127,7 @@ impl ::relm::Widget for Widget {
         let source = model.source;
 
         Widget {
+            model,
             data,
             page,
             palette,

@@ -1,4 +1,3 @@
-use application::Panel;
 use gtk::{
     GestureDragExt,
     WidgetExt,
@@ -16,39 +15,41 @@ pub enum Orientation {
 
 #[derive(Clone)]
 pub struct Widget {
+    relm: ::relm::Relm<Self>,
+    model: Model,
     gesture_drag: ::gtk::GestureDrag,
     drawing_area: ::gtk::DrawingArea,
 }
 
 impl Widget {
-    fn start(&self, model: &mut Model, name: String) {
-        if model.levels.get(&name).is_none() {
-            model.levels.insert(name.clone(), super::model::Level {
+    fn start(&mut self, name: String) {
+        if self.model.levels.get(&name).is_none() {
+            self.model.levels.insert(name.clone(), super::model::Level {
                 enable: true,
                 offset: self.get_height() / 2,
             });
         }
 
-        model.levels.get_mut(&name).unwrap().enable = true;
+        self.model.levels.get_mut(&name).unwrap().enable = true;
 
         self.invalidate();
     }
 
-    fn stop(&self, model: &mut Model, name: String) {
-        if let Some(mut level) = model.levels.get_mut(&name) {
+    fn stop(&mut self, name: String) {
+        if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.enable = false;
             self.invalidate();
         }
     }
 
-    fn set_level(&self, model: &mut Model, name: String, offset: i32) {
-        if let Some(mut level) = model.levels.get_mut(&name) {
+    fn set_level(&mut self, name: String, offset: i32) {
+        if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.offset = offset;
             self.invalidate();
         }
     }
 
-    pub fn invalidate(&self) {
+    fn invalidate(&self) {
         self.drawing_area.queue_draw_area(
             0,
             0,
@@ -66,29 +67,30 @@ impl Widget {
     }
 
     fn set_image(&self, image: &::cairo::ImageSurface) {
-        let context = self.create_context(&self.drawing_area);
+        let context = ::create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
     }
 
-    fn draw_levels(&self, model: &Model) {
+    fn draw_levels(&self) {
         let width = self.get_width();
         let height = self.get_height();
 
-        let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width, height);
+        let image = ::cairo::ImageSurface::create(::cairo::Format::ARgb32, width, height)
+            .unwrap();
         let context = ::cairo::Context::new(&image);
 
         context.set_color(::color::BACKGROUND);
         context.rectangle(0.0, 0.0, width as f64, height as f64);
         context.fill();
 
-        for (name, level) in &model.levels {
+        for (name, level) in &self.model.levels {
             if level.enable == false {
                 continue;
             }
 
-            let (start, end) = match model.orientation {
+            let (start, end) = match self.model.orientation {
                 Orientation::Left => (0.0, width as f64),
                 Orientation::Right => (width as f64, 0.0),
                 Orientation::Top => (0.0, height as f64),
@@ -100,7 +102,7 @@ impl Widget {
 
             context.set_color(name.clone().into());
 
-            if model.orientation == Orientation::Top {
+            if self.model.orientation == Orientation::Top {
                 context.move_to(top, start);
                 context.line_to(top, middle);
                 context.line_to(level.offset as f64, end);
@@ -122,17 +124,17 @@ impl Widget {
         self.set_image(&image);
     }
 
-    fn on_click(&self, model: &mut Model, x: i32, y: i32) {
-        let offset = match model.orientation {
+    fn on_click(&mut self, x: i32, y: i32) {
+        let offset = match self.model.orientation {
             Orientation::Left | Orientation::Right => y,
             Orientation::Top => x,
         };
 
-        model.current = self.find_level(model, offset);
+        self.model.current = self.find_level(offset);
     }
 
-    fn find_level(&self, model: &Model, offset: i32) -> Option<String> {
-        for (name, level) in &model.levels {
+    fn find_level(&self, offset: i32) -> Option<String> {
+        for (name, level) in &self.model.levels {
             if level.enable == false {
                 continue;
             }
@@ -145,49 +147,48 @@ impl Widget {
         None
     }
 
-    fn on_mouse_move(&self, model: &mut Model, x: i32, y: i32) {
+    fn on_mouse_move(&mut self, x: i32, y: i32) {
         if let Some((start_x, start_y)) = self.gesture_drag.get_start_point() {
-            let offset = match model.orientation {
+            let offset = match self.model.orientation {
                 Orientation::Left | Orientation::Right => start_y as i32 + y,
                 Orientation::Top => start_x as i32 + x,
             };
 
-            if let Some(name) = model.current.clone() {
-                self.set_level(model, name, offset);
+            if let Some(name) = self.model.current.clone() {
+                self.set_level(name, offset);
             }
         }
     }
 
-    fn on_release(model: &mut Model) -> Signal {
-        let name = match model.current.clone() {
+    fn on_release(&mut self) {
+        let name = match self.model.current.clone() {
             Some(name) => name,
-            None => return Signal::Draw,
+            None => {
+                self.relm.stream().emit(Signal::Draw);
+                return;
+            },
         };
 
-        let level = match model.levels.get(&name) {
+        let level = match self.model.levels.get(&name) {
             Some(level) => level,
-            None => return Signal::Draw,
+            None => {
+                self.relm.stream().emit(Signal::Draw);
+                return;
+            },
         };
 
-        model.current = None;
+        self.model.current = None;
 
-        Signal::Level(name.clone(), level.offset)
+        self.relm.stream().emit(Signal::Level(name.clone(), level.offset));
     }
 }
 
-impl ::application::Panel for Widget {
-    fn draw(&self, _: &::cairo::Context, _: &::application::Model) {
-        self.invalidate();
-    }
-}
-
-impl ::relm::Widget for Widget {
+impl ::relm::Update for Widget {
     type Model = Model;
     type Msg = Signal;
-    type Root = ::gtk::DrawingArea;
     type ModelParam = Orientation;
 
-    fn model(orientation: Orientation) -> Self::Model {
+    fn model(_: &::relm::Relm<Self>, orientation: Orientation) -> Self::Model {
         Model {
             current: None,
             orientation: orientation,
@@ -195,38 +196,46 @@ impl ::relm::Widget for Widget {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.drawing_area
-    }
-
-    fn update(&mut self, signal: Signal, model: &mut Self::Model) {
+    fn update(&mut self, signal: Signal) {
         match signal {
-            Signal::Click(x, y) => self.on_click(model, x as i32, y as i32),
-            Signal::Move(x, y) => self.on_mouse_move(model, x as i32, y as i32),
-            Signal::Draw => self.draw_levels(model),
-            Signal::SourceStart(source) => self.start(model, source),
-            Signal::SourceStop(source) => self.stop(model, source),
+            Signal::Click(x, y) => self.on_click(x as i32, y as i32),
+            Signal::Move(x, y) => self.on_mouse_move(x as i32, y as i32),
+            Signal::Draw => self.draw_levels(),
+            Signal::Invalidate => self.invalidate(),
+            Signal::SourceStart(source) => self.start(source),
+            Signal::SourceStop(source) => self.stop(source),
+            Signal::Release => self.on_release(),
             Signal::Level(_, _) => (),
         }
     }
+}
 
-    fn view(relm: &::relm::RemoteRelm<Self>, _: &Self::Model) -> Self {
+impl ::relm::Widget for Widget {
+    type Root = ::gtk::DrawingArea;
+
+    fn root(&self) -> Self::Root {
+        self.drawing_area.clone()
+    }
+
+    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
         let drawing_area = ::gtk::DrawingArea::new();
-        connect!(relm, drawing_area, connect_draw(_, _) (Signal::Draw, ::gtk::Inhibit(false)));
+        connect!(relm, drawing_area, connect_draw(_, _), return (Signal::Draw, ::gtk::Inhibit(false)));
 
         let gesture_drag = ::gtk::GestureDrag::new(&drawing_area);
         connect!(gesture_drag, connect_drag_begin(_, x, y), relm, Signal::Click(x, y));
         connect!(gesture_drag, connect_drag_update(_, x, y), relm, Signal::Move(x, y));
-        connect!(relm, gesture_drag, connect_drag_end(_, _, _) with model (Self::on_release(model), ()));
+        connect!(gesture_drag, connect_drag_end(_, _, _), relm, Signal::Release);
 
         Widget {
+            relm: relm.clone(),
+            model,
             gesture_drag,
             drawing_area,
         }
     }
 
-    fn init_view(&self, model: &mut Self::Model) {
-        match model.orientation {
+    fn init_view(&mut self) {
+        match self.model.orientation {
             Orientation::Left | Orientation::Right => self.drawing_area.set_size_request(20, -1),
             Orientation::Top => self.drawing_area.set_size_request(-1, 20),
         };

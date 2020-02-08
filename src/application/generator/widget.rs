@@ -24,7 +24,11 @@ impl ::relm::Widget for Widget {
         generator
     }
 
-    fn update(&mut self, _: Signal, _: &mut Self::Model) {
+    fn update(&mut self, event: Signal) {
+        match event {
+            Signal::Redraw(ref context, ref model) => self.draw(context, model),
+            _ => (),
+        }
     }
 
     view! {
@@ -34,7 +38,7 @@ impl ::relm::Widget for Widget {
             #[name="out1"]
             OutputWidget(OutputModel {
                 source: ::redpitaya_scpi::generator::Source::OUT1,
-                generator: model.clone(),
+                generator: self.model.clone(),
             }) {
                 Amplitude(amplitude) => Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT1, amplitude),
                 DutyCycle(duty_cycle) => Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT1, duty_cycle),
@@ -47,7 +51,7 @@ impl ::relm::Widget for Widget {
             #[name="out2"]
             OutputWidget(OutputModel {
                 source: ::redpitaya_scpi::generator::Source::OUT2,
-                generator: model.clone(),
+                generator: self.model.clone(),
             }) {
                 Amplitude(amplitude) => Signal::Amplitude(::redpitaya_scpi::generator::Source::OUT2, amplitude),
                 DutyCycle(duty_cycle) => Signal::DutyCycle(::redpitaya_scpi::generator::Source::OUT2, duty_cycle),
@@ -61,13 +65,24 @@ impl ::relm::Widget for Widget {
     }
 }
 
-impl ::application::Panel for Widget {
+impl Widget {
     fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
         context.save();
-        self.out1.widget().draw(&context, &model);
+        self.out1.emit(super::output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
-        self.out2.widget().draw(&context, &model);
+        self.out2.emit(super::output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
+    }
+}
+
+impl Clone for Widget {
+    fn clone(&self) -> Self {
+        Self {
+            gtkbox1: self.gtkbox1.clone(),
+            model: self.model.clone(),
+            out1: self.out1.clone(),
+            out2: self.out2.clone(),
+        }
     }
 }

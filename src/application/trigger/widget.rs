@@ -13,6 +13,7 @@ use super::Signal;
 
 #[derive(Clone)]
 pub struct Widget {
+    model: Model,
     page: ::gtk::Box,
     pub single_button: ::gtk::Button,
     stream: ::relm::EventStream<Signal>,
@@ -23,55 +24,70 @@ pub struct Widget {
 
 impl Widget {
     fn get_source(&self) -> Option<::redpitaya_scpi::trigger::Source> {
-        let channel = self.channel.widget().get_current();
-        let edge = self.edge.widget().get_current();
-
-        if channel == Some(Channel::CH1) && edge == Some(Edge::Positive) {
+        if self.model.channel == Some(Channel::CH1) && self.model.edge == Some(Edge::Positive) {
             Some(::redpitaya_scpi::trigger::Source::CH1_PE)
-        } else if channel == Some(Channel::CH1) && edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::CH1) && self.model.edge == Some(Edge::Negative) {
             Some(::redpitaya_scpi::trigger::Source::CH1_NE)
-        } else if channel == Some(Channel::CH2) && edge == Some(Edge::Positive) {
+        } else if self.model.channel == Some(Channel::CH2) && self.model.edge == Some(Edge::Positive) {
             Some(::redpitaya_scpi::trigger::Source::CH2_PE)
-        } else if channel == Some(Channel::CH2) && edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::CH2) && self.model.edge == Some(Edge::Negative) {
             Some(::redpitaya_scpi::trigger::Source::CH2_NE)
-        } else if channel == Some(Channel::EXT) && edge == Some(Edge::Positive) {
+        } else if self.model.channel == Some(Channel::EXT) && self.model.edge == Some(Edge::Positive) {
             Some(::redpitaya_scpi::trigger::Source::EXT_PE)
-        } else if channel == Some(Channel::EXT) && edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::EXT) && self.model.edge == Some(Edge::Negative) {
             Some(::redpitaya_scpi::trigger::Source::EXT_NE)
         } else {
             None
         }
     }
+
+    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
+        if self.model.mode == Mode::Normal || self.model.mode == Mode::Single {
+            let width = model.scales.get_width();
+            let height = model.scales.get_height();
+            let delay = model.offset("DELAY");
+            let trigger = model.offset("TRIG");
+
+            context.set_color(::color::TRIGGER);
+
+            context.set_line_width(width / 1000.0);
+            context.move_to(delay, model.scales.v.0);
+            context.line_to(delay, model.scales.v.1);
+            context.stroke();
+
+            context.set_line_width(height / 1000.0);
+            context.move_to(model.scales.h.0, trigger);
+            context.line_to(model.scales.h.1, trigger);
+            context.stroke();
+        }
+    }
 }
 
-impl ::relm::Widget for Widget {
+impl ::relm::Update for Widget {
     type Model = Model;
     type Msg = Signal;
-    type Root = ::gtk::Box;
     type ModelParam = ::redpitaya_scpi::trigger::Trigger;
 
-    fn model(trigger: Self::ModelParam) -> Self::Model {
-        Model {
-            trigger: trigger,
+    fn model(_: &relm::Relm<Self>, trigger: Self::ModelParam) -> Self::Model {
+        Self::Model {
+            trigger,
             mode: Mode::Normal,
+            edge: None,
+            channel: None,
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.page
-    }
-
-    fn update(&mut self, event: Signal, model: &mut Self::Model) {
+    fn update(&mut self, event: Signal) {
         match event {
             Signal::InternalTick => {
-                match model.mode {
+                match self.model.mode {
                     Mode::Auto => self.stream.emit(Signal::Auto),
                     Mode::Normal => self.stream.emit(Signal::Normal),
                     Mode::Single => (),
                 };
             },
             Signal::Mode(mode) => {
-                model.mode = mode;
+                self.model.mode = mode;
 
                 match mode {
                     Mode::Auto => self.single_button.set_visible(false),
@@ -79,17 +95,34 @@ impl ::relm::Widget for Widget {
                     Mode::Single => self.single_button.set_visible(true),
                 };
             },
-            Signal::Channel(_) | Signal::Edge(_) => {
+            Signal::Channel(channel) => {
+                self.model.channel = Some(channel);
                 if let Some(source) = self.get_source() {
                     self.stream.emit(Signal::Source(source));
-                    model.trigger.enable(source);
+                    self.model.trigger.enable(source);
                 }
             },
+            Signal::Edge(edge) => {
+                self.model.edge = Some(edge);
+                if let Some(source) = self.get_source() {
+                    self.stream.emit(Signal::Source(source));
+                    self.model.trigger.enable(source);
+                }
+            },
+            Signal::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         }
     }
+}
 
-    fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+impl ::relm::Widget for Widget {
+    type Root = ::gtk::Box;
+
+    fn root(&self) -> Self::Root {
+        self.page.clone()
+    }
+
+    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self {
         let page = ::gtk::Box::new(::gtk::Orientation::Vertical, 10);
 
         let args = ::widget::radio::Model {
@@ -150,37 +183,13 @@ impl ::relm::Widget for Widget {
         let stream = relm.stream().clone();
 
         Widget {
+            model,
             page,
             single_button,
             stream,
             mode,
             channel,
             edge,
-        }
-    }
-}
-
-impl ::application::Panel for Widget {
-    fn draw(&self, context: &::cairo::Context, model: &::application::Model) {
-        let mode = self.mode.widget().get_current();
-
-        if mode == Some(Mode::Normal) || mode == Some(Mode::Single) {
-            let width = model.scales.get_width();
-            let height = model.scales.get_height();
-            let delay = model.offset("DELAY");
-            let trigger = model.offset("TRIG");
-
-            context.set_color(::color::TRIGGER);
-
-            context.set_line_width(width / 1000.0);
-            context.move_to(delay, model.scales.v.0);
-            context.line_to(delay, model.scales.v.1);
-            context.stroke();
-
-            context.set_line_width(height / 1000.0);
-            context.move_to(model.scales.h.0, trigger);
-            context.line_to(model.scales.h.1, trigger);
-            context.stroke();
         }
     }
 }
