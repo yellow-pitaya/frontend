@@ -8,10 +8,10 @@ use gtk::{
     BoxExt,
     ContainerExt,
     NotebookExt,
-    NotebookExtManual,
     StatusbarExt,
     WidgetExt,
     GtkWindowExt,
+    prelude::NotebookExtManual,
 };
 use relm::ContainerWidget;
 

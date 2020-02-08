@@ -3,7 +3,6 @@ extern crate docopt;
 extern crate env_logger;
 extern crate glib;
 extern crate gdk;
-extern crate gdk_sys;
 extern crate gtk;
 #[macro_use]
 extern crate log;
@@ -53,16 +52,11 @@ fn main() {
 }
 
 fn create_context(widget: &::gtk::DrawingArea) -> ::cairo::Context {
-    use glib::translate::FromGlibPtrBorrow;
-    use gtk::WidgetExt;
+    let mut draw_handler = relm::DrawHandler::new()
+        .expect("draw handler");
 
-    let window = widget.get_window().unwrap();
+    draw_handler.init(widget);
 
-    unsafe {
-        use ::glib::translate::ToGlibPtr;
-
-        let context = ::gdk_sys::gdk_cairo_create(window.to_glib_none().0);
-
-        ::cairo::Context::from_glib_borrow(context)
-    }
+    draw_handler.get_context()
+        .clone()
 }
