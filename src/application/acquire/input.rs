@@ -1,7 +1,23 @@
 use crate::color::Colorable;
 use relm::ContainerWidget;
-use super::Model;
-use super::Signal;
+
+#[derive(relm_derive::Msg, Clone)]
+pub enum Signal {
+    Attenuation(u8),
+    Gain(redpitaya_scpi::acquire::Gain),
+    SetData(Vec<f64>),
+    Start,
+    Stop,
+    Redraw(cairo::Context, crate::application::Model),
+}
+
+#[derive(Clone)]
+pub struct Model {
+    pub attenuation: u8,
+    pub started: bool,
+    pub source: redpitaya_scpi::acquire::Source,
+    pub acquire: redpitaya_scpi::acquire::Acquire,
+}
 
 #[derive(Clone)]
 pub struct Widget {

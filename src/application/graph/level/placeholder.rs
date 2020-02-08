@@ -4,14 +4,19 @@ use gtk::{
     WidgetExt,
 };
 
+#[derive(relm_derive::Msg, Clone)]
+pub enum Signal {
+    Draw,
+}
+
 #[relm_derive::widget]
 impl relm::Widget for Widget {
     fn model(_: ()) -> () {
     }
 
-    fn update(&mut self, signal: super::Signal) {
+    fn update(&mut self, signal: Signal) {
         match signal {
-            super::Signal::Draw => {
+            Signal::Draw => {
                 let context = crate::create_context(&self.drawing_area);
                 context.set_color(crate::color::BACKGROUND);
                 context.rectangle(0.0, 0.0, 20.0, 20.0);
@@ -23,7 +28,7 @@ impl relm::Widget for Widget {
     view! {
         #[name="drawing_area"]
         gtk::DrawingArea {
-            draw(_, context) => (super::Signal::Draw, gtk::Inhibit(false)),
+            draw(_, context) => (Signal::Draw, gtk::Inhibit(false)),
         },
     }
 
