@@ -109,19 +109,19 @@ impl ::relm::Widget for Widget {
             orientation: gtk::Orientation::Horizontal,
             gtk::Box {
                 orientation: gtk::Orientation::Vertical,
-                packing: {
+                child: {
                     expand: false,
                     fill: true,
                 },
                 Placeholder {
-                    packing: {
+                    child: {
                         expand: false,
                         fill: true,
                     },
                 },
                 #[name="level_left"]
                 LevelWidget(Orientation::Left) {
-                    packing: {
+                    child: {
                         expand: true,
                         fill: true,
                     },
@@ -130,13 +130,13 @@ impl ::relm::Widget for Widget {
             },
             gtk::Box {
                 orientation: gtk::Orientation::Vertical,
-                packing: {
+                child: {
                     expand: true,
                     fill: true,
                 },
                 #[name="level_top"]
                 LevelWidget(Orientation::Top) {
-                    packing: {
+                    child: {
                         expand: false,
                         fill: true,
                     },
@@ -144,7 +144,7 @@ impl ::relm::Widget for Widget {
                 },
                 #[name="drawing_area"]
                 gtk::DrawingArea {
-                    packing: {
+                    child: {
                         expand: true,
                         fill: true,
                     },
@@ -153,19 +153,19 @@ impl ::relm::Widget for Widget {
             },
             gtk::Box {
                 orientation: gtk::Orientation::Vertical,
-                packing: {
+                child: {
                     expand: false,
                     fill: true,
                 },
                 Placeholder {
-                    packing: {
+                    child: {
                         expand: false,
                         fill: true,
                     },
                 },
                 #[name="level_right"]
                 LevelWidget(Orientation::Right) {
-                    packing: {
+                    child: {
                         expand: true,
                         fill: true,
                     },

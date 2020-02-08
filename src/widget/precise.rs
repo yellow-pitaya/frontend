@@ -73,7 +73,7 @@ impl ::relm::Widget for PreciseScale {
                     }
                 },
                 gtk::Box {
-                    packing: {
+                    child: {
                         expand: true,
                         fill: true,
                     },

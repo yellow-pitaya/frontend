@@ -2,7 +2,6 @@ use gtk::{
     self,
     BoxExt,
     OrientableExt,
-    WidgetExt,
 };
 use relm_attributes::widget;
 use super::Signal;
