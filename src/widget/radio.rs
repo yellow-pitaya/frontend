@@ -1,18 +1,9 @@
 use gtk::prelude::*;
 
-#[derive(Clone)]
+#[derive(relm_derive::Msg, Clone)]
 pub enum Msg<T: std::clone::Clone + std::cmp::PartialEq> {
     Change(T),
     Set(T),
-}
-
-impl<T: std::clone::Clone + std::cmp::PartialEq> relm::DisplayVariant for Msg<T> {
-    fn display_variant(&self) -> &'static str {
-        match *self {
-            Msg::Change(_) => "Msg::Change",
-            Msg::Set(_) => "Msg::Set",
-        }
-    }
 }
 
 #[derive(Clone)]
