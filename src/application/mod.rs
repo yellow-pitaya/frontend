@@ -89,7 +89,7 @@ impl Widget {
 
         self.status_bar.push(
             self.status_bar.get_context_id("sampling-rate"),
-            status.as_str(),
+            &status,
         );
     }
 
