@@ -85,7 +85,6 @@ impl relm::Widget for Widget {
 
                     #[name="form"]
                     FormWidget(crate::widget::radio::Model {
-                        title: "Form".to_string(),
                         options: vec![
                             redpitaya_scpi::generator::Form::SINE,
                             redpitaya_scpi::generator::Form::SQUARE,
@@ -98,6 +97,7 @@ impl relm::Widget for Widget {
                         ],
                         current: None,
                     }) {
+                        label: Some("Form"),
                         Change(form) => Signal::Form(form),
                     },
                     #[name="amplitude"]

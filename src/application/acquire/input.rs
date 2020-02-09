@@ -84,20 +84,20 @@ impl relm::Widget for Widget {
                     spacing: 10,
 
                     GainWidget(crate::widget::radio::Model {
-                        title: "Gain".to_string(),
                         options: vec![
                             redpitaya_scpi::acquire::Gain::LV,
                             redpitaya_scpi::acquire::Gain::HV,
                         ],
                         current: self.model.acquire.get_gain(self.model.source).ok(),
                     }) {
+                        label: Some("Gain"),
                         Change(gain) => Signal::Gain(gain),
                     },
                     AttenuationWidget(crate::widget::radio::Model {
-                        title: "Probe attenuation".to_string(),
                         options: vec![1, 10, 100],
                         current: Some(1),
                     }) {
+                        label: Some("Probe attenuation"),
                         Change(attenuation) => Signal::Attenuation(attenuation),
                     },
                 },

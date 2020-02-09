@@ -17,7 +17,6 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> relm::DisplayVariant for Signal
 
 #[derive(Clone)]
 pub struct Model<T> {
-    pub title: String,
     pub options: Vec<T>,
     pub current: Option<T>,
 }
@@ -68,7 +67,7 @@ where
     }
 
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
-        let frame = gtk::Frame::new(Some(&model.title));
+        let frame = gtk::Frame::new(None);
 
         let flow_box = gtk::FlowBox::new();
         frame.add(&flow_box);

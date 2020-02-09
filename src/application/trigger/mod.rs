@@ -96,24 +96,24 @@ impl relm::Widget for Widget {
             spacing: 10,
 
             ChannelWidget(crate::widget::radio::Model {
-                title: "Source".to_string(),
                 options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
                 current: Some(Channel::CH1),
             }) {
+                label: Some("Source"),
                 Change(channel) => Signal::Channel(channel),
             },
             EdgeWidget(crate::widget::radio::Model {
-                title: "Edge".to_string(),
                 options: vec![Edge::Positive, Edge::Negative],
                 current: Some(Edge::Positive),
             }) {
+                label: Some("Edge"),
                 Change(channel) => Signal::Edge(channel),
             },
             ModeWidget(crate::widget::radio::Model {
-                title: "Mode".to_string(),
                 options: vec![Mode::Auto, Mode::Normal, Mode::Single],
                 current: Some(self.model.mode),
             }) {
+                label: Some("Mode"),
                 Change(channel) => Signal::Mode(channel),
             },
             #[name="single_button"]
