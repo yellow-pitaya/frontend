@@ -103,13 +103,18 @@ impl relm::Widget for Widget {
         let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<crate::widget::Palette>(());
-        palette.emit(crate::widget::palette::Signal::SetLabel(format!("{}", model.source)));
-        palette.emit(crate::widget::palette::Signal::SetColor(model.source.into()));
+        palette.emit(crate::widget::palette::Signal::SetLabel(format!(
+            "{}",
+            model.source
+        )));
+        palette.emit(crate::widget::palette::Signal::SetColor(
+            model.source.into(),
+        ));
         relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
         relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         use gtk::ContainerExt;
-        let vbox  = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
         let args = crate::widget::radio::Model {
@@ -123,7 +128,8 @@ impl relm::Widget for Widget {
                 Err(_) => None,
             },
         };
-        let gain = vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>(args);
+        let gain =
+            vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>(args);
         relm::connect!(
             gain@crate::widget::radio::Signal::Change(gain),
             relm,

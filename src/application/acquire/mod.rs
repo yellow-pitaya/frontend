@@ -1,19 +1,19 @@
 mod input;
 
-use gtk::{
-    ContainerExt,
-    ToggleButtonExt,
-};
-use relm::ContainerWidget;
+use gtk::{ContainerExt, ToggleButtonExt};
 use input::Model as InputModel;
-use input::Widget as InputWidget;
 use input::Signal as InputSignal;
+use input::Widget as InputWidget;
+use relm::ContainerWidget;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
     Attenuation(redpitaya_scpi::acquire::Source, u8),
     Average(bool),
-    Gain(redpitaya_scpi::acquire::Source, redpitaya_scpi::acquire::Gain),
+    Gain(
+        redpitaya_scpi::acquire::Source,
+        redpitaya_scpi::acquire::Gain,
+    ),
     Rate(redpitaya_scpi::acquire::SamplingRate),
     SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
     Start(redpitaya_scpi::acquire::Source),
@@ -42,11 +42,13 @@ impl relm::Update for Widget {
 
     fn update(&mut self, event: Self::Msg) {
         match event {
-            Signal::Average(enable) => if enable {
-                self.model.enable_average();
-            } else {
-                self.model.disable_average();
-            },
+            Signal::Average(enable) => {
+                if enable {
+                    self.model.enable_average();
+                } else {
+                    self.model.disable_average();
+                }
+            }
             Signal::Rate(rate) => self.model.set_decimation(rate.into()),
             Signal::SetData(source, data) => self.set_data(source, data),
             Signal::Redraw(ref context, ref model) => self.draw(context, model),
@@ -80,7 +82,8 @@ impl relm::Widget for Widget {
                 Err(_) => None,
             },
         };
-        let rate = vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>(args);
+        let rate = vbox
+            .add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>(args);
         relm::connect!(
             rate@crate::widget::radio::Signal::Change(rate),
             relm,
@@ -91,14 +94,17 @@ impl relm::Widget for Widget {
         average.set_active(model.is_average_enabled());
         vbox.add(&average);
         relm::connect!(
-            relm, average, connect_toggled(w), Signal::Average(w.get_active())
+            relm,
+            average,
+            connect_toggled(w),
+            Signal::Average(w.get_active())
         );
 
         let in1 = vbox.add_widget::<InputWidget>(InputModel {
             attenuation: 1,
             started: false,
             source: redpitaya_scpi::acquire::Source::IN1,
-            acquire: model.clone()
+            acquire: model.clone(),
         });
         relm::connect!(in1@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation));
         relm::connect!(in1@InputSignal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain));
@@ -109,7 +115,7 @@ impl relm::Widget for Widget {
             attenuation: 1,
             started: false,
             source: redpitaya_scpi::acquire::Source::IN2,
-            acquire: model.clone()
+            acquire: model.clone(),
         });
         relm::connect!(in2@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation));
         relm::connect!(in2@InputSignal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain));
@@ -130,16 +136,17 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
-        self.in1.emit(InputSignal::Redraw(context.clone(), model.clone()));
+        self.in1
+            .emit(InputSignal::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
-        self.in2.emit(InputSignal::Redraw(context.clone(), model.clone()));
+        self.in2
+            .emit(InputSignal::Redraw(context.clone(), model.clone()));
         context.restore();
     }
 
     fn set_data(&self, source: redpitaya_scpi::acquire::Source, data: Vec<f64>) {
-        self.get_input(source)
-            .emit(input::Signal::SetData(data));
+        self.get_input(source).emit(input::Signal::SetData(data));
     }
 
     fn get_input(&self, source: redpitaya_scpi::acquire::Source) -> &relm::Component<InputWidget> {

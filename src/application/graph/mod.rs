@@ -1,15 +1,10 @@
 pub mod level;
 
 use crate::color::Colorable;
-use gtk::{
-    self,
-    BoxExt,
-    OrientableExt,
-    WidgetExt,
-};
-use level::Widget as LevelWidget;
+use gtk::{self, BoxExt, OrientableExt, WidgetExt};
 use level::placeholder::Widget as Placeholder;
 use level::Signal::Level as LevelSignal;
+use level::Widget as LevelWidget;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -79,12 +74,8 @@ impl Widget {
     }
 
     pub fn invalidate(&self) {
-        self.drawing_area.queue_draw_area(
-            0,
-            0,
-            self.get_width() as i32,
-            self.get_height() as i32,
-        );
+        self.drawing_area
+            .queue_draw_area(0, 0, self.get_width() as i32, self.get_height() as i32);
 
         self.level_left.emit(level::Signal::Invalidate);
         self.level_right.emit(level::Signal::Invalidate);
@@ -93,20 +84,25 @@ impl Widget {
 
 #[relm_derive::widget]
 impl relm::Widget for Widget {
-    fn model(_: ()) {
-    }
+    fn model(_: ()) {}
 
     fn update(&mut self, event: Signal) {
         match event {
             Signal::Invalidate => self.invalidate(),
             Signal::SourceStart(orientation, source) => match orientation {
-                level::Orientation::Left => self.level_left.emit(level::Signal::SourceStart(source)),
-                level::Orientation::Right => self.level_right.emit(level::Signal::SourceStart(source)),
+                level::Orientation::Left => {
+                    self.level_left.emit(level::Signal::SourceStart(source))
+                }
+                level::Orientation::Right => {
+                    self.level_right.emit(level::Signal::SourceStart(source))
+                }
                 level::Orientation::Top => self.level_top.emit(level::Signal::SourceStart(source)),
             },
             Signal::SourceStop(orientation, source) => match orientation {
                 level::Orientation::Left => self.level_left.emit(level::Signal::SourceStop(source)),
-                level::Orientation::Right => self.level_right.emit(level::Signal::SourceStop(source)),
+                level::Orientation::Right => {
+                    self.level_right.emit(level::Signal::SourceStop(source))
+                }
                 level::Orientation::Top => self.level_top.emit(level::Signal::SourceStop(source)),
             },
             Signal::Redraw(ref context, ref model) => self.draw(context, model),

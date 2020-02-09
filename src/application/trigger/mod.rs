@@ -7,11 +7,7 @@ pub use self::edge::Edge;
 pub use self::mode::Mode;
 
 use crate::color::Colorable;
-use gtk::{
-    BoxExt,
-    ButtonExt,
-    WidgetExt,
-};
+use gtk::{BoxExt, ButtonExt, WidgetExt};
 use relm::ContainerWidget;
 
 #[derive(relm_derive::Msg, Clone)]
@@ -50,15 +46,25 @@ impl Widget {
     fn get_source(&self) -> Option<redpitaya_scpi::trigger::Source> {
         if self.model.channel == Some(Channel::CH1) && self.model.edge == Some(Edge::Positive) {
             Some(redpitaya_scpi::trigger::Source::CH1_PE)
-        } else if self.model.channel == Some(Channel::CH1) && self.model.edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::CH1)
+            && self.model.edge == Some(Edge::Negative)
+        {
             Some(redpitaya_scpi::trigger::Source::CH1_NE)
-        } else if self.model.channel == Some(Channel::CH2) && self.model.edge == Some(Edge::Positive) {
+        } else if self.model.channel == Some(Channel::CH2)
+            && self.model.edge == Some(Edge::Positive)
+        {
             Some(redpitaya_scpi::trigger::Source::CH2_PE)
-        } else if self.model.channel == Some(Channel::CH2) && self.model.edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::CH2)
+            && self.model.edge == Some(Edge::Negative)
+        {
             Some(redpitaya_scpi::trigger::Source::CH2_NE)
-        } else if self.model.channel == Some(Channel::EXT) && self.model.edge == Some(Edge::Positive) {
+        } else if self.model.channel == Some(Channel::EXT)
+            && self.model.edge == Some(Edge::Positive)
+        {
             Some(redpitaya_scpi::trigger::Source::EXT_PE)
-        } else if self.model.channel == Some(Channel::EXT) && self.model.edge == Some(Edge::Negative) {
+        } else if self.model.channel == Some(Channel::EXT)
+            && self.model.edge == Some(Edge::Negative)
+        {
             Some(redpitaya_scpi::trigger::Source::EXT_NE)
         } else {
             None
@@ -109,7 +115,7 @@ impl relm::Update for Widget {
                     Mode::Normal => self.stream.emit(Signal::Normal),
                     Mode::Single => (),
                 };
-            },
+            }
             Signal::Mode(mode) => {
                 self.model.mode = mode;
 
@@ -118,21 +124,21 @@ impl relm::Update for Widget {
                     Mode::Normal => self.single_button.set_visible(false),
                     Mode::Single => self.single_button.set_visible(true),
                 };
-            },
+            }
             Signal::Channel(channel) => {
                 self.model.channel = Some(channel);
                 if let Some(source) = self.get_source() {
                     self.stream.emit(Signal::Source(source));
                     self.model.trigger.enable(source);
                 }
-            },
+            }
             Signal::Edge(edge) => {
                 self.model.edge = Some(edge);
                 if let Some(source) = self.get_source() {
                     self.stream.emit(Signal::Source(source));
                     self.model.trigger.enable(source);
                 }
-            },
+            }
             Signal::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         }
@@ -190,9 +196,7 @@ impl relm::Widget for Widget {
         relm::connect!(relm, single_button, connect_clicked(_), Signal::Single);
 
         let stream = relm.stream().clone();
-        GLOBAL.with(move |global| {
-            *global.borrow_mut() = Some(stream)
-        });
+        GLOBAL.with(move |global| *global.borrow_mut() = Some(stream));
 
         gtk::timeout_add(1_000, || {
             GLOBAL.with(|global| {

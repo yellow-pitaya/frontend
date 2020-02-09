@@ -8,8 +8,7 @@ use scales::Scales;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
-struct Opt
-{
+struct Opt {
     addr: String,
 }
 
@@ -20,16 +19,13 @@ fn main() {
 
     let redpitaya = redpitaya_scpi::Redpitaya::new(opt.addr);
 
-    application::Widget::run(redpitaya)
-        .unwrap();
+    application::Widget::run(redpitaya).unwrap();
 }
 
 fn create_context(widget: &gtk::DrawingArea) -> cairo::Context {
-    let mut draw_handler = relm::DrawHandler::new()
-        .expect("draw handler");
+    let mut draw_handler = relm::DrawHandler::new().expect("draw handler");
 
     draw_handler.init(widget);
 
-    draw_handler.get_context()
-        .clone()
+    draw_handler.get_context().clone()
 }

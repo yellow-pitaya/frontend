@@ -43,7 +43,11 @@ impl std::fmt::Display for Color {
         write!(
             f,
             ".color-{} {{ background-color: rgba({}, {}, {}, {}); }}",
-            self.name, self.r * 255., self.g * 255., self.b * 255., self.a * 255.
+            self.name,
+            self.r * 255.,
+            self.g * 255.,
+            self.b * 255.,
+            self.a * 255.
         )
     }
 }
@@ -51,7 +55,7 @@ impl std::fmt::Display for Color {
 pub const BACKGROUND: Color = Color {
     name: "background",
     r: 0.0,
-    g:0.0,
+    g: 0.0,
     b: 0.0,
     a: 1.0,
 };
@@ -59,7 +63,7 @@ pub const BACKGROUND: Color = Color {
 pub const MAIN_SCALE: Color = Color {
     name: "main_scale",
     r: 1.0,
-    g:1.0,
+    g: 1.0,
     b: 1.0,
     a: 1.0,
 };
@@ -67,7 +71,7 @@ pub const MAIN_SCALE: Color = Color {
 pub const SECONDARY_SCALE: Color = Color {
     name: "secondary_scale",
     r: 1.0,
-    g:1.0,
+    g: 1.0,
     b: 1.0,
     a: 0.2,
 };
@@ -75,7 +79,7 @@ pub const SECONDARY_SCALE: Color = Color {
 pub const IN1: Color = Color {
     name: "in1",
     r: 1.0,
-    g:1.0,
+    g: 1.0,
     b: 0.0,
     a: 1.0,
 };
@@ -83,7 +87,7 @@ pub const IN1: Color = Color {
 pub const IN2: Color = Color {
     name: "in2",
     r: 0.0,
-    g:1.0,
+    g: 1.0,
     b: 0.0,
     a: 1.0,
 };
@@ -91,15 +95,15 @@ pub const IN2: Color = Color {
 pub const OUT1: Color = Color {
     name: "out1",
     r: 1.0,
-    g:0.0,
+    g: 0.0,
     b: 1.0,
-    a: 1.0
+    a: 1.0,
 };
 
 pub const OUT2: Color = Color {
     name: "out2",
     r: 1.0,
-    g:0.0,
+    g: 0.0,
     b: 0.0,
     a: 1.0,
 };
@@ -107,7 +111,7 @@ pub const OUT2: Color = Color {
 pub const TRIGGER: Color = Color {
     name: "trigger",
     r: 1.0,
-    g:0.5,
+    g: 0.5,
     b: 0.0,
     a: 1.0,
 };
@@ -116,7 +120,16 @@ impl Color {
     pub fn init() {
         use gtk::CssProviderExt;
 
-        let colors = [BACKGROUND, MAIN_SCALE, SECONDARY_SCALE, IN1, IN2, OUT1, OUT2, TRIGGER];
+        let colors = [
+            BACKGROUND,
+            MAIN_SCALE,
+            SECONDARY_SCALE,
+            IN1,
+            IN2,
+            OUT1,
+            OUT2,
+            TRIGGER,
+        ];
         let mut styles = String::new();
 
         for color in &colors {
@@ -125,7 +138,8 @@ impl Color {
 
         let provider = gtk::CssProvider::new();
 
-        provider.load_from_data(styles.as_bytes())
+        provider
+            .load_from_data(styles.as_bytes())
             .expect("Failed to load CSS");
 
         gtk::StyleContext::add_provider_for_screen(
@@ -142,8 +156,6 @@ pub trait Colorable {
 
 impl Colorable for cairo::Context {
     fn set_color(&self, color: Color) {
-        self.set_source_rgba(
-            color.r, color.g, color.b, color.a
-        );
+        self.set_source_rgba(color.r, color.g, color.b, color.a);
     }
 }

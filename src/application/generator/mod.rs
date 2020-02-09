@@ -1,22 +1,10 @@
 mod output;
 
-use gtk::{
-    self,
-    BoxExt,
-    OrientableExt,
-};
-use relm_derive::widget;
-use output::Widget as OutputWidget;
+use gtk::{self, BoxExt, OrientableExt};
 use output::Model as OutputModel;
-use output::Signal::{
-    Amplitude,
-    DutyCycle,
-    Frequency,
-    Offset,
-    Form,
-    Start,
-    Stop,
-};
+use output::Signal::{Amplitude, DutyCycle, Form, Frequency, Offset, Start, Stop};
+use output::Widget as OutputWidget;
+use relm_derive::widget;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -24,7 +12,10 @@ pub enum Signal {
     DutyCycle(redpitaya_scpi::generator::Source, f32),
     Frequency(redpitaya_scpi::generator::Source, u32),
     Offset(redpitaya_scpi::generator::Source, f32),
-    Form(redpitaya_scpi::generator::Source, redpitaya_scpi::generator::Form),
+    Form(
+        redpitaya_scpi::generator::Source,
+        redpitaya_scpi::generator::Form,
+    ),
     Start(redpitaya_scpi::generator::Source),
     Stop(redpitaya_scpi::generator::Source),
     Redraw(Box<cairo::Context>, Box<crate::application::Model>),
@@ -32,7 +23,9 @@ pub enum Signal {
 
 #[widget]
 impl relm::Widget for Widget {
-    fn model(generator: redpitaya_scpi::generator::Generator) -> redpitaya_scpi::generator::Generator {
+    fn model(
+        generator: redpitaya_scpi::generator::Generator,
+    ) -> redpitaya_scpi::generator::Generator {
         generator
     }
 
@@ -80,10 +73,12 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
-        self.out1.emit(output::Signal::Redraw(context.clone(), model.clone()));
+        self.out1
+            .emit(output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
-        self.out2.emit(output::Signal::Redraw(context.clone(), model.clone()));
+        self.out2
+            .emit(output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
     }
 }

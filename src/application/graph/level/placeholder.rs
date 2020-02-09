@@ -1,8 +1,5 @@
 use crate::color::Colorable;
-use gtk::{
-    self,
-    WidgetExt,
-};
+use gtk::{self, WidgetExt};
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -11,8 +8,7 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for Widget {
-    fn model(_: ()) {
-    }
+    fn model(_: ()) {}
 
     fn update(&mut self, signal: Signal) {
         match signal {
@@ -21,7 +17,7 @@ impl relm::Widget for Widget {
                 context.set_color(crate::color::BACKGROUND);
                 context.rectangle(0.0, 0.0, 20.0, 20.0);
                 context.fill();
-            },
+            }
         }
     }
 

@@ -41,13 +41,25 @@ impl Widget {
         context.set_line_width(0.05);
 
         if let Ok(form) = self.model.generator.get_form(self.model.source) {
-            let amplitude = self.model.generator.get_amplitude(self.model.source)
+            let amplitude = self
+                .model
+                .generator
+                .get_amplitude(self.model.source)
                 .unwrap_or_default();
-            let frequency = self.model.generator.get_frequency(self.model.source)
+            let frequency = self
+                .model
+                .generator
+                .get_frequency(self.model.source)
                 .unwrap_or_default() as f32;
-            let duty_cycle = self.model.generator.get_duty_cycle(self.model.source)
+            let duty_cycle = self
+                .model
+                .generator
+                .get_duty_cycle(self.model.source)
                 .unwrap_or_default();
-            let offset = self.model.generator.get_offset(self.model.source)
+            let offset = self
+                .model
+                .generator
+                .get_offset(self.model.source)
                 .unwrap_or_default();
 
             for sample in (scales.h.0 as i32)..(scales.h.1 as i32) {
@@ -55,11 +67,15 @@ impl Widget {
                 let mut y = match form {
                     redpitaya_scpi::generator::Form::SINE => self.sine(x, amplitude, frequency),
                     redpitaya_scpi::generator::Form::SQUARE => self.square(x, amplitude, frequency),
-                    redpitaya_scpi::generator::Form::TRIANGLE => self.triangle(x, amplitude, frequency),
+                    redpitaya_scpi::generator::Form::TRIANGLE => {
+                        self.triangle(x, amplitude, frequency)
+                    }
                     redpitaya_scpi::generator::Form::SAWU => self.sawu(x, amplitude, frequency),
                     redpitaya_scpi::generator::Form::SAWD => self.sawd(x, amplitude, frequency),
                     redpitaya_scpi::generator::Form::DC => self.dc(x, amplitude, frequency),
-                    redpitaya_scpi::generator::Form::PWM => self.pwm(x, amplitude, frequency, duty_cycle),
+                    redpitaya_scpi::generator::Form::PWM => {
+                        self.pwm(x, amplitude, frequency, duty_cycle)
+                    }
                     _ => unimplemented!(),
                 };
 
@@ -90,7 +106,8 @@ impl Widget {
     }
 
     fn triangle(&self, x: f32, amplitude: f32, frequency: f32) -> f32 {
-        amplitude * 2.0 / std::f32::consts::PI * (frequency * 2.0 * std::f32::consts::PI * x).sin().asin()
+        amplitude * 2.0 / std::f32::consts::PI
+            * (frequency * 2.0 * std::f32::consts::PI * x).sin().asin()
     }
 
     fn sawu(&self, x: f32, amplitude: f32, frequency: f32) -> f32 {
@@ -98,7 +115,7 @@ impl Widget {
     }
 
     fn sawd(&self, x: f32, amplitude: f32, frequency: f32) -> f32 {
-        amplitude *  (1.0 - (x * frequency).fract())
+        amplitude * (1.0 - (x * frequency).fract())
     }
 
     fn dc(&self, _: f32, amplitude: f32, _: f32) -> f32 {
@@ -110,11 +127,9 @@ impl Widget {
 
         if v > 0.0 {
             -amplitude
-        }
-        else if v < 0.0 {
+        } else if v < 0.0 {
             amplitude
-        }
-        else {
+        } else {
             0.0
         }
     }
@@ -147,18 +162,26 @@ impl relm::Update for Widget {
 
     fn update(&mut self, event: Signal) {
         match event {
-            Signal::Amplitude(value) => self.model.generator.set_amplitude(self.model.source, value),
+            Signal::Amplitude(value) => {
+                self.model.generator.set_amplitude(self.model.source, value)
+            }
             Signal::Offset(value) => self.model.generator.set_offset(self.model.source, value),
-            Signal::Frequency(value) => self.model.generator.set_frequency(self.model.source, value),
-            Signal::DutyCycle(value) => self.model.generator.set_duty_cycle(self.model.source, value),
+            Signal::Frequency(value) => {
+                self.model.generator.set_frequency(self.model.source, value)
+            }
+            Signal::DutyCycle(value) => self
+                .model
+                .generator
+                .set_duty_cycle(self.model.source, value),
             Signal::Start => self.model.generator.start(self.model.source),
             Signal::Stop => self.model.generator.stop(self.model.source),
             Signal::Redraw(ref context, ref model) => self.draw(context, model),
             Signal::Form(form) => {
                 let is_pwm = form == redpitaya_scpi::generator::Form::PWM;
-                self.duty_cycle.emit(crate::widget::precise::Signal::SetVisible(is_pwm));
+                self.duty_cycle
+                    .emit(crate::widget::precise::Signal::SetVisible(is_pwm));
                 self.model.generator.set_form(self.model.source, form);
-            },
+            }
         };
     }
 }
@@ -176,14 +199,19 @@ impl relm::Widget for Widget {
         let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
         let palette = page.add_widget::<crate::widget::Palette>(());
-        palette.emit(crate::widget::palette::Signal::SetLabel(format!("{}", model.source)));
-        palette.emit(crate::widget::palette::Signal::SetColor(model.source.into()));
+        palette.emit(crate::widget::palette::Signal::SetLabel(format!(
+            "{}",
+            model.source
+        )));
+        palette.emit(crate::widget::palette::Signal::SetColor(
+            model.source.into(),
+        ));
         relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
         relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
 
         use gtk::ContainerExt;
 
-        let vbox  = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
         palette.widget().add(&vbox);
 
         let args = crate::widget::radio::Model {
@@ -200,7 +228,8 @@ impl relm::Widget for Widget {
             ],
             current: None,
         };
-        let form = vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::generator::Form>>(args);
+        let form =
+            vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::generator::Form>>(args);
         relm::connect!(
             form@crate::widget::radio::Signal::Change(form),
             relm,
@@ -208,11 +237,13 @@ impl relm::Widget for Widget {
         );
 
         let amplitude = vbox.add_widget::<crate::widget::PreciseScale>(());
-        amplitude.emit(crate::widget::precise::Signal::SetLabel("Amplitude (V)".to_string()));
+        amplitude.emit(crate::widget::precise::Signal::SetLabel(
+            "Amplitude (V)".to_string(),
+        ));
         amplitude.emit(crate::widget::precise::Signal::SetDigits(2));
-        amplitude.emit(crate::widget::precise::Signal::SetAdjustement(gtk::Adjustment::new(
-            0.0, -1.0, 1.0, 0.1, 1.0, 0.0
-        )));
+        amplitude.emit(crate::widget::precise::Signal::SetAdjustement(
+            gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
+        ));
         relm::connect!(
             amplitude@crate::widget::precise::Signal::Changed(value),
             relm,
@@ -220,11 +251,13 @@ impl relm::Widget for Widget {
         );
 
         let offset = vbox.add_widget::<crate::widget::PreciseScale>(());
-        offset.emit(crate::widget::precise::Signal::SetLabel("Offset (V)".to_string()));
+        offset.emit(crate::widget::precise::Signal::SetLabel(
+            "Offset (V)".to_string(),
+        ));
         offset.emit(crate::widget::precise::Signal::SetDigits(2));
-        offset.emit(crate::widget::precise::Signal::SetAdjustement(gtk::Adjustment::new(
-            0.0, -1.0, 1.0, 0.1, 1.0, 0.0
-        )));
+        offset.emit(crate::widget::precise::Signal::SetAdjustement(
+            gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
+        ));
         relm::connect!(
             offset@crate::widget::precise::Signal::Changed(value),
             relm,
@@ -232,10 +265,12 @@ impl relm::Widget for Widget {
         );
 
         let frequency = vbox.add_widget::<crate::widget::PreciseScale>(());
-        frequency.emit(crate::widget::precise::Signal::SetLabel("Frequency (Hz)".to_string()));
-        frequency.emit(crate::widget::precise::Signal::SetAdjustement(gtk::Adjustment::new(
-            0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0
-        )));
+        frequency.emit(crate::widget::precise::Signal::SetLabel(
+            "Frequency (Hz)".to_string(),
+        ));
+        frequency.emit(crate::widget::precise::Signal::SetAdjustement(
+            gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
+        ));
         relm::connect!(
             frequency@crate::widget::precise::Signal::Changed(value),
             relm,
@@ -245,11 +280,13 @@ impl relm::Widget for Widget {
         let duty_cycle = vbox.add_widget::<crate::widget::PreciseScale>(());
         duty_cycle.emit(crate::widget::precise::Signal::SetNoShowAll(true));
         duty_cycle.emit(crate::widget::precise::Signal::SetVisible(false));
-        duty_cycle.emit(crate::widget::precise::Signal::SetLabel("Duty cycle (%)".to_string()));
+        duty_cycle.emit(crate::widget::precise::Signal::SetLabel(
+            "Duty cycle (%)".to_string(),
+        ));
         duty_cycle.emit(crate::widget::precise::Signal::SetDigits(2));
-        duty_cycle.emit(crate::widget::precise::Signal::SetAdjustement(gtk::Adjustment::new(
-            0.0, 0.0, 1.0, 0.1, 1.0, 0.0
-        )));
+        duty_cycle.emit(crate::widget::precise::Signal::SetAdjustement(
+            gtk::Adjustment::new(0.0, 0.0, 1.0, 0.1, 1.0, 0.0),
+        ));
         relm::connect!(
             duty_cycle@crate::widget::precise::Signal::Changed(value),
             relm,
@@ -276,22 +313,30 @@ impl relm::Widget for Widget {
         };
 
         match self.model.generator.get_amplitude(self.model.source) {
-            Ok(amplitude) => self.amplitude.emit(crate::widget::precise::Signal::SetValue(amplitude as f64)),
+            Ok(amplitude) => self
+                .amplitude
+                .emit(crate::widget::precise::Signal::SetValue(amplitude as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_offset(self.model.source) {
-            Ok(offset) => self.offset.emit(crate::widget::precise::Signal::SetValue(offset as f64)),
+            Ok(offset) => self
+                .offset
+                .emit(crate::widget::precise::Signal::SetValue(offset as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_duty_cycle(self.model.source) {
-            Ok(duty_cycle) => self.duty_cycle.emit(crate::widget::precise::Signal::SetValue(duty_cycle as f64)),
+            Ok(duty_cycle) => self
+                .duty_cycle
+                .emit(crate::widget::precise::Signal::SetValue(duty_cycle as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_frequency(self.model.source) {
-            Ok(frequency) => self.frequency.emit(crate::widget::precise::Signal::SetValue(frequency as f64)),
+            Ok(frequency) => self
+                .frequency
+                .emit(crate::widget::precise::Signal::SetValue(frequency as f64)),
             Err(err) => log::error!("{}", err),
         };
     }

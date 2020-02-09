@@ -1,16 +1,6 @@
 use gtk::{
-    self,
-    AdjustmentExt,
-    BoxExt,
-    ContainerExt,
-    FrameExt,
-    OrientableExt,
-    RangeExt,
-    ScaleExt,
-    SpinButtonExt,
-    SpinButtonSignals,
-    ToggleButtonExt,
-    WidgetExt,
+    self, AdjustmentExt, BoxExt, ContainerExt, FrameExt, OrientableExt, RangeExt, ScaleExt,
+    SpinButtonExt, SpinButtonSignals, ToggleButtonExt, WidgetExt,
 };
 
 #[derive(relm_derive::Msg, Clone)]
@@ -28,19 +18,18 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for PreciseScale {
-    fn model(_: ()) {
-    }
+    fn model(_: ()) {}
 
     fn update(&mut self, event: Signal) {
         match event {
             Signal::Expand => {
                 self.scale.set_draw_value(false);
                 self.spin.show();
-            },
+            }
             Signal::Fold => {
                 self.scale.set_draw_value(true);
                 self.spin.hide();
-            },
+            }
             Signal::SetValue(value) => self.set_value(value),
             Signal::SetVisible(visible) => self.set_no_show_all(visible),
             Signal::SetDigits(digits) => self.set_digits(digits),
@@ -97,12 +86,8 @@ impl PreciseScale {
     pub fn set_adjustment(&self, adjustment: gtk::Adjustment) {
         self.scale.set_adjustment(&adjustment);
 
-        adjustment.set_step_increment(
-            adjustment.get_step_increment() / 10.0
-        );
-        adjustment.set_page_increment(
-            adjustment.get_page_increment() / 10.0
-        );
+        adjustment.set_step_increment(adjustment.get_step_increment() / 10.0);
+        adjustment.set_page_increment(adjustment.get_page_increment() / 10.0);
         self.spin.set_adjustment(&adjustment);
     }
 

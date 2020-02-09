@@ -4,13 +4,8 @@ mod graph;
 mod trigger;
 
 use gtk::{
-    BoxExt,
-    ContainerExt,
-    NotebookExt,
-    StatusbarExt,
+    prelude::NotebookExtManual, BoxExt, ContainerExt, GtkWindowExt, NotebookExt, StatusbarExt,
     WidgetExt,
-    GtkWindowExt,
-    prelude::NotebookExtManual,
 };
 use relm::ContainerWidget;
 
@@ -18,16 +13,19 @@ macro_rules! redraw {
     ($self:ident, $widget:ident, $image:ident) => {
         let context = cairo::Context::new(&$image);
 
-        $self.transform($self.model.scales, &context, $image.get_width() as f64, $image.get_height() as f64);
+        $self.transform(
+            $self.model.scales,
+            &context,
+            $image.get_width() as f64,
+            $image.get_height() as f64,
+        );
         context.set_line_width(0.01);
 
-        $self.$widget.emit(
-            $widget::Signal::Redraw(
-                Box::new(context.clone()),
-                Box::new($self.model.clone())
-            )
-        );
-    }
+        $self.$widget.emit($widget::Signal::Redraw(
+            Box::new(context.clone()),
+            Box::new($self.model.clone()),
+        ));
+    };
 }
 
 #[derive(relm_derive::Msg, Clone)]
@@ -52,16 +50,20 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn offset<D>(&self, channel: D) -> f64 where D: std::fmt::Display {
+    pub fn offset<D>(&self, channel: D) -> f64
+    where
+        D: std::fmt::Display,
+    {
         let channel = format!("{}", channel);
 
         match self.levels.get(&channel) {
-            Some(level) => if channel == "DELAY" {
-                self.scales.x_to_offset(*level)
+            Some(level) => {
+                if channel == "DELAY" {
+                    self.scales.x_to_offset(*level)
+                } else {
+                    self.scales.y_to_offset(*level)
+                }
             }
-            else {
-                self.scales.y_to_offset(*level)
-            },
             None => 0.0,
         }
     }
@@ -90,7 +92,7 @@ impl Widget {
 
         self.status_bar.push(
             self.status_bar.get_context_id("sampling-rate"),
-            status.as_str()
+            status.as_str(),
         );
     }
 
@@ -100,8 +102,9 @@ impl Widget {
         let image = cairo::ImageSurface::create(
             cairo::Format::ARgb32,
             self.model.scales.window.width,
-            self.model.scales.window.height
-        ).unwrap();
+            self.model.scales.window.height,
+        )
+        .unwrap();
 
         redraw!(self, graph, image);
         redraw!(self, trigger, image);
@@ -133,12 +136,13 @@ impl relm::Update for Widget {
             h: (0.0, 0.0),
             v: (-5.0, 5.0),
             n_samples: redpitaya.data.buffer_size().unwrap(),
-            window: crate::scales::Rect { width: 0, height: 0 },
+            window: crate::scales::Rect {
+                width: 0,
+                height: 0,
+            },
         };
 
-        let rate = redpitaya.acquire.get_decimation()
-            .unwrap()
-            .into();
+        let rate = redpitaya.acquire.get_decimation().unwrap().into();
         scales.from_sampling_rate(rate);
 
         Model {
@@ -155,45 +159,63 @@ impl relm::Update for Widget {
                 self.model.rate = rate;
                 self.model.scales.from_sampling_rate(rate);
                 self.graph.emit(graph::Signal::Invalidate);
-            },
+            }
 
             Signal::NeedDraw => self.graph.emit(graph::Signal::Invalidate),
             Signal::GraphDraw => self.draw(),
             Signal::Level(channel, level) => {
                 self.model.levels.insert(channel, level);
-            },
+            }
             Signal::Resize(width, height) => {
                 self.model.scales.window.width = width;
                 self.model.scales.window.height = height;
                 self.relm.stream().emit(Signal::NeedDraw)
-            },
+            }
 
             Signal::TriggerAuto | Signal::TriggerSingle => {
                 self.acquire.emit(acquire::Signal::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
-                    self.model.redpitaya.data.read_all(redpitaya_scpi::acquire::Source::IN1)
+                    self.model
+                        .redpitaya
+                        .data
+                        .read_all(redpitaya_scpi::acquire::Source::IN1),
                 ));
                 self.acquire.emit(acquire::Signal::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
-                    self.model.redpitaya.data.read_all(redpitaya_scpi::acquire::Source::IN2)
+                    self.model
+                        .redpitaya
+                        .data
+                        .read_all(redpitaya_scpi::acquire::Source::IN2),
                 ));
-            },
+            }
             Signal::TriggerNormal => {
                 self.acquire.emit(acquire::Signal::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
-                    self.model.redpitaya.data.read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384)
+                    self.model
+                        .redpitaya
+                        .data
+                        .read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384),
                 ));
                 self.acquire.emit(acquire::Signal::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
-                    self.model.redpitaya.data.read_oldest(redpitaya_scpi::acquire::Source::IN2, 16_384)
+                    self.model
+                        .redpitaya
+                        .data
+                        .read_oldest(redpitaya_scpi::acquire::Source::IN2, 16_384),
                 ));
-            },
+            }
             Signal::Quit => {
                 self.model.redpitaya.acquire.stop();
-                self.model.redpitaya.generator.stop(redpitaya_scpi::generator::Source::OUT1);
-                self.model.redpitaya.generator.stop(redpitaya_scpi::generator::Source::OUT2);
+                self.model
+                    .redpitaya
+                    .generator
+                    .stop(redpitaya_scpi::generator::Source::OUT1);
+                self.model
+                    .redpitaya
+                    .generator
+                    .stop(redpitaya_scpi::generator::Source::OUT2);
                 gtk::main_quit();
-            },
+            }
         };
     }
 }
@@ -231,19 +253,15 @@ impl relm::Widget for Widget {
         relm::connect!(acquire@acquire::Signal::Start(source), graph, graph::Signal::SourceStart(graph::level::Orientation::Left, format!("{}", source)));
         relm::connect!(acquire@acquire::Signal::Stop(source), graph, graph::Signal::SourceStop(graph::level::Orientation::Left, format!("{}", source)));
 
-        notebook.append_page(
-            &acquire_page,
-            Some(&gtk::Label::new(Some("Acquire")))
-        );
+        notebook.append_page(&acquire_page, Some(&gtk::Label::new(Some("Acquire"))));
 
-        let scrolled_window = gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+        let scrolled_window =
+            gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
         scrolled_window.set_border_width(10);
-        notebook.append_page(
-            &scrolled_window,
-            Some(&gtk::Label::new(Some("Generator")))
-        );
+        notebook.append_page(&scrolled_window, Some(&gtk::Label::new(Some("Generator"))));
 
-        let generator = scrolled_window.add_widget::<generator::Widget>(model.redpitaya.generator.clone());
+        let generator =
+            scrolled_window.add_widget::<generator::Widget>(model.redpitaya.generator.clone());
         relm::connect!(generator@generator::Signal::Amplitude(_, _), relm, Signal::NeedDraw);
         relm::connect!(generator@generator::Signal::DutyCycle(_, _), relm, Signal::NeedDraw);
         relm::connect!(generator@generator::Signal::Frequency(_, _), relm, Signal::NeedDraw);
@@ -275,10 +293,7 @@ impl relm::Widget for Widget {
         relm::connect!(trigger@trigger::Signal::Normal, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_owned()));
         relm::connect!(trigger@trigger::Signal::Single, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_owned()));
 
-        notebook.append_page(
-            &trigger_page,
-            Some(&gtk::Label::new(Some("Trigger")))
-        );
+        notebook.append_page(&trigger_page, Some(&gtk::Label::new(Some("Trigger"))));
 
         Widget {
             relm: relm.clone(),
@@ -295,7 +310,10 @@ impl relm::Widget for Widget {
     fn init_view(&mut self) {
         crate::color::Color::init();
 
-        self.model.redpitaya.data.set_units(redpitaya_scpi::data::Unit::VOLTS);
+        self.model
+            .redpitaya
+            .data
+            .set_units(redpitaya_scpi::data::Unit::VOLTS);
 
         self.window.show_all();
 

@@ -1,8 +1,4 @@
-use gtk::{
-    ContainerExt,
-    RadioButtonExt,
-    ToggleButtonExt,
-};
+use gtk::{ContainerExt, RadioButtonExt, ToggleButtonExt};
 
 #[derive(Clone)]
 pub enum Signal<T: std::clone::Clone + std::cmp::PartialEq> {
@@ -62,7 +58,8 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> 
 }
 
 impl<T> relm::Widget for RadioGroup<T>
-    where T: std::clone::Clone + std::fmt::Display + std::cmp::PartialEq + 'static
+where
+    T: std::clone::Clone + std::fmt::Display + std::cmp::PartialEq + 'static,
 {
     type Root = gtk::Frame;
 
@@ -80,9 +77,7 @@ impl<T> relm::Widget for RadioGroup<T>
         let mut group_member = None;
 
         for option in model.options.iter() {
-            let button = gtk::RadioButton::new_with_label(
-                format!("{}", option).as_str()
-            );
+            let button = gtk::RadioButton::new_with_label(format!("{}", option).as_str());
             button.join_group(group_member.as_ref());
             flow_box.add(&button);
 
@@ -92,9 +87,7 @@ impl<T> relm::Widget for RadioGroup<T>
 
                 button.connect_toggled(move |f| {
                     if f.get_active() {
-                        stream.emit(
-                            Signal::Change(option.clone())
-                        );
+                        stream.emit(Signal::Change(option.clone()));
                     }
                 });
             }

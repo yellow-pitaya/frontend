@@ -1,10 +1,7 @@
 pub mod placeholder;
 
 use crate::color::Colorable;
-use gtk::{
-    GestureDragExt,
-    WidgetExt,
-};
+use gtk::{GestureDragExt, WidgetExt};
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -49,10 +46,13 @@ pub struct Widget {
 impl Widget {
     fn start(&mut self, name: String) {
         if self.model.levels.get(&name).is_none() {
-            self.model.levels.insert(name.clone(), Level {
-                enable: true,
-                offset: self.get_height() / 2,
-            });
+            self.model.levels.insert(
+                name.clone(),
+                Level {
+                    enable: true,
+                    offset: self.get_height() / 2,
+                },
+            );
         }
 
         self.model.levels.get_mut(&name).unwrap().enable = true;
@@ -75,12 +75,8 @@ impl Widget {
     }
 
     fn invalidate(&self) {
-        self.drawing_area.queue_draw_area(
-            0,
-            0,
-            self.get_width(),
-            self.get_height(),
-        );
+        self.drawing_area
+            .queue_draw_area(0, 0, self.get_width(), self.get_height());
     }
 
     fn get_width(&self) -> i32 {
@@ -102,8 +98,7 @@ impl Widget {
         let width = self.get_width();
         let height = self.get_height();
 
-        let image = cairo::ImageSurface::create(cairo::Format::ARgb32, width, height)
-            .unwrap();
+        let image = cairo::ImageSurface::create(cairo::Format::ARgb32, width, height).unwrap();
         let context = cairo::Context::new(&image);
 
         context.set_color(crate::color::BACKGROUND);
@@ -133,8 +128,7 @@ impl Widget {
                 context.line_to(level.offset as f64, end);
                 context.line_to(bottom, middle);
                 context.line_to(bottom, start);
-            }
-            else {
+            } else {
                 context.move_to(start, top);
                 context.line_to(middle, top);
                 context.line_to(end, level.offset as f64);
@@ -191,7 +185,7 @@ impl Widget {
             None => {
                 self.relm.stream().emit(Signal::Draw);
                 return;
-            },
+            }
         };
 
         let level = match self.model.levels.get(&name) {
@@ -199,12 +193,14 @@ impl Widget {
             None => {
                 self.relm.stream().emit(Signal::Draw);
                 return;
-            },
+            }
         };
 
         self.model.current = None;
 
-        self.relm.stream().emit(Signal::Level(name.clone(), level.offset));
+        self.relm
+            .stream()
+            .emit(Signal::Level(name.clone(), level.offset));
     }
 }
 
@@ -244,12 +240,32 @@ impl relm::Widget for Widget {
 
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
         let drawing_area = gtk::DrawingArea::new();
-        relm::connect!(relm, drawing_area, connect_draw(_, _), return (Signal::Draw, gtk::Inhibit(false)));
+        relm::connect!(
+            relm,
+            drawing_area,
+            connect_draw(_, _),
+            return (Signal::Draw, gtk::Inhibit(false))
+        );
 
         let gesture_drag = gtk::GestureDrag::new(&drawing_area);
-        relm::connect!(gesture_drag, connect_drag_begin(_, x, y), relm, Signal::Click(x, y));
-        relm::connect!(gesture_drag, connect_drag_update(_, x, y), relm, Signal::Move(x, y));
-        relm::connect!(gesture_drag, connect_drag_end(_, _, _), relm, Signal::Release);
+        relm::connect!(
+            gesture_drag,
+            connect_drag_begin(_, x, y),
+            relm,
+            Signal::Click(x, y)
+        );
+        relm::connect!(
+            gesture_drag,
+            connect_drag_update(_, x, y),
+            relm,
+            Signal::Move(x, y)
+        );
+        relm::connect!(
+            gesture_drag,
+            connect_drag_end(_, _, _),
+            relm,
+            Signal::Release
+        );
 
         Widget {
             relm: relm.clone(),

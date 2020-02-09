@@ -1,11 +1,4 @@
-use gtk::{
-    self,
-    ButtonExt,
-    ContainerExt,
-    OrientableExt,
-    ToggleButtonExt,
-    WidgetExt,
-};
+use gtk::{self, ButtonExt, ContainerExt, OrientableExt, ToggleButtonExt, WidgetExt};
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -17,8 +10,7 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for Palette {
-    fn model(_: ()) {
-    }
+    fn model(_: ()) {}
 
     fn update(&mut self, event: Signal) {
         use crate::color::Colorable;
@@ -27,7 +19,7 @@ impl relm::Widget for Palette {
             Signal::Expand => {
                 self.parent.set_no_show_all(false);
                 self.parent.show_all();
-            },
+            }
             Signal::Fold => self.parent.hide(),
             Signal::SetColor(color) => self.set_color(color),
             Signal::SetLabel(label) => self.set_label(&label),
