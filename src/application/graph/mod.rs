@@ -58,22 +58,22 @@ impl Widget {
         self.level_right.emit(level::Signal::Invalidate);
     }
 
-    pub fn get_width(&self) -> f64 {
+    fn get_width(&self) -> f64 {
         self.drawing_area.get_allocated_width() as f64
     }
 
-    pub fn get_height(&self) -> f64 {
+    fn get_height(&self) -> f64 {
         self.drawing_area.get_allocated_height() as f64
     }
 
-    pub fn set_image(&self, image: &cairo::ImageSurface) {
+    fn set_image(&self, image: &cairo::ImageSurface) {
         let context = crate::create_context(&self.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
     }
 
-    pub fn invalidate(&self) {
+    fn invalidate(&self) {
         self.drawing_area
             .queue_draw_area(0, 0, self.get_width() as i32, self.get_height() as i32);
 

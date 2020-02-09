@@ -1,10 +1,10 @@
 #[derive(Clone)]
 pub struct Color {
-    pub name: &'static str,
-    pub r: f64,
-    pub g: f64,
-    pub b: f64,
-    pub a: f64,
+    name: &'static str,
+    r: f64,
+    g: f64,
+    b: f64,
+    a: f64,
 }
 
 impl std::convert::Into<Color> for redpitaya_scpi::generator::Source {
@@ -40,10 +40,15 @@ impl std::convert::Into<Color> for String {
 
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            ".color-{} {{ background-color: rgba({}, {}, {}, {}); }}",
-            self.name,
+        write!(f, "color-{}", self.name)
+    }
+}
+
+impl Color {
+    fn to_css(&self) -> String {
+        format!(
+            ".{} {{ background-color: rgba({}, {}, {}, {}); }}",
+            self,
             self.r * 255.,
             self.g * 255.,
             self.b * 255.,
@@ -133,7 +138,7 @@ impl Color {
         let mut styles = String::new();
 
         for color in &colors {
-            styles.push_str(&format!("{}", color));
+            styles.push_str(&color.to_css());
         }
 
         let provider = gtk::CssProvider::new();

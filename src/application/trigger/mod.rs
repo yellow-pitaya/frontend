@@ -25,17 +25,17 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    pub trigger: redpitaya_scpi::trigger::Trigger,
-    pub channel: Option<Channel>,
-    pub edge: Option<Edge>,
-    pub mode: Mode,
+    trigger: redpitaya_scpi::trigger::Trigger,
+    channel: Option<Channel>,
+    edge: Option<Edge>,
+    mode: Mode,
 }
 
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
     page: gtk::Box,
-    pub single_button: gtk::Button,
+    single_button: gtk::Button,
     stream: relm::EventStream<<Self as relm::Update>::Msg>,
     mode: relm::Component<crate::widget::RadioGroup<Mode>>,
     channel: relm::Component<crate::widget::RadioGroup<Channel>>,

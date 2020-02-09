@@ -60,6 +60,6 @@ impl crate::color::Colorable for Palette {
     fn set_color(&self, color: crate::color::Color) {
         let context = self.border.get_style_context();
 
-        context.add_class(&format!("color-{}", color.name));
+        context.add_class(&format!("{}", color));
     }
 }

@@ -17,15 +17,15 @@ pub enum Signal {
 
 #[derive(Clone, Debug)]
 pub struct Level {
-    pub enable: bool,
-    pub offset: i32,
+    enable: bool,
+    offset: i32,
 }
 
 #[derive(Clone)]
 pub struct Model {
-    pub current: Option<String>,
-    pub orientation: Orientation,
-    pub levels: std::collections::HashMap<String, Level>,
+    current: Option<String>,
+    orientation: Orientation,
+    levels: std::collections::HashMap<String, Level>,
 }
 
 #[derive(Clone, Copy, PartialEq)]

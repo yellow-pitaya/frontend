@@ -40,14 +40,14 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    pub rate: redpitaya_scpi::acquire::SamplingRate,
-    pub redpitaya: redpitaya_scpi::Redpitaya,
-    pub scales: crate::Scales,
-    pub levels: std::collections::HashMap<String, i32>,
+    rate: redpitaya_scpi::acquire::SamplingRate,
+    redpitaya: redpitaya_scpi::Redpitaya,
+    scales: crate::Scales,
+    levels: std::collections::HashMap<String, i32>,
 }
 
 impl Model {
-    pub fn offset<D>(&self, channel: D) -> f64
+    fn offset<D>(&self, channel: D) -> f64
     where
         D: std::fmt::Display,
     {

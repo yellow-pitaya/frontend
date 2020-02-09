@@ -21,13 +21,16 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(acquire: &redpitaya_scpi::acquire::Acquire) -> Self {
+    pub fn new(
+        acquire: &redpitaya_scpi::acquire::Acquire,
+        source: redpitaya_scpi::acquire::Source,
+    ) -> Self {
         Self {
             acquire: acquire.clone(),
             attenuation: 1,
             data: Vec::new(),
             started: false,
-            source: redpitaya_scpi::acquire::Source::IN1,
+            source,
         }
     }
 }
@@ -37,7 +40,7 @@ pub struct Widget {
     model: Model,
     stream: relm::EventStream<<Self as relm::Update>::Msg>,
     page: gtk::Box,
-    pub palette: relm::Component<crate::widget::Palette>,
+    palette: relm::Component<crate::widget::Palette>,
     attenuation: relm::Component<crate::widget::RadioGroup<u8>>,
 }
 

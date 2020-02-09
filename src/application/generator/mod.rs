@@ -39,10 +39,7 @@ impl relm::Widget for Widget {
             orientation: gtk::Orientation::Vertical,
             spacing: 10,
             #[name="out1"]
-            OutputWidget(output::Model {
-                source: redpitaya_scpi::generator::Source::OUT1,
-                generator: self.model.clone(),
-            }) {
+            OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT1)) {
                 Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT1, amplitude),
                 DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT1, duty_cycle),
                 Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT1, frequency),
@@ -52,10 +49,7 @@ impl relm::Widget for Widget {
                 Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT1),
             },
             #[name="out2"]
-            OutputWidget(output::Model {
-                source: redpitaya_scpi::generator::Source::OUT2,
-                generator: self.model.clone(),
-            }) {
+            OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT2)) {
                 Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT2, amplitude),
                 DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT2, duty_cycle),
                 Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT2, frequency),

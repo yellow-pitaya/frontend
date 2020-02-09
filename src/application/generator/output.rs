@@ -15,20 +15,32 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    pub source: redpitaya_scpi::generator::Source,
-    pub generator: redpitaya_scpi::generator::Generator,
+    generator: redpitaya_scpi::generator::Generator,
+    source: redpitaya_scpi::generator::Source,
+}
+
+impl Model {
+    pub fn new(
+        generator: &redpitaya_scpi::generator::Generator,
+        source: redpitaya_scpi::generator::Source,
+    ) -> Self {
+        Self {
+            generator: generator.clone(),
+            source,
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
-    pub page: gtk::Box,
-    pub palette: relm::Component<crate::widget::Palette>,
-    pub amplitude: relm::Component<crate::widget::PreciseScale>,
+    page: gtk::Box,
+    palette: relm::Component<crate::widget::Palette>,
+    amplitude: relm::Component<crate::widget::PreciseScale>,
     form: relm::Component<crate::widget::RadioGroup<redpitaya_scpi::generator::Form>>,
-    pub offset: relm::Component<crate::widget::PreciseScale>,
-    pub frequency: relm::Component<crate::widget::PreciseScale>,
-    pub duty_cycle: relm::Component<crate::widget::PreciseScale>,
+    offset: relm::Component<crate::widget::PreciseScale>,
+    frequency: relm::Component<crate::widget::PreciseScale>,
+    duty_cycle: relm::Component<crate::widget::PreciseScale>,
     source: redpitaya_scpi::generator::Source,
 }
 
