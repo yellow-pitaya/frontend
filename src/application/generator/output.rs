@@ -160,7 +160,7 @@ impl relm::Update for Widget {
         model
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Self::Msg) {
         match event {
             Signal::Amplitude(value) => {
                 self.model.generator.set_amplitude(self.model.source, value)

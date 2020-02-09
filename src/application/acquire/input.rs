@@ -80,7 +80,7 @@ impl relm::Update for Widget {
         model
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Self::Msg) {
         match event {
             Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
             Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),

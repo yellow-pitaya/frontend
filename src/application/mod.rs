@@ -150,7 +150,7 @@ impl relm::Update for Widget {
         }
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Self::Msg) {
         match event {
             Signal::AcquireRate(rate) => {
                 self.model.rate = rate;

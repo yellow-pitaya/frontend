@@ -217,7 +217,7 @@ impl relm::Update for Widget {
         }
     }
 
-    fn update(&mut self, signal: Signal) {
+    fn update(&mut self, signal: Self::Msg) {
         match signal {
             Signal::Click(x, y) => self.on_click(x as i32, y as i32),
             Signal::Move(x, y) => self.on_mouse_move(x as i32, y as i32),

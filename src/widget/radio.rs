@@ -49,7 +49,7 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> 
         model
     }
 
-    fn update(&mut self, event: Signal<T>) {
+    fn update(&mut self, event: Self::Msg) {
         match event {
             Signal::Set(value) => self.set_current(value),
             _ => (),
