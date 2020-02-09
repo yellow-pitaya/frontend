@@ -227,7 +227,7 @@ impl relm::Widget for Widget {
         palette.widget().add(&vbox);
 
         let args = crate::widget::radio::Model {
-            title: String::from("Form"),
+            title: "Form".to_string(),
             options: vec![
                 redpitaya_scpi::generator::Form::SINE,
                 redpitaya_scpi::generator::Form::SQUARE,

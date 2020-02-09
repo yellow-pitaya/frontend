@@ -65,7 +65,7 @@ impl relm::Widget for Widget {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
         let args = crate::widget::radio::Model {
-            title: String::from("Sampling Rate"),
+            title: "Sampling Rate".to_string(),
             options: vec![
                 redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
                 redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,

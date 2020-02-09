@@ -156,7 +156,7 @@ impl relm::Widget for Widget {
         let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
         let args = crate::widget::radio::Model {
-            title: String::from("Source"),
+            title: "Source".to_string(),
             options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
             current: Some(Channel::CH1),
         };
@@ -168,7 +168,7 @@ impl relm::Widget for Widget {
         );
 
         let args = crate::widget::radio::Model {
-            title: String::from("Edge"),
+            title: "Edge".to_string(),
             options: vec![Edge::Positive, Edge::Negative],
             current: Some(Edge::Positive),
         };
@@ -180,7 +180,7 @@ impl relm::Widget for Widget {
         );
 
         let args = crate::widget::radio::Model {
-            title: String::from("Mode"),
+            title: "Mode".to_string(),
             options: vec![Mode::Auto, Mode::Normal, Mode::Single],
             current: Some(model.mode),
         };

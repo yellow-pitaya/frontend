@@ -130,7 +130,7 @@ impl relm::Widget for Widget {
         palette.widget().add(&vbox);
 
         let args = crate::widget::radio::Model {
-            title: String::from("Gain"),
+            title: "Gain".to_string(),
             options: vec![
                 redpitaya_scpi::acquire::Gain::LV,
                 redpitaya_scpi::acquire::Gain::HV,
@@ -149,7 +149,7 @@ impl relm::Widget for Widget {
         );
 
         let args = crate::widget::radio::Model {
-            title: String::from("Probe attenuation"),
+            title: "Probe attenuation".to_string(),
             options: vec![1, 10, 100],
             current: Some(1),
         };
