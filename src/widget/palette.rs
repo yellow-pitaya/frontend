@@ -19,7 +19,7 @@ impl relm::Widget for Palette {
             Signal::Expand => {
                 self.parent.set_no_show_all(false);
                 self.parent.show_all();
-            }
+            },
             Signal::Fold => self.parent.hide(),
             Signal::SetColor(color) => self.set_color(color),
             Signal::SetLabel(label) => self.set_label(&label),
@@ -34,7 +34,7 @@ impl relm::Widget for Palette {
                 #[name="toggle"]
                 gtk::ToggleButton {
                     border_width: 1,
-                    toggled(w) => if w.get_active() {
+                    toggled(widget) => if widget.get_active() {
                         Signal::Expand
                     } else {
                         Signal::Fold

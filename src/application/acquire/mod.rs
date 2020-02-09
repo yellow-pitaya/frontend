@@ -1,7 +1,11 @@
 mod input;
 
+use crate::widget::radio::Signal::*;
 use gtk::prelude::*;
-use relm::ContainerWidget;
+use input::Signal::*;
+use input::Widget as InputWidget;
+
+type RateWidget = crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -18,26 +22,16 @@ pub enum Signal {
     Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
-#[derive(Clone)]
-pub struct Widget {
-    model: redpitaya_scpi::acquire::Acquire,
-    vbox: gtk::Box,
-    in1: relm::Component<input::Widget>,
-    in2: relm::Component<input::Widget>,
-    rate: relm::Component<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>,
-    average: gtk::CheckButton,
-}
-
-impl relm::Update for Widget {
-    type Model = redpitaya_scpi::acquire::Acquire;
-    type ModelParam = redpitaya_scpi::acquire::Acquire;
-    type Msg = Signal;
-
-    fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
+#[relm_derive::widget(clone)]
+impl relm::Widget for Widget {
+    fn model(
+        _: &relm::Relm<Self>,
+        model: redpitaya_scpi::acquire::Acquire,
+    ) -> redpitaya_scpi::acquire::Acquire {
         model
     }
 
-    fn update(&mut self, event: Self::Msg) {
+    fn update(&mut self, event: Signal) {
         match event {
             Signal::Average(enable) => {
                 if enable {
@@ -47,81 +41,62 @@ impl relm::Update for Widget {
                 }
             }
             Signal::Rate(rate) => self.model.set_decimation(rate.into()),
-            Signal::SetData(source, data) => self.get_input(source).emit(input::Signal::SetData(data)),
+            Signal::SetData(source, data) => {
+                self.get_input(source).emit(input::Signal::SetData(data))
+            }
             Signal::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         };
     }
-}
 
-impl relm::Widget for Widget {
-    type Root = gtk::Box;
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
-    }
-
-    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-
-        let args = crate::widget::radio::Model {
-            title: "Sampling Rate".to_string(),
-            options: vec![
-                redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
-                redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
-                redpitaya_scpi::acquire::SamplingRate::RATE_103_8kHz,
-                redpitaya_scpi::acquire::SamplingRate::RATE_1_9MHz,
-                redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
-                redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
-            ],
-            current: match model.get_decimation() {
-                Ok(decimation) => Some(decimation.into()),
-                Err(_) => None,
+    view! {
+        gtk::Box {
+            orientation: gtk::Orientation::Vertical,
+            spacing: 10,
+            #[name="rate"]
+            RateWidget(crate::widget::radio::Model {
+                title: "Sampling Rate".to_string(),
+                options: vec![
+                    redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
+                    redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
+                    redpitaya_scpi::acquire::SamplingRate::RATE_103_8kHz,
+                    redpitaya_scpi::acquire::SamplingRate::RATE_1_9MHz,
+                    redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
+                    redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
+                ],
+                current: match self.model.get_decimation() {
+                    Ok(decimation) => Some(decimation.into()),
+                    Err(_) => None,
+                },
+            }) {
+                Change(rate) => Signal::Rate(rate),
             },
-        };
-        let rate = vbox
-            .add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>(args);
-        relm::connect!(
-            rate@crate::widget::radio::Signal::Change(rate),
-            relm,
-            Signal::Rate(rate)
-        );
-
-        let average = gtk::CheckButton::new_with_label("Average");
-        average.set_active(model.is_average_enabled());
-        vbox.add(&average);
-        relm::connect!(
-            relm,
-            average,
-            connect_toggled(w),
-            Signal::Average(w.get_active())
-        );
-
-        let in1 = vbox.add_widget::<input::Widget>(input::Model::new(
-            &model,
-            redpitaya_scpi::acquire::Source::IN1,
-        ));
-        relm::connect!(in1@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation));
-        relm::connect!(in1@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain));
-        relm::connect!(in1@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN1));
-        relm::connect!(in1@input::Signal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN1));
-
-        let in2 = vbox.add_widget::<input::Widget>(input::Model::new(
-            &model,
-            redpitaya_scpi::acquire::Source::IN2,
-        ));
-        relm::connect!(in2@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation));
-        relm::connect!(in2@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain));
-        relm::connect!(in2@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN2));
-        relm::connect!(in2@input::Signal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN2));
-
-        Widget {
-            model,
-            vbox,
-            in1,
-            in2,
-            rate,
-            average,
+            #[name="average"]
+            gtk::CheckButton {
+                label: "Average",
+                active: self.model.is_average_enabled(),
+                toggled(w) => Signal::Average(w.get_active()),
+            },
+            #[name="in1"]
+            InputWidget(input::Model::new(
+                    self.model,
+                    redpitaya_scpi::acquire::Source::IN1,
+            )) {
+                Attenuation(attenuation) => Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation),
+                Gain(gain) => Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain),
+                Start => Signal::Start(redpitaya_scpi::acquire::Source::IN1),
+                Stop => Signal::Stop(redpitaya_scpi::acquire::Source::IN1),
+            },
+            #[name="in2"]
+            InputWidget(input::Model::new(
+                    self.model,
+                    redpitaya_scpi::acquire::Source::IN2,
+            )) {
+                Attenuation(attenuation) => Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation),
+                Gain(gain) => Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain),
+                Start => Signal::Start(redpitaya_scpi::acquire::Source::IN2),
+                Stop => Signal::Stop(redpitaya_scpi::acquire::Source::IN2),
+            },
         }
     }
 }

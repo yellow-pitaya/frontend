@@ -7,8 +7,12 @@ pub use self::edge::Edge;
 pub use self::mode::Mode;
 
 use crate::color::Colorable;
+use crate::widget::radio::Signal::*;
 use gtk::prelude::*;
-use relm::ContainerWidget;
+
+type ChannelWidget = crate::widget::RadioGroup<Channel>;
+type EdgeWidget = crate::widget::RadioGroup<Edge>;
+type ModeWidget = crate::widget::RadioGroup<Mode>;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -25,21 +29,107 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
+    stream: relm::EventStream<Signal>,
     trigger: redpitaya_scpi::trigger::Trigger,
     channel: Option<Channel>,
     edge: Option<Edge>,
     mode: Mode,
 }
 
-#[derive(Clone)]
-pub struct Widget {
-    model: Model,
-    page: gtk::Box,
-    single_button: gtk::Button,
-    stream: relm::EventStream<<Self as relm::Update>::Msg>,
-    mode: relm::Component<crate::widget::RadioGroup<Mode>>,
-    channel: relm::Component<crate::widget::RadioGroup<Channel>>,
-    edge: relm::Component<crate::widget::RadioGroup<Edge>>,
+#[relm_derive::widget(Clone)]
+impl relm::Widget for Widget {
+    fn model(relm: &relm::Relm<Self>, trigger: redpitaya_scpi::trigger::Trigger) -> Model {
+        Self::Model {
+            stream: relm.stream().clone(),
+            trigger,
+            mode: Mode::Normal,
+            edge: None,
+            channel: None,
+        }
+    }
+
+    fn subscriptions(&mut self, relm: &relm::Relm<Self>) {
+        relm::interval(relm.stream(), 1_000, || Signal::InternalTick);
+    }
+
+    fn update(&mut self, event: Signal) {
+        match event {
+            Signal::InternalTick => {
+                match self.model.mode {
+                    Mode::Auto => self.model.stream.emit(Signal::Auto),
+                    Mode::Normal => self.model.stream.emit(Signal::Normal),
+                    Mode::Single => (),
+                };
+            }
+            Signal::Mode(mode) => {
+                self.model.mode = mode;
+
+                match mode {
+                    Mode::Auto => self.single_button.set_visible(false),
+                    Mode::Normal => self.single_button.set_visible(false),
+                    Mode::Single => self.single_button.set_visible(true),
+                };
+            }
+            Signal::Channel(channel) => {
+                self.model.channel = Some(channel);
+                if let Some(source) = self.get_source() {
+                    self.model.stream.emit(Signal::Source(source));
+                    self.model.trigger.enable(source);
+                }
+            }
+            Signal::Edge(edge) => {
+                self.model.edge = Some(edge);
+                if let Some(source) = self.get_source() {
+                    self.model.stream.emit(Signal::Source(source));
+                    self.model.trigger.enable(source);
+                }
+            }
+            Signal::Redraw(ref context, ref model) => self.draw(context, model),
+            _ => (),
+        }
+    }
+
+    view! {
+        #[name="page"]
+        gtk::Box {
+            orientation: gtk::Orientation::Vertical,
+            spacing: 10,
+
+            ChannelWidget(crate::widget::radio::Model {
+                title: "Source".to_string(),
+                options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
+                current: Some(Channel::CH1),
+            }) {
+                Change(channel) => Signal::Channel(channel),
+            },
+            EdgeWidget(crate::widget::radio::Model {
+                title: "Edge".to_string(),
+                options: vec![Edge::Positive, Edge::Negative],
+                current: Some(Edge::Positive),
+            }) {
+                Change(channel) => Signal::Edge(channel),
+            },
+            ModeWidget(crate::widget::radio::Model {
+                title: "Mode".to_string(),
+                options: vec![Mode::Auto, Mode::Normal, Mode::Single],
+                current: Some(self.model.mode),
+            }) {
+                Change(channel) => Signal::Mode(channel),
+            },
+            #[name="single_button"]
+            gtk::Button {
+                child: {
+                    pack_type: gtk::PackType::Start,
+                    expand: false,
+                    fill: false,
+                    padding: 0,
+                },
+                label: "Single",
+
+                clicked(_) => Signal::Single,
+            }
+        },
+    }
 }
 
 impl Widget {
@@ -92,136 +182,3 @@ impl Widget {
         }
     }
 }
-
-impl relm::Update for Widget {
-    type Model = Model;
-    type Msg = Signal;
-    type ModelParam = redpitaya_scpi::trigger::Trigger;
-
-    fn model(_: &relm::Relm<Self>, trigger: Self::ModelParam) -> Self::Model {
-        Self::Model {
-            trigger,
-            mode: Mode::Normal,
-            edge: None,
-            channel: None,
-        }
-    }
-
-    fn update(&mut self, event: Self::Msg) {
-        match event {
-            Signal::InternalTick => {
-                match self.model.mode {
-                    Mode::Auto => self.stream.emit(Signal::Auto),
-                    Mode::Normal => self.stream.emit(Signal::Normal),
-                    Mode::Single => (),
-                };
-            }
-            Signal::Mode(mode) => {
-                self.model.mode = mode;
-
-                match mode {
-                    Mode::Auto => self.single_button.set_visible(false),
-                    Mode::Normal => self.single_button.set_visible(false),
-                    Mode::Single => self.single_button.set_visible(true),
-                };
-            }
-            Signal::Channel(channel) => {
-                self.model.channel = Some(channel);
-                if let Some(source) = self.get_source() {
-                    self.stream.emit(Signal::Source(source));
-                    self.model.trigger.enable(source);
-                }
-            }
-            Signal::Edge(edge) => {
-                self.model.edge = Some(edge);
-                if let Some(source) = self.get_source() {
-                    self.stream.emit(Signal::Source(source));
-                    self.model.trigger.enable(source);
-                }
-            }
-            Signal::Redraw(ref context, ref model) => self.draw(context, model),
-            _ => (),
-        }
-    }
-}
-
-impl relm::Widget for Widget {
-    type Root = gtk::Box;
-
-    fn root(&self) -> Self::Root {
-        self.page.clone()
-    }
-
-    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
-        let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
-
-        let args = crate::widget::radio::Model {
-            title: "Source".to_string(),
-            options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
-            current: Some(Channel::CH1),
-        };
-        let channel = page.add_widget::<crate::widget::RadioGroup<Channel>>(args);
-        relm::connect!(
-            channel@crate::widget::radio::Signal::Change(channel),
-            relm,
-            Signal::Channel(channel)
-        );
-
-        let args = crate::widget::radio::Model {
-            title: "Edge".to_string(),
-            options: vec![Edge::Positive, Edge::Negative],
-            current: Some(Edge::Positive),
-        };
-        let edge = page.add_widget::<crate::widget::RadioGroup<Edge>>(args);
-        relm::connect!(
-            edge@crate::widget::radio::Signal::Change(edge),
-            relm,
-            Signal::Edge(edge)
-        );
-
-        let args = crate::widget::radio::Model {
-            title: "Mode".to_string(),
-            options: vec![Mode::Auto, Mode::Normal, Mode::Single],
-            current: Some(model.mode),
-        };
-        let mode = page.add_widget::<crate::widget::RadioGroup<Mode>>(args);
-        relm::connect!(
-            mode@crate::widget::radio::Signal::Change(mode),
-            relm,
-            Signal::Mode(mode)
-        );
-
-        let single_button = gtk::Button::new_with_label("Single");
-        page.pack_start(&single_button, false, false, 0);
-        relm::connect!(relm, single_button, connect_clicked(_), Signal::Single);
-
-        let stream = relm.stream().clone();
-        GLOBAL.with(move |global| *global.borrow_mut() = Some(stream));
-
-        gtk::timeout_add(1_000, || {
-            GLOBAL.with(|global| {
-                if let Some(ref stream) = *global.borrow() {
-                    stream.emit(Signal::InternalTick);
-                }
-            });
-
-            glib::Continue(true)
-        });
-
-        let stream = relm.stream().clone();
-
-        Widget {
-            model,
-            page,
-            single_button,
-            stream,
-            mode,
-            channel,
-            edge,
-        }
-    }
-}
-
-thread_local!(
-    static GLOBAL: std::cell::RefCell<Option<relm::EventStream<Signal>>> = std::cell::RefCell::new(None)
-);

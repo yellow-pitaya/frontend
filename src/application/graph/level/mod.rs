@@ -43,6 +43,7 @@ pub struct Widget {
     drawing_area: gtk::DrawingArea,
 }
 
+// https://github.com/antoyo/relm/issues/42
 impl Widget {
     fn start(&mut self, name: String) {
         if self.model.levels.get(&name).is_none() {

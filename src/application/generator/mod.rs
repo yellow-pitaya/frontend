@@ -1,7 +1,7 @@
 mod output;
 
 use gtk::prelude::*;
-use output::Signal::{Amplitude, DutyCycle, Form, Frequency, Offset, Start, Stop};
+use output::Signal::*;
 use output::Widget as OutputWidget;
 
 #[derive(relm_derive::Msg, Clone)]

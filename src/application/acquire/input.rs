@@ -1,5 +1,11 @@
 use crate::color::Colorable;
-use relm::ContainerWidget;
+use crate::widget::palette::Signal::*;
+use crate::widget::radio::Signal::*;
+use crate::widget::Palette;
+use gtk::prelude::*;
+
+type GainWidget = crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>;
+type AttenuationWidget = crate::widget::RadioGroup<u8>;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -35,13 +41,69 @@ impl Model {
     }
 }
 
-#[derive(Clone)]
-pub struct Widget {
-    model: Model,
-    stream: relm::EventStream<<Self as relm::Update>::Msg>,
-    page: gtk::Box,
-    palette: relm::ContainerComponent<crate::widget::Palette>,
-    attenuation: relm::Component<crate::widget::RadioGroup<u8>>,
+#[relm_derive::widget(Clone)]
+impl relm::Widget for Widget {
+    fn model(_: &relm::Relm<Self>, model: Model) -> Model {
+        model
+    }
+
+    fn update(&mut self, event: Signal) {
+        match event {
+            Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
+            Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
+            Signal::Redraw(context, model) => self.draw(&context, &model),
+            Signal::SetData(data) => self.model.data = data,
+            Signal::Start => self.model.started = true,
+            Signal::Stop => self.model.started = false,
+        };
+    }
+
+    fn init_view(&mut self) {
+        self.palette
+            .emit(crate::widget::palette::Signal::SetLabel(format!(
+                "{}",
+                self.model.source
+            )));
+        self.palette.emit(crate::widget::palette::Signal::SetColor(
+            self.model.source.into(),
+        ));
+    }
+
+    view! {
+        #[name="page"]
+        gtk::Box {
+            orientation: gtk::Orientation::Vertical,
+            spacing: 10,
+            #[name="palette"]
+            Palette {
+                Expand => Signal::Start,
+                Fold => Signal::Stop,
+
+                gtk::Box {
+                    orientation: gtk::Orientation::Vertical,
+                    spacing: 10,
+
+                    GainWidget(crate::widget::radio::Model {
+                        title: "Gain".to_string(),
+                        options: vec![
+                            redpitaya_scpi::acquire::Gain::LV,
+                            redpitaya_scpi::acquire::Gain::HV,
+                        ],
+                        current: self.model.acquire.get_gain(self.model.source).ok(),
+                    }) {
+                        Change(gain) => Signal::Gain(gain),
+                    },
+                    AttenuationWidget(crate::widget::radio::Model {
+                        title: "Probe attenuation".to_string(),
+                        options: vec![1, 10, 100],
+                        current: Some(1),
+                    }) {
+                        Change(attenuation) => Signal::Attenuation(attenuation),
+                    },
+                },
+            },
+        },
+    }
 }
 
 impl Widget {
@@ -80,88 +142,5 @@ impl Widget {
             context.move_to(x, y * attenuation as f64);
         }
         context.stroke();
-    }
-}
-
-impl relm::Update for Widget {
-    type Model = Model;
-    type Msg = Signal;
-    type ModelParam = Model;
-
-    fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
-        model
-    }
-
-    fn update(&mut self, event: Self::Msg) {
-        match event {
-            Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
-            Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
-            Signal::Redraw(context, model) => self.draw(&context, &model),
-            Signal::SetData(data) => self.model.data = data,
-            Signal::Start => self.model.started = true,
-            Signal::Stop => self.model.started = false,
-        };
-    }
-}
-
-impl relm::Widget for Widget {
-    type Root = gtk::Box;
-
-    fn root(&self) -> Self::Root {
-        self.page.clone()
-    }
-
-    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
-        let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
-
-        let palette = page.add_container::<crate::widget::Palette>(());
-        palette.emit(crate::widget::palette::Signal::SetLabel(format!(
-            "{}",
-            model.source
-        )));
-        palette.emit(crate::widget::palette::Signal::SetColor(
-            model.source.into(),
-        ));
-        relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
-        relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
-
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-        palette.add(&vbox);
-
-        let args = crate::widget::radio::Model {
-            title: "Gain".to_string(),
-            options: vec![
-                redpitaya_scpi::acquire::Gain::LV,
-                redpitaya_scpi::acquire::Gain::HV,
-            ],
-            current: model.acquire.get_gain(model.source).ok(),
-        };
-        let gain =
-            vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>(args);
-        relm::connect!(
-            gain@crate::widget::radio::Signal::Change(gain),
-            relm,
-            Signal::Gain(gain)
-        );
-
-        let args = crate::widget::radio::Model {
-            title: "Probe attenuation".to_string(),
-            options: vec![1, 10, 100],
-            current: Some(1),
-        };
-        let attenuation = vbox.add_widget::<crate::widget::RadioGroup<u8>>(args);
-        relm::connect!(
-            attenuation@crate::widget::radio::Signal::Change(attenuation),
-            relm,
-            Signal::Attenuation(attenuation)
-        );
-
-        Widget {
-            model,
-            page,
-            palette,
-            stream: relm.stream().clone(),
-            attenuation,
-        }
     }
 }
