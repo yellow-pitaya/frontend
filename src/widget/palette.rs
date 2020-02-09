@@ -8,7 +8,7 @@ pub enum Signal {
     SetLabel(String),
 }
 
-#[relm_derive::widget]
+#[relm_derive::widget(Clone)]
 impl relm::Widget for Palette {
     fn model(_: ()) {}
 
@@ -63,17 +63,5 @@ impl crate::color::Colorable for Palette {
         let context = self.border.get_style_context();
 
         context.add_class(&format!("color-{}", color.name));
-    }
-}
-
-impl Clone for Palette {
-    fn clone(&self) -> Self {
-        Self {
-            border: self.border.clone(),
-            gtkbox7: self.gtkbox7.clone(),
-            model: self.model,
-            parent: self.parent.clone(),
-            toggle: self.toggle.clone(),
-        }
     }
 }

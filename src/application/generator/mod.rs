@@ -4,7 +4,6 @@ use gtk::{BoxExt, OrientableExt};
 use output::Model as OutputModel;
 use output::Signal::{Amplitude, DutyCycle, Form, Frequency, Offset, Start, Stop};
 use output::Widget as OutputWidget;
-use relm_derive::widget;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -21,7 +20,7 @@ pub enum Signal {
     Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
-#[widget]
+#[relm_derive::widget(clone)]
 impl relm::Widget for Widget {
     fn model(
         generator: redpitaya_scpi::generator::Generator,
@@ -80,16 +79,5 @@ impl Widget {
         self.out2
             .emit(output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
-    }
-}
-
-impl Clone for Widget {
-    fn clone(&self) -> Self {
-        Self {
-            gtkbox1: self.gtkbox1.clone(),
-            model: self.model.clone(),
-            out1: self.out1.clone(),
-            out2: self.out2.clone(),
-        }
     }
 }

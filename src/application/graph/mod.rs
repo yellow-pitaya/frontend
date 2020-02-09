@@ -82,7 +82,7 @@ impl Widget {
     }
 }
 
-#[relm_derive::widget]
+#[relm_derive::widget(Clone)]
 impl relm::Widget for Widget {
     fn model(_: ()) {}
 
@@ -181,20 +181,5 @@ impl relm::Widget for Widget {
             },
             size_allocate(_, allocation) => Signal::Resize(allocation.width, allocation.height),
         },
-    }
-}
-
-impl Clone for Widget {
-    fn clone(&self) -> Self {
-        Self {
-            drawing_area: self.drawing_area.clone(),
-            gtkbox5: self.gtkbox5.clone(),
-            level_left: self.level_left.clone(),
-            level_right: self.level_right.clone(),
-            level_top: self.level_top.clone(),
-            model: self.model,
-            _placeholder1: self._placeholder1.clone(),
-            _placeholder2: self._placeholder2.clone(),
-        }
     }
 }

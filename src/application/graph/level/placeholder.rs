@@ -6,7 +6,7 @@ pub enum Signal {
     Draw,
 }
 
-#[relm_derive::widget]
+#[relm_derive::widget(Clone)]
 impl relm::Widget for Widget {
     fn model(_: ()) {}
 
@@ -30,14 +30,5 @@ impl relm::Widget for Widget {
 
     fn init_view(&mut self) {
         self.drawing_area.set_size_request(20, 20);
-    }
-}
-
-impl Clone for Widget {
-    fn clone(&self) -> Self {
-        Self {
-            drawing_area: self.drawing_area.clone(),
-            model: self.model,
-        }
     }
 }

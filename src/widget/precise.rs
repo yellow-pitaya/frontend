@@ -16,7 +16,7 @@ pub enum Signal {
     SetNoShowAll(bool),
 }
 
-#[relm_derive::widget]
+#[relm_derive::widget(Clone)]
 impl relm::Widget for PreciseScale {
     fn model(_: ()) {}
 
@@ -105,17 +105,5 @@ impl PreciseScale {
 
     pub fn set_no_show_all(&self, no_show_all: bool) {
         self.frame.set_no_show_all(no_show_all);
-    }
-}
-
-impl Clone for PreciseScale {
-    fn clone(&self) -> Self {
-        Self {
-            frame: self.frame.clone(),
-            model: self.model,
-            scale: self.scale.clone(),
-            spin: self.spin.clone(),
-            toggle: self.toggle.clone(),
-        }
     }
 }
