@@ -21,7 +21,12 @@ macro_rules! redraw {
         $self.transform($self.model.scales, &context, $image.get_width() as f64, $image.get_height() as f64);
         context.set_line_width(0.01);
 
-        $self.$widget.emit($widget::Signal::Redraw(context.clone(), $self.model.clone()));
+        $self.$widget.emit(
+            $widget::Signal::Redraw(
+                Box::new(context.clone()),
+                Box::new($self.model.clone())
+            )
+        );
     }
 }
 
@@ -50,7 +55,7 @@ impl Model {
     pub fn offset<D>(&self, channel: D) -> f64 where D: std::fmt::Display {
         let channel = format!("{}", channel);
 
-        let level = match self.levels.get(&channel) {
+        match self.levels.get(&channel) {
             Some(level) => if channel == "DELAY" {
                 self.scales.x_to_offset(*level)
             }
@@ -58,9 +63,7 @@ impl Model {
                 self.scales.y_to_offset(*level)
             },
             None => 0.0,
-        };
-
-        level
+        }
     }
 }
 
@@ -139,9 +142,9 @@ impl relm::Update for Widget {
         scales.from_sampling_rate(rate);
 
         Model {
-            rate: rate,
-            redpitaya: redpitaya,
-            scales: scales,
+            rate,
+            redpitaya,
+            scales,
             levels: std::collections::HashMap::new(),
         }
     }
@@ -280,12 +283,12 @@ impl relm::Widget for Widget {
         Widget {
             relm: relm.clone(),
             model,
-            window: window,
-            graph: graph,
-            status_bar: status_bar,
-            acquire: acquire,
-            generator: generator,
-            trigger: trigger,
+            window,
+            graph,
+            status_bar,
+            acquire,
+            generator,
+            trigger,
         }
     }
 

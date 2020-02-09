@@ -7,10 +7,10 @@ pub enum Mode {
 
 impl std::fmt::Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let display = match self {
-            &Mode::Auto => "Auto",
-            &Mode::Normal => "Normal",
-            &Mode::Single => "Single",
+        let display = match *self {
+            Self::Auto => "Auto",
+            Self::Normal => "Normal",
+            Self::Single => "Single",
         };
 
         write!(f, "{}", display)

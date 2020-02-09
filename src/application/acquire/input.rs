@@ -8,7 +8,7 @@ pub enum Signal {
     SetData(Vec<f64>),
     Start,
     Stop,
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
 #[derive(Clone)]

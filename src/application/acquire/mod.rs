@@ -18,7 +18,7 @@ pub enum Signal {
     SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
     Start(redpitaya_scpi::acquire::Source),
     Stop(redpitaya_scpi::acquire::Source),
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
 #[derive(Clone)]
@@ -128,7 +128,7 @@ impl relm::Widget for Widget {
 }
 
 impl Widget {
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
         self.in1.emit(InputSignal::Redraw(context.clone(), model.clone()));
         context.restore();

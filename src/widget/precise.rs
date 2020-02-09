@@ -28,7 +28,7 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for PreciseScale {
-    fn model(_: ()) -> () {
+    fn model(_: ()) {
     }
 
     fn update(&mut self, event: Signal) {
@@ -127,7 +127,7 @@ impl Clone for PreciseScale {
     fn clone(&self) -> Self {
         Self {
             frame: self.frame.clone(),
-            model: self.model.clone(),
+            model: self.model,
             scale: self.scale.clone(),
             spin: self.spin.clone(),
             toggle: self.toggle.clone(),

@@ -11,7 +11,7 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for Widget {
-    fn model(_: ()) -> () {
+    fn model(_: ()) {
     }
 
     fn update(&mut self, signal: Signal) {
@@ -41,7 +41,7 @@ impl Clone for Widget {
     fn clone(&self) -> Self {
         Self {
             drawing_area: self.drawing_area.clone(),
-            model: self.model.clone(),
+            model: self.model,
         }
     }
 }

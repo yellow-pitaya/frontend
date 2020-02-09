@@ -111,7 +111,7 @@ impl Widget {
         context.fill();
 
         for (name, level) in &self.model.levels {
-            if level.enable == false {
+            if !level.enable {
                 continue;
             }
 
@@ -160,7 +160,7 @@ impl Widget {
 
     fn find_level(&self, offset: i32) -> Option<String> {
         for (name, level) in &self.model.levels {
-            if level.enable == false {
+            if !level.enable {
                 continue;
             }
 
@@ -216,7 +216,7 @@ impl relm::Update for Widget {
     fn model(_: &relm::Relm<Self>, orientation: Orientation) -> Self::Model {
         Model {
             current: None,
-            orientation: orientation,
+            orientation,
             levels: std::collections::HashMap::new(),
         }
     }

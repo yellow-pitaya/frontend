@@ -17,7 +17,7 @@ pub enum Signal {
 
 #[relm_derive::widget]
 impl relm::Widget for Palette {
-    fn model(_: ()) -> () {
+    fn model(_: ()) {
     }
 
     fn update(&mut self, event: Signal) {
@@ -79,7 +79,7 @@ impl Clone for Palette {
         Self {
             border: self.border.clone(),
             gtkbox7: self.gtkbox7.clone(),
-            model: self.model.clone(),
+            model: self.model,
             parent: self.parent.clone(),
             toggle: self.toggle.clone(),
         }

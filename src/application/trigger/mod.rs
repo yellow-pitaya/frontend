@@ -24,7 +24,7 @@ pub enum Signal {
     Source(redpitaya_scpi::trigger::Source),
     Edge(Edge),
     InternalTick,
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
 #[derive(Clone)]

@@ -16,7 +16,7 @@ pub enum Signal {
     Invalidate,
     Draw,
     Level(String, i32),
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
     Resize(i32, i32),
     SetImage(cairo::ImageSurface),
     SourceStart(level::Orientation, String),
@@ -93,7 +93,7 @@ impl Widget {
 
 #[relm_derive::widget]
 impl relm::Widget for Widget {
-    fn model(_: ()) -> () {
+    fn model(_: ()) {
     }
 
     fn update(&mut self, event: Signal) {
@@ -196,7 +196,7 @@ impl Clone for Widget {
             level_left: self.level_left.clone(),
             level_right: self.level_right.clone(),
             level_top: self.level_top.clone(),
-            model: self.model.clone(),
+            model: self.model,
             _placeholder1: self._placeholder1.clone(),
             _placeholder2: self._placeholder2.clone(),
         }

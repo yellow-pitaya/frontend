@@ -6,9 +6,9 @@ pub enum Edge {
 
 impl std::fmt::Display for Edge {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let display = match self {
-            &Edge::Positive => "Positive",
-            &Edge::Negative => "Negative",
+        let display = match *self {
+            Self::Positive => "Positive",
+            Self::Negative => "Negative",
         };
 
         write!(f, "{}", display)

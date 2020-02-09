@@ -27,7 +27,7 @@ pub enum Signal {
     Form(redpitaya_scpi::generator::Source, redpitaya_scpi::generator::Form),
     Start(redpitaya_scpi::generator::Source),
     Stop(redpitaya_scpi::generator::Source),
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
 }
 
 #[widget]
@@ -78,7 +78,7 @@ impl relm::Widget for Widget {
 }
 
 impl Widget {
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
         self.out1.emit(output::Signal::Redraw(context.clone(), model.clone()));
         context.restore();

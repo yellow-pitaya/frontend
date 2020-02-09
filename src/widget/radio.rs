@@ -111,8 +111,8 @@ impl<T> relm::Widget for RadioGroup<T>
         }
 
         RadioGroup {
-            frame: frame,
-            radio: radio,
+            frame,
+            radio,
             phantom: std::marker::PhantomData,
         }
     }

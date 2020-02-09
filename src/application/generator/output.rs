@@ -8,7 +8,7 @@ pub enum Signal {
     Frequency(u32),
     Offset(f32),
     Form(redpitaya_scpi::generator::Form),
-    Redraw(cairo::Context, crate::application::Model),
+    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
     Start,
     Stop,
 }
