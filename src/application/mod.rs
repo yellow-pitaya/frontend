@@ -282,13 +282,13 @@ impl relm::Widget for Widget {
         relm::connect!(trigger@trigger::Signal::Normal, relm, Signal::TriggerNormal);
         relm::connect!(trigger@trigger::Signal::Single, relm, Signal::TriggerSingle);
 
-        relm::connect!(trigger@trigger::Signal::Auto, graph, graph::Signal::SourceStop(graph::level::Orientation::Right, "TRIG".to_owned()));
-        relm::connect!(trigger@trigger::Signal::Normal, graph, graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_owned()));
-        relm::connect!(trigger@trigger::Signal::Single, graph, graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_owned()));
+        relm::connect!(trigger@trigger::Signal::Auto, graph, graph::Signal::SourceStop(graph::level::Orientation::Right, "TRIG".to_string()));
+        relm::connect!(trigger@trigger::Signal::Normal, graph, graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()));
+        relm::connect!(trigger@trigger::Signal::Single, graph, graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()));
 
-        relm::connect!(trigger@trigger::Signal::Auto, graph, graph::Signal::SourceStop(graph::level::Orientation::Top, "DELAY".to_owned()));
-        relm::connect!(trigger@trigger::Signal::Normal, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_owned()));
-        relm::connect!(trigger@trigger::Signal::Single, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_owned()));
+        relm::connect!(trigger@trigger::Signal::Auto, graph, graph::Signal::SourceStop(graph::level::Orientation::Top, "DELAY".to_string()));
+        relm::connect!(trigger@trigger::Signal::Normal, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()));
+        relm::connect!(trigger@trigger::Signal::Single, graph, graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()));
 
         notebook.append_page(&trigger_page, Some(&gtk::Label::new(Some("Trigger"))));
 
