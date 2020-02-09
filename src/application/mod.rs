@@ -290,6 +290,8 @@ impl relm::Widget for Widget {
     }
 
     fn init_view(&mut self) {
+        crate::color::Color::init();
+
         self.model.redpitaya.data.set_units(redpitaya_scpi::data::Unit::VOLTS);
 
         self.window.show_all();

@@ -1,5 +1,6 @@
 #[derive(Clone)]
 pub struct Color {
+    pub name: &'static str,
     pub r: f64,
     pub g: f64,
     pub b: f64,
@@ -37,14 +38,103 @@ impl std::convert::Into<Color> for String {
     }
 }
 
-pub const BACKGROUND: Color = Color { r: 0.0, g:0.0, b: 0.0, a: 1.0 };
-pub const MAIN_SCALE: Color = Color { r: 1.0, g:1.0, b: 1.0, a: 1.0 };
-pub const SECONDARY_SCALE: Color = Color { r: 1.0, g:1.0, b: 1.0, a: 0.2 };
-pub const IN1: Color = Color { r: 1.0, g:1.0, b: 0.0, a: 1.0 };
-pub const IN2: Color = Color { r: 0.0, g:1.0, b: 0.0, a: 1.0 };
-pub const OUT1: Color = Color { r: 1.0, g:0.0, b: 1.0, a: 1.0 };
-pub const OUT2: Color = Color { r: 1.0, g:0.0, b: 0.0, a: 1.0 };
-pub const TRIGGER: Color = Color { r: 1.0, g:0.5, b: 0.0, a: 1.0 };
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            ".color-{} {{ background-color: rgba({}, {}, {}, {}); }}",
+            self.name, self.r * 255., self.g * 255., self.b * 255., self.a * 255.
+        )
+    }
+}
+
+pub const BACKGROUND: Color = Color {
+    name: "background",
+    r: 0.0,
+    g:0.0,
+    b: 0.0,
+    a: 1.0,
+};
+
+pub const MAIN_SCALE: Color = Color {
+    name: "main_scale",
+    r: 1.0,
+    g:1.0,
+    b: 1.0,
+    a: 1.0,
+};
+
+pub const SECONDARY_SCALE: Color = Color {
+    name: "secondary_scale",
+    r: 1.0,
+    g:1.0,
+    b: 1.0,
+    a: 0.2,
+};
+
+pub const IN1: Color = Color {
+    name: "in1",
+    r: 1.0,
+    g:1.0,
+    b: 0.0,
+    a: 1.0,
+};
+
+pub const IN2: Color = Color {
+    name: "in2",
+    r: 0.0,
+    g:1.0,
+    b: 0.0,
+    a: 1.0,
+};
+
+pub const OUT1: Color = Color {
+    name: "out1",
+    r: 1.0,
+    g:0.0,
+    b: 1.0,
+    a: 1.0
+};
+
+pub const OUT2: Color = Color {
+    name: "out2",
+    r: 1.0,
+    g:0.0,
+    b: 0.0,
+    a: 1.0,
+};
+
+pub const TRIGGER: Color = Color {
+    name: "trigger",
+    r: 1.0,
+    g:0.5,
+    b: 0.0,
+    a: 1.0,
+};
+
+impl Color {
+    pub fn init() {
+        use gtk::CssProviderExt;
+
+        let colors = [BACKGROUND, MAIN_SCALE, SECONDARY_SCALE, IN1, IN2, OUT1, OUT2, TRIGGER];
+        let mut styles = String::new();
+
+        for color in &colors {
+            styles.push_str(&format!("{}", color));
+        }
+
+        let provider = gtk::CssProvider::new();
+
+        provider.load_from_data(styles.as_bytes())
+            .expect("Failed to load CSS");
+
+        gtk::StyleContext::add_provider_for_screen(
+            &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+}
 
 pub trait Colorable {
     fn set_color(&self, color: Color);

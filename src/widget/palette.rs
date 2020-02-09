@@ -21,6 +21,8 @@ impl relm::Widget for Palette {
     }
 
     fn update(&mut self, event: Signal) {
+        use crate::color::Colorable;
+
         match event {
             Signal::Expand => {
                 self.parent.set_no_show_all(false);
@@ -60,19 +62,15 @@ impl Palette {
     pub fn set_label(&self, label: &str) {
         self.toggle.set_label(label);
     }
+}
 
-    pub fn set_color(&self, color: crate::color::Color) {
-        let color = gdk::RGBA {
-            alpha: 1.,
-            red: color.r,
-            green: color.g,
-            blue: color.b,
-        };
+impl crate::color::Colorable for Palette {
+    fn set_color(&self, color: crate::color::Color) {
+        use gtk::StyleContextExt;
 
-        self.border.override_color(
-            gtk::StateFlags::NORMAL,
-            Some(&color)
-        );
+        let context = self.border.get_style_context();
+
+        context.add_class(&format!("color-{}", color.name));
     }
 }
 
