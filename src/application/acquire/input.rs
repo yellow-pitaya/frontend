@@ -40,7 +40,7 @@ pub struct Widget {
     model: Model,
     stream: relm::EventStream<<Self as relm::Update>::Msg>,
     page: gtk::Box,
-    palette: relm::Component<crate::widget::Palette>,
+    palette: relm::ContainerComponent<crate::widget::Palette>,
     attenuation: relm::Component<crate::widget::RadioGroup<u8>>,
 }
 
@@ -114,7 +114,7 @@ impl relm::Widget for Widget {
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
         let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
-        let palette = page.add_widget::<crate::widget::Palette>(());
+        let palette = page.add_container::<crate::widget::Palette>(());
         palette.emit(crate::widget::palette::Signal::SetLabel(format!(
             "{}",
             model.source
@@ -125,9 +125,8 @@ impl relm::Widget for Widget {
         relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
         relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
 
-        use gtk::ContainerExt;
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-        palette.widget().add(&vbox);
+        palette.add(&vbox);
 
         let args = crate::widget::radio::Model {
             title: "Gain".to_string(),

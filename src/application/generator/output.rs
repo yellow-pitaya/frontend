@@ -35,7 +35,7 @@ impl Model {
 pub struct Widget {
     model: Model,
     page: gtk::Box,
-    palette: relm::Component<crate::widget::Palette>,
+    palette: relm::ContainerComponent<crate::widget::Palette>,
     amplitude: relm::Component<crate::widget::PreciseScale>,
     form: relm::Component<crate::widget::RadioGroup<redpitaya_scpi::generator::Form>>,
     offset: relm::Component<crate::widget::PreciseScale>,
@@ -210,7 +210,7 @@ impl relm::Widget for Widget {
 
         let page = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
-        let palette = page.add_widget::<crate::widget::Palette>(());
+        let palette = page.add_container::<crate::widget::Palette>(());
         palette.emit(crate::widget::palette::Signal::SetLabel(format!(
             "{}",
             model.source
@@ -221,10 +221,8 @@ impl relm::Widget for Widget {
         relm::connect!(palette@crate::widget::palette::Signal::Expand, relm, Signal::Start);
         relm::connect!(palette@crate::widget::palette::Signal::Fold, relm, Signal::Stop);
 
-        use gtk::ContainerExt;
-
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-        palette.widget().add(&vbox);
+        palette.add(&vbox);
 
         let args = crate::widget::radio::Model {
             title: "Form".to_string(),

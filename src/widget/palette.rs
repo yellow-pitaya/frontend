@@ -42,6 +42,7 @@ impl relm::Widget for Palette {
                 },
             },
             #[name="parent"]
+            #[container]
             gtk::Box {
                 orientation: gtk::Orientation::Vertical,
                 no_show_all: true,
