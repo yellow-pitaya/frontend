@@ -54,6 +54,10 @@ impl Widget {
     fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) {
         let data = self.data.borrow();
 
+        if data.is_empty() {
+            return;
+        }
+
         context.set_line_width(0.05);
 
         for sample in 0..scales.n_samples {
