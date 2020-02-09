@@ -1,7 +1,6 @@
 mod output;
 
 use gtk::prelude::*;
-use output::Model as OutputModel;
 use output::Signal::{Amplitude, DutyCycle, Form, Frequency, Offset, Start, Stop};
 use output::Widget as OutputWidget;
 
@@ -40,7 +39,7 @@ impl relm::Widget for Widget {
             orientation: gtk::Orientation::Vertical,
             spacing: 10,
             #[name="out1"]
-            OutputWidget(OutputModel {
+            OutputWidget(output::Model {
                 source: redpitaya_scpi::generator::Source::OUT1,
                 generator: self.model.clone(),
             }) {
@@ -53,7 +52,7 @@ impl relm::Widget for Widget {
                 Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT1),
             },
             #[name="out2"]
-            OutputWidget(OutputModel {
+            OutputWidget(output::Model {
                 source: redpitaya_scpi::generator::Source::OUT2,
                 generator: self.model.clone(),
             }) {

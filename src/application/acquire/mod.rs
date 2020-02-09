@@ -1,8 +1,5 @@
 mod input;
 
-use input::Model as InputModel;
-use input::Signal as InputSignal;
-use input::Widget as InputWidget;
 use gtk::prelude::*;
 use relm::ContainerWidget;
 
@@ -25,8 +22,8 @@ pub enum Signal {
 pub struct Widget {
     model: redpitaya_scpi::acquire::Acquire,
     vbox: gtk::Box,
-    in1: relm::Component<InputWidget>,
-    in2: relm::Component<InputWidget>,
+    in1: relm::Component<input::Widget>,
+    in2: relm::Component<input::Widget>,
     rate: relm::Component<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>,
     average: gtk::CheckButton,
 }
@@ -100,27 +97,27 @@ impl relm::Widget for Widget {
             Signal::Average(w.get_active())
         );
 
-        let in1 = vbox.add_widget::<InputWidget>(InputModel {
+        let in1 = vbox.add_widget::<input::Widget>(input::Model {
             attenuation: 1,
             started: false,
             source: redpitaya_scpi::acquire::Source::IN1,
             acquire: model.clone(),
         });
-        relm::connect!(in1@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation));
-        relm::connect!(in1@InputSignal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain));
-        relm::connect!(in1@InputSignal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN1));
-        relm::connect!(in1@InputSignal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN1));
+        relm::connect!(in1@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation));
+        relm::connect!(in1@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain));
+        relm::connect!(in1@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN1));
+        relm::connect!(in1@input::Signal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN1));
 
-        let in2 = vbox.add_widget::<InputWidget>(InputModel {
+        let in2 = vbox.add_widget::<input::Widget>(input::Model {
             attenuation: 1,
             started: false,
             source: redpitaya_scpi::acquire::Source::IN2,
             acquire: model.clone(),
         });
-        relm::connect!(in2@InputSignal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation));
-        relm::connect!(in2@InputSignal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain));
-        relm::connect!(in2@InputSignal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN2));
-        relm::connect!(in2@InputSignal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN2));
+        relm::connect!(in2@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation));
+        relm::connect!(in2@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain));
+        relm::connect!(in2@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN2));
+        relm::connect!(in2@input::Signal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN2));
 
         Widget {
             model,
@@ -137,11 +134,11 @@ impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
         self.in1
-            .emit(InputSignal::Redraw(context.clone(), model.clone()));
+            .emit(input::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
         self.in2
-            .emit(InputSignal::Redraw(context.clone(), model.clone()));
+            .emit(input::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
     }
 
@@ -149,7 +146,10 @@ impl Widget {
         self.get_input(source).emit(input::Signal::SetData(data));
     }
 
-    fn get_input(&self, source: redpitaya_scpi::acquire::Source) -> &relm::Component<InputWidget> {
+    fn get_input(
+        &self,
+        source: redpitaya_scpi::acquire::Source,
+    ) -> &relm::Component<input::Widget> {
         match source {
             redpitaya_scpi::acquire::Source::IN1 => &self.in1,
             redpitaya_scpi::acquire::Source::IN2 => &self.in2,
