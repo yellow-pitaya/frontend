@@ -134,10 +134,7 @@ impl relm::Widget for Widget {
                 redpitaya_scpi::acquire::Gain::LV,
                 redpitaya_scpi::acquire::Gain::HV,
             ],
-            current: match model.acquire.get_gain(model.source) {
-                Ok(gain) => Some(gain),
-                Err(_) => None,
-            },
+            current: model.acquire.get_gain(model.source).ok(),
         };
         let gain =
             vbox.add_widget::<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>(args);

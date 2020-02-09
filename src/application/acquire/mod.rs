@@ -75,7 +75,7 @@ impl relm::Widget for Widget {
                 redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
             ],
             current: match model.get_decimation() {
-                Ok(sampling_rate) => Some(sampling_rate.into()),
+                Ok(decimation) => Some(decimation.into()),
                 Err(_) => None,
             },
         };
