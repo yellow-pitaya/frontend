@@ -1,11 +1,11 @@
 mod output;
 
 use gtk::prelude::*;
-use output::Signal::*;
+use output::Msg::*;
 use output::Widget as OutputWidget;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Amplitude(redpitaya_scpi::generator::Source, f32),
     DutyCycle(redpitaya_scpi::generator::Source, f32),
     Frequency(redpitaya_scpi::generator::Source, u32),
@@ -27,9 +27,9 @@ impl relm::Widget for Widget {
         generator
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Signal::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         }
     }
@@ -40,23 +40,23 @@ impl relm::Widget for Widget {
             spacing: 10,
             #[name="out1"]
             OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT1)) {
-                Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT1, amplitude),
-                DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT1, duty_cycle),
-                Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT1, frequency),
-                Offset(offset) => Signal::Offset(redpitaya_scpi::generator::Source::OUT1, offset),
-                Form(form) => Signal::Form(redpitaya_scpi::generator::Source::OUT1, form),
-                Start => Signal::Start(redpitaya_scpi::generator::Source::OUT1),
-                Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT1),
+                Amplitude(amplitude) => Msg::Amplitude(redpitaya_scpi::generator::Source::OUT1, amplitude),
+                DutyCycle(duty_cycle) => Msg::DutyCycle(redpitaya_scpi::generator::Source::OUT1, duty_cycle),
+                Frequency(frequency) => Msg::Frequency(redpitaya_scpi::generator::Source::OUT1, frequency),
+                Offset(offset) => Msg::Offset(redpitaya_scpi::generator::Source::OUT1, offset),
+                Form(form) => Msg::Form(redpitaya_scpi::generator::Source::OUT1, form),
+                Start => Msg::Start(redpitaya_scpi::generator::Source::OUT1),
+                Stop => Msg::Stop(redpitaya_scpi::generator::Source::OUT1),
             },
             #[name="out2"]
             OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT2)) {
-                Amplitude(amplitude) => Signal::Amplitude(redpitaya_scpi::generator::Source::OUT2, amplitude),
-                DutyCycle(duty_cycle) => Signal::DutyCycle(redpitaya_scpi::generator::Source::OUT2, duty_cycle),
-                Frequency(frequency) => Signal::Frequency(redpitaya_scpi::generator::Source::OUT2, frequency),
-                Offset(offset) => Signal::Offset(redpitaya_scpi::generator::Source::OUT2, offset),
-                Form(form) => Signal::Form(redpitaya_scpi::generator::Source::OUT2, form),
-                Start => Signal::Start(redpitaya_scpi::generator::Source::OUT2),
-                Stop => Signal::Stop(redpitaya_scpi::generator::Source::OUT2),
+                Amplitude(amplitude) => Msg::Amplitude(redpitaya_scpi::generator::Source::OUT2, amplitude),
+                DutyCycle(duty_cycle) => Msg::DutyCycle(redpitaya_scpi::generator::Source::OUT2, duty_cycle),
+                Frequency(frequency) => Msg::Frequency(redpitaya_scpi::generator::Source::OUT2, frequency),
+                Offset(offset) => Msg::Offset(redpitaya_scpi::generator::Source::OUT2, offset),
+                Form(form) => Msg::Form(redpitaya_scpi::generator::Source::OUT2, form),
+                Start => Msg::Start(redpitaya_scpi::generator::Source::OUT2),
+                Stop => Msg::Stop(redpitaya_scpi::generator::Source::OUT2),
             },
         },
     }
@@ -66,11 +66,11 @@ impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
         self.out1
-            .emit(output::Signal::Redraw(context.clone(), model.clone()));
+            .emit(output::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
         self.out2
-            .emit(output::Signal::Redraw(context.clone(), model.clone()));
+            .emit(output::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
     }
 }

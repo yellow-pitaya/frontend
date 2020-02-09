@@ -3,11 +3,11 @@ pub mod level;
 use crate::color::Colorable;
 use gtk::prelude::*;
 use level::placeholder::Widget as Placeholder;
-use level::Signal::Level as LevelSignal;
+use level::Msg::Level as LevelMsg;
 use level::Widget as LevelWidget;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Invalidate,
     Draw,
     Level(String, i32),
@@ -54,8 +54,8 @@ impl Widget {
             context.stroke();
         }
 
-        self.level_left.emit(level::Signal::Invalidate);
-        self.level_right.emit(level::Signal::Invalidate);
+        self.level_left.emit(level::Msg::Invalidate);
+        self.level_right.emit(level::Msg::Invalidate);
     }
 
     fn get_width(&self) -> f64 {
@@ -77,8 +77,8 @@ impl Widget {
         self.drawing_area
             .queue_draw_area(0, 0, self.get_width() as i32, self.get_height() as i32);
 
-        self.level_left.emit(level::Signal::Invalidate);
-        self.level_right.emit(level::Signal::Invalidate);
+        self.level_left.emit(level::Msg::Invalidate);
+        self.level_right.emit(level::Msg::Invalidate);
     }
 }
 
@@ -86,27 +86,27 @@ impl Widget {
 impl relm::Widget for Widget {
     fn model(_: ()) {}
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Signal::Invalidate => self.invalidate(),
-            Signal::SourceStart(orientation, source) => match orientation {
+            Msg::Invalidate => self.invalidate(),
+            Msg::SourceStart(orientation, source) => match orientation {
                 level::Orientation::Left => {
-                    self.level_left.emit(level::Signal::SourceStart(source))
+                    self.level_left.emit(level::Msg::SourceStart(source))
                 }
                 level::Orientation::Right => {
-                    self.level_right.emit(level::Signal::SourceStart(source))
+                    self.level_right.emit(level::Msg::SourceStart(source))
                 }
-                level::Orientation::Top => self.level_top.emit(level::Signal::SourceStart(source)),
+                level::Orientation::Top => self.level_top.emit(level::Msg::SourceStart(source)),
             },
-            Signal::SourceStop(orientation, source) => match orientation {
-                level::Orientation::Left => self.level_left.emit(level::Signal::SourceStop(source)),
+            Msg::SourceStop(orientation, source) => match orientation {
+                level::Orientation::Left => self.level_left.emit(level::Msg::SourceStop(source)),
                 level::Orientation::Right => {
-                    self.level_right.emit(level::Signal::SourceStop(source))
+                    self.level_right.emit(level::Msg::SourceStop(source))
                 }
-                level::Orientation::Top => self.level_top.emit(level::Signal::SourceStop(source)),
+                level::Orientation::Top => self.level_top.emit(level::Msg::SourceStop(source)),
             },
-            Signal::Redraw(ref context, ref model) => self.draw(context, model),
-            Signal::SetImage(ref image) => self.set_image(image),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::SetImage(ref image) => self.set_image(image),
             _ => (),
         }
     }
@@ -132,7 +132,7 @@ impl relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
+                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
                 },
             },
             gtk::Box {
@@ -147,7 +147,7 @@ impl relm::Widget for Widget {
                         expand: false,
                         fill: true,
                     },
-                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
+                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
                 },
                 #[name="drawing_area"]
                 gtk::DrawingArea {
@@ -155,7 +155,7 @@ impl relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    draw(_, _) => (Signal::Draw, gtk::Inhibit(false)),
+                    draw(_, _) => (Msg::Draw, gtk::Inhibit(false)),
                 },
             },
             gtk::Box {
@@ -176,10 +176,10 @@ impl relm::Widget for Widget {
                         expand: true,
                         fill: true,
                     },
-                    LevelSignal(ref name, offset) => Signal::Level(name.clone(), offset),
+                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
                 },
             },
-            size_allocate(_, allocation) => Signal::Resize(allocation.width, allocation.height),
+            size_allocate(_, allocation) => Msg::Resize(allocation.width, allocation.height),
         },
     }
 }

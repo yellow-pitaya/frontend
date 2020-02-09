@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Expand,
     Fold,
     SetColor(crate::color::Color),
@@ -12,17 +12,17 @@ pub enum Signal {
 impl relm::Widget for Palette {
     fn model(_: ()) {}
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         use crate::color::Colorable;
 
         match event {
-            Signal::Expand => {
+            Msg::Expand => {
                 self.parent.set_no_show_all(false);
                 self.parent.show_all();
             },
-            Signal::Fold => self.parent.hide(),
-            Signal::SetColor(color) => self.set_color(color),
-            Signal::SetLabel(label) => self.set_label(&label),
+            Msg::Fold => self.parent.hide(),
+            Msg::SetColor(color) => self.set_color(color),
+            Msg::SetLabel(label) => self.set_label(&label),
         };
     }
 
@@ -35,9 +35,9 @@ impl relm::Widget for Palette {
                 gtk::ToggleButton {
                     border_width: 1,
                     toggled(widget) => if widget.get_active() {
-                        Signal::Expand
+                        Msg::Expand
                     } else {
-                        Signal::Fold
+                        Msg::Fold
                     }
                 },
             },

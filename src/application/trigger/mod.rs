@@ -7,7 +7,7 @@ pub use self::edge::Edge;
 pub use self::mode::Mode;
 
 use crate::color::Colorable;
-use crate::widget::radio::Signal::*;
+use crate::widget::radio::Msg::*;
 use gtk::prelude::*;
 
 type ChannelWidget = crate::widget::RadioGroup<Channel>;
@@ -15,7 +15,7 @@ type EdgeWidget = crate::widget::RadioGroup<Edge>;
 type ModeWidget = crate::widget::RadioGroup<Mode>;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Auto,
     Normal,
     Single,
@@ -29,7 +29,7 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    stream: relm::EventStream<Signal>,
+    stream: relm::EventStream<Msg>,
     trigger: redpitaya_scpi::trigger::Trigger,
     channel: Option<Channel>,
     edge: Option<Edge>,
@@ -49,19 +49,19 @@ impl relm::Widget for Widget {
     }
 
     fn subscriptions(&mut self, relm: &relm::Relm<Self>) {
-        relm::interval(relm.stream(), 1_000, || Signal::InternalTick);
+        relm::interval(relm.stream(), 1_000, || Msg::InternalTick);
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Signal::InternalTick => {
+            Msg::InternalTick => {
                 match self.model.mode {
-                    Mode::Auto => self.model.stream.emit(Signal::Auto),
-                    Mode::Normal => self.model.stream.emit(Signal::Normal),
+                    Mode::Auto => self.model.stream.emit(Msg::Auto),
+                    Mode::Normal => self.model.stream.emit(Msg::Normal),
                     Mode::Single => (),
                 };
             }
-            Signal::Mode(mode) => {
+            Msg::Mode(mode) => {
                 self.model.mode = mode;
 
                 match mode {
@@ -70,21 +70,21 @@ impl relm::Widget for Widget {
                     Mode::Single => self.single_button.set_visible(true),
                 };
             }
-            Signal::Channel(channel) => {
+            Msg::Channel(channel) => {
                 self.model.channel = Some(channel);
                 if let Some(source) = self.get_source() {
-                    self.model.stream.emit(Signal::Source(source));
+                    self.model.stream.emit(Msg::Source(source));
                     self.model.trigger.enable(source);
                 }
             }
-            Signal::Edge(edge) => {
+            Msg::Edge(edge) => {
                 self.model.edge = Some(edge);
                 if let Some(source) = self.get_source() {
-                    self.model.stream.emit(Signal::Source(source));
+                    self.model.stream.emit(Msg::Source(source));
                     self.model.trigger.enable(source);
                 }
             }
-            Signal::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         }
     }
@@ -100,21 +100,21 @@ impl relm::Widget for Widget {
                 current: Some(Channel::CH1),
             }) {
                 label: Some("Source"),
-                Change(channel) => Signal::Channel(channel),
+                Change(channel) => Msg::Channel(channel),
             },
             EdgeWidget(crate::widget::radio::Model {
                 options: vec![Edge::Positive, Edge::Negative],
                 current: Some(Edge::Positive),
             }) {
                 label: Some("Edge"),
-                Change(channel) => Signal::Edge(channel),
+                Change(channel) => Msg::Edge(channel),
             },
             ModeWidget(crate::widget::radio::Model {
                 options: vec![Mode::Auto, Mode::Normal, Mode::Single],
                 current: Some(self.model.mode),
             }) {
                 label: Some("Mode"),
-                Change(channel) => Signal::Mode(channel),
+                Change(channel) => Msg::Mode(channel),
             },
             #[name="single_button"]
             gtk::Button {
@@ -126,7 +126,7 @@ impl relm::Widget for Widget {
                 },
                 label: "Single",
 
-                clicked(_) => Signal::Single,
+                clicked(_) => Msg::Single,
             }
         },
     }

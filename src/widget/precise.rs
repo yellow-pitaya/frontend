@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Expand,
     Fold,
     Changed(f64),
@@ -16,21 +16,21 @@ pub enum Signal {
 impl relm::Widget for PreciseScale {
     fn model(_: ()) {}
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Signal::Expand => {
+            Msg::Expand => {
                 self.scale.set_draw_value(false);
                 self.spin.show();
             }
-            Signal::Fold => {
+            Msg::Fold => {
                 self.scale.set_draw_value(true);
                 self.spin.hide();
             }
-            Signal::SetValue(value) => self.set_value(value),
-            Signal::SetVisible(visible) => self.set_no_show_all(visible),
-            Signal::SetDigits(digits) => self.set_digits(digits),
-            Signal::SetAdjustement(adjustment) => self.set_adjustment(adjustment),
-            Signal::SetNoShowAll(no_show_all) => self.set_no_show_all(no_show_all),
+            Msg::SetValue(value) => self.set_value(value),
+            Msg::SetVisible(visible) => self.set_no_show_all(visible),
+            Msg::SetDigits(digits) => self.set_digits(digits),
+            Msg::SetAdjustement(adjustment) => self.set_adjustment(adjustment),
+            Msg::SetNoShowAll(no_show_all) => self.set_no_show_all(no_show_all),
             _ => (),
         };
     }
@@ -50,9 +50,9 @@ impl relm::Widget for PreciseScale {
                 #[name="toggle"]
                 gtk::CheckButton {
                     toggled(w) => if w.get_active() {
-                        Signal::Expand
+                        Msg::Expand
                     } else {
-                        Signal::Fold
+                        Msg::Fold
                     }
                 },
                 gtk::Box {
@@ -64,12 +64,12 @@ impl relm::Widget for PreciseScale {
                     #[name="scale"]
                     gtk::Scale {
                         value_pos: gtk::PositionType::Bottom,
-                        change_value(_, _, value) => (Signal::Changed(value), gtk::Inhibit(false)),
+                        change_value(_, _, value) => (Msg::Changed(value), gtk::Inhibit(false)),
                     },
                     #[name="spin"]
                     gtk::SpinButton {
                         no_show_all: true,
-                        value_changed(w) => Signal::Changed(w.get_value()),
+                        value_changed(w) => Msg::Changed(w.get_value()),
                     },
                 },
             },

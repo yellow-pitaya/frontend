@@ -1,16 +1,16 @@
 use gtk::prelude::*;
 
 #[derive(Clone)]
-pub enum Signal<T: std::clone::Clone + std::cmp::PartialEq> {
+pub enum Msg<T: std::clone::Clone + std::cmp::PartialEq> {
     Change(T),
     Set(T),
 }
 
-impl<T: std::clone::Clone + std::cmp::PartialEq> relm::DisplayVariant for Signal<T> {
+impl<T: std::clone::Clone + std::cmp::PartialEq> relm::DisplayVariant for Msg<T> {
     fn display_variant(&self) -> &'static str {
         match *self {
-            Signal::Change(_) => "Signal::Change",
-            Signal::Set(_) => "Signal::Set",
+            Msg::Change(_) => "Msg::Change",
+            Msg::Set(_) => "Msg::Set",
         }
     }
 }
@@ -30,8 +30,8 @@ pub struct RadioGroup<T> {
 
 impl<T: std::clone::Clone + std::cmp::PartialEq> RadioGroup<T> {
     pub fn set_current(&self, current: T) {
-        for &(ref radio, ref signal) in self.radio.iter() {
-            if current == *signal {
+        for &(ref radio, ref option) in self.radio.iter() {
+            if current == *option {
                 radio.set_active(true);
                 break;
             }
@@ -41,7 +41,7 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> RadioGroup<T> {
 
 impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> {
     type Model = Model<T>;
-    type Msg = Signal<T>;
+    type Msg = Msg<T>;
     type ModelParam = Model<T>;
 
     fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
@@ -50,7 +50,7 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> 
 
     fn update(&mut self, event: Self::Msg) {
         match event {
-            Signal::Set(value) => self.set_current(value),
+            Msg::Set(value) => self.set_current(value),
             _ => (),
         }
     }
@@ -86,7 +86,7 @@ where
 
                 button.connect_toggled(move |f| {
                     if f.get_active() {
-                        stream.emit(Signal::Change(option.clone()));
+                        stream.emit(Msg::Change(option.clone()));
                     }
                 });
             }

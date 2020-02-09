@@ -3,14 +3,14 @@ mod generator;
 mod graph;
 mod trigger;
 
-use acquire::Signal::{Rate, Start as AcquireStart, Stop as AcquireStop};
+use acquire::Msg::{Rate, Start as AcquireStart, Stop as AcquireStop};
 use acquire::Widget as AcquireWidget;
-use generator::Signal::*;
+use generator::Msg::*;
 use generator::Widget as GeneratorWidget;
-use graph::Signal::*;
+use graph::Msg::*;
 use graph::Widget as GraphWidget;
 use gtk::prelude::*;
-use trigger::Signal::*;
+use trigger::Msg::*;
 use trigger::Widget as TriggerWidget;
 
 macro_rules! redraw {
@@ -25,7 +25,7 @@ macro_rules! redraw {
         );
         context.set_line_width(0.01);
 
-        $self.$widget.emit($widget::Signal::Redraw(
+        $self.$widget.emit($widget::Msg::Redraw(
             Box::new(context.clone()),
             Box::new($self.model.clone()),
         ));
@@ -33,7 +33,7 @@ macro_rules! redraw {
 }
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     AcquireRate(redpitaya_scpi::acquire::SamplingRate),
     GraphDraw,
     Level(String, i32),
@@ -47,7 +47,7 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    stream: relm::EventStream<Signal>,
+    stream: relm::EventStream<Msg>,
     rate: redpitaya_scpi::acquire::SamplingRate,
     redpitaya: redpitaya_scpi::Redpitaya,
     scales: crate::Scales,
@@ -99,34 +99,34 @@ impl relm::Widget for Widget {
         }
     }
 
-    fn update(&mut self, event: Signal) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Signal::AcquireRate(rate) => {
+            Msg::AcquireRate(rate) => {
                 self.model.rate = rate;
                 self.model.scales.from_sampling_rate(rate);
-                self.graph.emit(graph::Signal::Invalidate);
+                self.graph.emit(graph::Msg::Invalidate);
             }
 
-            Signal::NeedDraw => self.graph.emit(graph::Signal::Invalidate),
-            Signal::GraphDraw => self.draw(),
-            Signal::Level(channel, level) => {
+            Msg::NeedDraw => self.graph.emit(graph::Msg::Invalidate),
+            Msg::GraphDraw => self.draw(),
+            Msg::Level(channel, level) => {
                 self.model.levels.insert(channel, level);
             }
-            Signal::Resize(width, height) => {
+            Msg::Resize(width, height) => {
                 self.model.scales.window.width = width;
                 self.model.scales.window.height = height;
-                self.model.stream.emit(Signal::NeedDraw)
+                self.model.stream.emit(Msg::NeedDraw)
             }
 
-            Signal::TriggerAuto | Signal::TriggerSingle => {
-                self.acquire.emit(acquire::Signal::SetData(
+            Msg::TriggerAuto | Msg::TriggerSingle => {
+                self.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
                     self.model
                         .redpitaya
                         .data
                         .read_all(redpitaya_scpi::acquire::Source::IN1),
                 ));
-                self.acquire.emit(acquire::Signal::SetData(
+                self.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
                     self.model
                         .redpitaya
@@ -134,15 +134,15 @@ impl relm::Widget for Widget {
                         .read_all(redpitaya_scpi::acquire::Source::IN2),
                 ));
             }
-            Signal::TriggerNormal => {
-                self.acquire.emit(acquire::Signal::SetData(
+            Msg::TriggerNormal => {
+                self.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
                     self.model
                         .redpitaya
                         .data
                         .read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384),
                 ));
-                self.acquire.emit(acquire::Signal::SetData(
+                self.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
                     self.model
                         .redpitaya
@@ -150,7 +150,7 @@ impl relm::Widget for Widget {
                         .read_oldest(redpitaya_scpi::acquire::Source::IN2, 16_384),
                 ));
             }
-            Signal::Quit => {
+            Msg::Quit => {
                 self.model.redpitaya.acquire.stop();
                 self.model
                     .redpitaya
@@ -170,7 +170,7 @@ impl relm::Widget for Widget {
         gtk::Window {
             //type: gtk::WindowType::Toplevel,
             title: "Yellow Pitaya",
-            destroy(_) => Signal::Quit,
+            destroy(_) => Msg::Quit,
 
             #[name="main_box"]
             gtk::Box {
@@ -187,9 +187,9 @@ impl relm::Widget for Widget {
 
                     #[name="graph"]
                     GraphWidget {
-                        Draw => Signal::GraphDraw,
-                        Level(ref channel, offset) => Signal::Level(channel.clone(), offset),
-                        Resize(w, h) => Signal::Resize(w, h),
+                        Draw => Msg::GraphDraw,
+                        Level(ref channel, offset) => Msg::Level(channel.clone(), offset),
+                        Resize(w, h) => Msg::Resize(w, h),
                     },
                 },
 
@@ -222,9 +222,9 @@ impl relm::Widget for Widget {
 
                             #[name="acquire"]
                             AcquireWidget(self.model.redpitaya.acquire.clone()) {
-                                Rate(rate) => Signal::AcquireRate(rate),
-                                AcquireStart(source) => graph@graph::Signal::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
-                                AcquireStop(source) => graph@graph::Signal::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
+                                Rate(rate) => Msg::AcquireRate(rate),
+                                AcquireStart(source) => graph@graph::Msg::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
+                                AcquireStop(source) => graph@graph::Msg::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
                             },
                         },
 
@@ -235,13 +235,13 @@ impl relm::Widget for Widget {
 
                             #[name="generator"]
                             GeneratorWidget(self.model.redpitaya.generator.clone()) {
-                                Amplitude(_, _) => Signal::NeedDraw,
-                                DutyCycle(_, _) => Signal::NeedDraw,
-                                Frequency(_, _) => Signal::NeedDraw,
-                                Offset(_, _) => Signal::NeedDraw,
-                                Form(_, _) => Signal::NeedDraw,
-                                Start(source) => graph@graph::Signal::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
-                                Stop(source) => graph@graph::Signal::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
+                                Amplitude(_, _) => Msg::NeedDraw,
+                                DutyCycle(_, _) => Msg::NeedDraw,
+                                Frequency(_, _) => Msg::NeedDraw,
+                                Offset(_, _) => Msg::NeedDraw,
+                                Form(_, _) => Msg::NeedDraw,
+                                Start(source) => graph@graph::Msg::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
+                                Stop(source) => graph@graph::Msg::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
                             },
                         },
 
@@ -255,17 +255,17 @@ impl relm::Widget for Widget {
 
                             #[name="trigger"]
                             TriggerWidget(self.model.redpitaya.trigger.clone()) {
-                                Auto => Signal::TriggerAuto,
-                                Normal => Signal::TriggerNormal,
-                                Single => Signal::TriggerSingle,
+                                Auto => Msg::TriggerAuto,
+                                Normal => Msg::TriggerNormal,
+                                Single => Msg::TriggerSingle,
 
-                                Auto => graph@graph::Signal::SourceStop(graph::level::Orientation::Right, "TRIG".to_string()),
-                                Normal => graph@graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
-                                Single => graph@graph::Signal::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
+                                Auto => graph@graph::Msg::SourceStop(graph::level::Orientation::Right, "TRIG".to_string()),
+                                Normal => graph@graph::Msg::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
+                                Single => graph@graph::Msg::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
 
-                                Auto => graph@graph::Signal::SourceStop(graph::level::Orientation::Top, "DELAY".to_string()),
-                                Normal => graph@graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
-                                Single => graph@graph::Signal::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
+                                Auto => graph@graph::Msg::SourceStop(graph::level::Orientation::Top, "DELAY".to_string()),
+                                Normal => graph@graph::Msg::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
+                                Single => graph@graph::Msg::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
                             },
                         },
                     },
@@ -328,7 +328,7 @@ impl Widget {
         redraw!(self, generator, image);
         redraw!(self, acquire, image);
 
-        self.graph.emit(graph::Signal::SetImage(image));
+        self.graph.emit(graph::Msg::SetImage(image));
     }
 
     fn transform(&self, scales: crate::Scales, context: &cairo::Context, width: f64, height: f64) {

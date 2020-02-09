@@ -4,7 +4,7 @@ use crate::color::Colorable;
 use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
-pub enum Signal {
+pub enum Msg {
     Click(f64, f64),
     Draw,
     Invalidate,
@@ -184,7 +184,7 @@ impl Widget {
         let name = match self.model.current.clone() {
             Some(name) => name,
             None => {
-                self.stream.emit(Signal::Draw);
+                self.stream.emit(Msg::Draw);
                 return;
             }
         };
@@ -192,20 +192,20 @@ impl Widget {
         let level = match self.model.levels.get(&name) {
             Some(level) => level,
             None => {
-                self.stream.emit(Signal::Draw);
+                self.stream.emit(Msg::Draw);
                 return;
             }
         };
 
         self.model.current = None;
 
-        self.stream.emit(Signal::Level(name.clone(), level.offset));
+        self.stream.emit(Msg::Level(name.clone(), level.offset));
     }
 }
 
 impl relm::Update for Widget {
     type Model = Model;
-    type Msg = Signal;
+    type Msg = Msg;
     type ModelParam = Orientation;
 
     fn model(_: &relm::Relm<Self>, orientation: Orientation) -> Self::Model {
@@ -216,16 +216,16 @@ impl relm::Update for Widget {
         }
     }
 
-    fn update(&mut self, signal: Self::Msg) {
-        match signal {
-            Signal::Click(x, y) => self.on_click(x as i32, y as i32),
-            Signal::Move(x, y) => self.on_mouse_move(x as i32, y as i32),
-            Signal::Draw => self.draw_levels(),
-            Signal::Invalidate => self.invalidate(),
-            Signal::SourceStart(source) => self.start(source),
-            Signal::SourceStop(source) => self.stop(source),
-            Signal::Release => self.on_release(),
-            Signal::Level(_, _) => (),
+    fn update(&mut self, event: Self::Msg) {
+        match event {
+            Msg::Click(x, y) => self.on_click(x as i32, y as i32),
+            Msg::Move(x, y) => self.on_mouse_move(x as i32, y as i32),
+            Msg::Draw => self.draw_levels(),
+            Msg::Invalidate => self.invalidate(),
+            Msg::SourceStart(source) => self.start(source),
+            Msg::SourceStop(source) => self.stop(source),
+            Msg::Release => self.on_release(),
+            Msg::Level(_, _) => (),
         }
     }
 }
@@ -243,7 +243,7 @@ impl relm::Widget for Widget {
             relm,
             drawing_area,
             connect_draw(_, _),
-            return (Signal::Draw, gtk::Inhibit(false))
+            return (Msg::Draw, gtk::Inhibit(false))
         );
 
         let gesture_drag = gtk::GestureDrag::new(&drawing_area);
@@ -251,19 +251,19 @@ impl relm::Widget for Widget {
             gesture_drag,
             connect_drag_begin(_, x, y),
             relm,
-            Signal::Click(x, y)
+            Msg::Click(x, y)
         );
         relm::connect!(
             gesture_drag,
             connect_drag_update(_, x, y),
             relm,
-            Signal::Move(x, y)
+            Msg::Move(x, y)
         );
         relm::connect!(
             gesture_drag,
             connect_drag_end(_, _, _),
             relm,
-            Signal::Release
+            Msg::Release
         );
 
         Widget {
