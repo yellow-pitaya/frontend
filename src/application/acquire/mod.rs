@@ -47,7 +47,7 @@ impl relm::Update for Widget {
                 }
             }
             Signal::Rate(rate) => self.model.set_decimation(rate.into()),
-            Signal::SetData(source, data) => self.set_data(source, data),
+            Signal::SetData(source, data) => self.get_input(source).emit(input::Signal::SetData(data)),
             Signal::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         };
@@ -140,10 +140,6 @@ impl Widget {
         self.in2
             .emit(input::Signal::Redraw(context.clone(), model.clone()));
         context.restore();
-    }
-
-    fn set_data(&self, source: redpitaya_scpi::acquire::Source, data: Vec<f64>) {
-        self.get_input(source).emit(input::Signal::SetData(data));
     }
 
     fn get_input(

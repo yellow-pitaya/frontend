@@ -22,7 +22,7 @@ pub struct Model {
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
-    data: std::cell::RefCell<Vec<f64>>,
+    data: Vec<f64>,
     stream: relm::EventStream<Signal>,
     page: gtk::Box,
     pub palette: relm::Component<crate::widget::Palette>,
@@ -52,9 +52,7 @@ impl Widget {
     }
 
     fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) {
-        let data = self.data.borrow();
-
-        if data.is_empty() {
+        if self.data.is_empty() {
             return;
         }
 
@@ -62,7 +60,7 @@ impl Widget {
 
         for sample in 0..scales.n_samples {
             let x = scales.sample_to_ms(sample);
-            let y = data[sample as usize];
+            let y = self.data[sample as usize];
 
             context.line_to(x, y * attenuation as f64);
             context.move_to(x, y * attenuation as f64);
@@ -85,9 +83,9 @@ impl relm::Update for Widget {
             Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
             Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
             Signal::Redraw(context, model) => self.draw(&context, &model),
+            Signal::SetData(data) => self.data = data,
             Signal::Start => self.model.started = true,
             Signal::Stop => self.model.started = false,
-            _ => (),
         };
     }
 }
@@ -148,17 +146,13 @@ impl relm::Widget for Widget {
             Signal::Attenuation(attenuation)
         );
 
-        let data = std::cell::RefCell::new(Vec::new());
-        let stream = relm.stream().clone();
-        let source = model.source;
-
         Widget {
             model,
-            data,
+            data: Vec::new(),
             page,
             palette,
-            stream,
-            source,
+            stream: relm.stream().clone(),
+            source: model.source,
             attenuation,
         }
     }
