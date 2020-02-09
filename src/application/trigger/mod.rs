@@ -36,7 +36,7 @@ pub struct Widget {
     model: Model,
     page: gtk::Box,
     pub single_button: gtk::Button,
-    stream: relm::EventStream<Signal>,
+    stream: relm::EventStream<<Self as relm::Update>::Msg>,
     mode: relm::Component<crate::widget::RadioGroup<Mode>>,
     channel: relm::Component<crate::widget::RadioGroup<Channel>>,
     edge: relm::Component<crate::widget::RadioGroup<Edge>>,

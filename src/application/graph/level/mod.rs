@@ -37,7 +37,7 @@ pub enum Orientation {
 
 #[derive(Clone)]
 pub struct Widget {
-    relm: relm::Relm<Self>,
+    stream: relm::EventStream<<Self as relm::Update>::Msg>,
     model: Model,
     gesture_drag: gtk::GestureDrag,
     drawing_area: gtk::DrawingArea,
@@ -183,7 +183,7 @@ impl Widget {
         let name = match self.model.current.clone() {
             Some(name) => name,
             None => {
-                self.relm.stream().emit(Signal::Draw);
+                self.stream.emit(Signal::Draw);
                 return;
             }
         };
@@ -191,16 +191,14 @@ impl Widget {
         let level = match self.model.levels.get(&name) {
             Some(level) => level,
             None => {
-                self.relm.stream().emit(Signal::Draw);
+                self.stream.emit(Signal::Draw);
                 return;
             }
         };
 
         self.model.current = None;
 
-        self.relm
-            .stream()
-            .emit(Signal::Level(name.clone(), level.offset));
+        self.stream.emit(Signal::Level(name.clone(), level.offset));
     }
 }
 
@@ -268,7 +266,7 @@ impl relm::Widget for Widget {
         );
 
         Widget {
-            relm: relm.clone(),
+            stream: relm.stream().clone(),
             model,
             gesture_drag,
             drawing_area,

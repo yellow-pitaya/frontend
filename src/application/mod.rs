@@ -69,7 +69,7 @@ impl Model {
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
-    relm: relm::Relm<Self>,
+    stream: relm::EventStream<<Self as relm::Update>::Msg>,
     window: gtk::Window,
     graph: relm::Component<graph::Widget>,
     status_bar: gtk::Statusbar,
@@ -166,7 +166,7 @@ impl relm::Update for Widget {
             Signal::Resize(width, height) => {
                 self.model.scales.window.width = width;
                 self.model.scales.window.height = height;
-                self.relm.stream().emit(Signal::NeedDraw)
+                self.stream.emit(Signal::NeedDraw)
             }
 
             Signal::TriggerAuto | Signal::TriggerSingle => {
@@ -293,7 +293,7 @@ impl relm::Widget for Widget {
         notebook.append_page(&trigger_page, Some(&gtk::Label::new(Some("Trigger"))));
 
         Widget {
-            relm: relm.clone(),
+            stream: relm.stream().clone(),
             model,
             window,
             graph,
