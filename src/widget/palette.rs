@@ -1,4 +1,4 @@
-use gtk::{self, ButtonExt, ContainerExt, OrientableExt, ToggleButtonExt, WidgetExt};
+use gtk::{ButtonExt, ContainerExt, OrientableExt, ToggleButtonExt, WidgetExt};
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {

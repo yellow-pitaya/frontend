@@ -1,5 +1,5 @@
 use crate::color::Colorable;
-use gtk::{self, WidgetExt};
+use gtk::WidgetExt;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
