@@ -19,7 +19,7 @@ impl relm::Widget for Palette {
             Msg::Expand => {
                 self.parent.set_no_show_all(false);
                 self.parent.show_all();
-            },
+            }
             Msg::Fold => self.parent.hide(),
             Msg::SetColor(color) => self.set_color(color),
             Msg::SetLabel(label) => self.set_label(&label),

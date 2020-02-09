@@ -41,9 +41,7 @@ impl relm::Widget for Widget {
                 }
             }
             Msg::Rate(rate) => self.model.set_decimation(rate.into()),
-            Msg::SetData(source, data) => {
-                self.get_input(source).emit(input::Msg::SetData(data))
-            }
+            Msg::SetData(source, data) => self.get_input(source).emit(input::Msg::SetData(data)),
             Msg::Redraw(ref context, ref model) => self.draw(context, model),
             _ => (),
         };

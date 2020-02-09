@@ -90,19 +90,13 @@ impl relm::Widget for Widget {
         match event {
             Msg::Invalidate => self.invalidate(),
             Msg::SourceStart(orientation, source) => match orientation {
-                level::Orientation::Left => {
-                    self.level_left.emit(level::Msg::SourceStart(source))
-                }
-                level::Orientation::Right => {
-                    self.level_right.emit(level::Msg::SourceStart(source))
-                }
+                level::Orientation::Left => self.level_left.emit(level::Msg::SourceStart(source)),
+                level::Orientation::Right => self.level_right.emit(level::Msg::SourceStart(source)),
                 level::Orientation::Top => self.level_top.emit(level::Msg::SourceStart(source)),
             },
             Msg::SourceStop(orientation, source) => match orientation {
                 level::Orientation::Left => self.level_left.emit(level::Msg::SourceStop(source)),
-                level::Orientation::Right => {
-                    self.level_right.emit(level::Msg::SourceStop(source))
-                }
+                level::Orientation::Right => self.level_right.emit(level::Msg::SourceStop(source)),
                 level::Orientation::Top => self.level_top.emit(level::Msg::SourceStop(source)),
             },
             Msg::Redraw(ref context, ref model) => self.draw(context, model),

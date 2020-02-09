@@ -46,13 +46,9 @@ impl relm::Widget for Widget {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::Amplitude(value) => {
-                self.model.generator.set_amplitude(self.model.source, value)
-            }
+            Msg::Amplitude(value) => self.model.generator.set_amplitude(self.model.source, value),
             Msg::Offset(value) => self.model.generator.set_offset(self.model.source, value),
-            Msg::Frequency(value) => {
-                self.model.generator.set_frequency(self.model.source, value)
-            }
+            Msg::Frequency(value) => self.model.generator.set_frequency(self.model.source, value),
             Msg::DutyCycle(value) => self
                 .model
                 .generator
@@ -145,8 +141,7 @@ impl relm::Widget for Widget {
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
-        self.offset
-            .emit(crate::widget::precise::Msg::SetDigits(2));
+        self.offset.emit(crate::widget::precise::Msg::SetDigits(2));
         self.offset
             .emit(crate::widget::precise::Msg::SetAdjustement(
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),

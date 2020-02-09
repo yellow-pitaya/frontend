@@ -259,12 +259,7 @@ impl relm::Widget for Widget {
             relm,
             Msg::Move(x, y)
         );
-        relm::connect!(
-            gesture_drag,
-            connect_drag_end(_, _, _),
-            relm,
-            Msg::Release
-        );
+        relm::connect!(gesture_drag, connect_drag_end(_, _, _), relm, Msg::Release);
 
         Widget {
             stream: relm.stream().clone(),
