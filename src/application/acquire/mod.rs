@@ -97,23 +97,13 @@ impl relm::Widget for Widget {
             Signal::Average(w.get_active())
         );
 
-        let in1 = vbox.add_widget::<input::Widget>(input::Model {
-            attenuation: 1,
-            started: false,
-            source: redpitaya_scpi::acquire::Source::IN1,
-            acquire: model.clone(),
-        });
+        let in1 = vbox.add_widget::<input::Widget>(input::Model::new(&model));
         relm::connect!(in1@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation));
         relm::connect!(in1@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN1, gain));
         relm::connect!(in1@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN1));
         relm::connect!(in1@input::Signal::Stop, relm, Signal::Stop(redpitaya_scpi::acquire::Source::IN1));
 
-        let in2 = vbox.add_widget::<input::Widget>(input::Model {
-            attenuation: 1,
-            started: false,
-            source: redpitaya_scpi::acquire::Source::IN2,
-            acquire: model.clone(),
-        });
+        let in2 = vbox.add_widget::<input::Widget>(input::Model::new(&model));
         relm::connect!(in2@input::Signal::Attenuation(attenuation), relm, Signal::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation));
         relm::connect!(in2@input::Signal::Gain(gain), relm, Signal::Gain(redpitaya_scpi::acquire::Source::IN2, gain));
         relm::connect!(in2@input::Signal::Start, relm, Signal::Start(redpitaya_scpi::acquire::Source::IN2));

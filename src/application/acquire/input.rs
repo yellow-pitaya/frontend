@@ -13,20 +13,31 @@ pub enum Signal {
 
 #[derive(Clone)]
 pub struct Model {
-    pub attenuation: u8,
-    pub started: bool,
-    pub source: redpitaya_scpi::acquire::Source,
-    pub acquire: redpitaya_scpi::acquire::Acquire,
+    acquire: redpitaya_scpi::acquire::Acquire,
+    attenuation: u8,
+    data: Vec<f64>,
+    source: redpitaya_scpi::acquire::Source,
+    started: bool,
+}
+
+impl Model {
+    pub fn new(acquire: &redpitaya_scpi::acquire::Acquire) -> Self {
+        Self {
+            acquire: acquire.clone(),
+            attenuation: 1,
+            data: Vec::new(),
+            started: false,
+            source: redpitaya_scpi::acquire::Source::IN1,
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct Widget {
     model: Model,
-    data: Vec<f64>,
-    stream: relm::EventStream<Signal>,
+    stream: relm::EventStream<<Self as relm::Update>::Msg>,
     page: gtk::Box,
     pub palette: relm::Component<crate::widget::Palette>,
-    source: redpitaya_scpi::acquire::Source,
     attenuation: relm::Component<crate::widget::RadioGroup<u8>>,
 }
 
@@ -40,9 +51,9 @@ impl Widget {
             return;
         }
 
-        context.set_color(self.source.into());
+        context.set_color(self.model.source.into());
 
-        context.translate(0.0, model.offset(self.source));
+        context.translate(0.0, model.offset(self.model.source));
 
         context.move_to(model.scales.h.0, 0.0);
         context.line_to(model.scales.h.1, 0.0);
@@ -52,7 +63,7 @@ impl Widget {
     }
 
     fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) {
-        if self.data.is_empty() {
+        if self.model.data.is_empty() {
             return;
         }
 
@@ -60,7 +71,7 @@ impl Widget {
 
         for sample in 0..scales.n_samples {
             let x = scales.sample_to_ms(sample);
-            let y = self.data[sample as usize];
+            let y = self.model.data[sample as usize];
 
             context.line_to(x, y * attenuation as f64);
             context.move_to(x, y * attenuation as f64);
@@ -83,7 +94,7 @@ impl relm::Update for Widget {
             Signal::Attenuation(attenuation) => self.model.attenuation = attenuation,
             Signal::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
             Signal::Redraw(context, model) => self.draw(&context, &model),
-            Signal::SetData(data) => self.data = data,
+            Signal::SetData(data) => self.model.data = data,
             Signal::Start => self.model.started = true,
             Signal::Stop => self.model.started = false,
         };
@@ -148,11 +159,9 @@ impl relm::Widget for Widget {
 
         Widget {
             model,
-            data: Vec::new(),
             page,
             palette,
             stream: relm.stream().clone(),
-            source: model.source,
             attenuation,
         }
     }
