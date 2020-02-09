@@ -9,7 +9,6 @@ pub enum Signal {
     SetVisible(bool),
     SetDigits(u32),
     SetAdjustement(gtk::Adjustment),
-    SetLabel(String),
     SetNoShowAll(bool),
 }
 
@@ -31,7 +30,6 @@ impl relm::Widget for PreciseScale {
             Signal::SetVisible(visible) => self.set_no_show_all(visible),
             Signal::SetDigits(digits) => self.set_digits(digits),
             Signal::SetAdjustement(adjustment) => self.set_adjustment(adjustment),
-            Signal::SetLabel(ref label) => self.set_label(label),
             Signal::SetNoShowAll(no_show_all) => self.set_no_show_all(no_show_all),
             _ => (),
         };
@@ -90,10 +88,6 @@ impl PreciseScale {
 
     fn set_value(&self, value: f64) {
         self.scale.set_value(value);
-    }
-
-    pub fn set_label(&self, label: &str) {
-        self.frame.set_label(Some(label));
     }
 
     pub fn set_digits(&self, digits: u32) {

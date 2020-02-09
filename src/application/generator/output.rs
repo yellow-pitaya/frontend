@@ -102,18 +102,22 @@ impl relm::Widget for Widget {
                     },
                     #[name="amplitude"]
                     PreciseScale {
+                        label: Some("Amplitude (V)"),
                         Changed(amplitude) => Signal::Amplitude(amplitude as f32),
                     },
                     #[name="offset"]
                     PreciseScale {
+                        label: Some("Offset (V)"),
                         Changed(offset) => Signal::Offset(offset as f32),
                     },
                     #[name="frequency"]
                     PreciseScale {
+                        label: Some("Frequency (Hz)"),
                         Changed(frequency) => Signal::Frequency(frequency as u32),
                     },
                     #[name="duty_cycle"]
                     PreciseScale {
+                        label: Some("Duty cycle (%)"),
                         Changed(duty_cycle) => Signal::DutyCycle(duty_cycle as f32),
                     },
                 },
@@ -135,19 +139,12 @@ impl relm::Widget for Widget {
         ));
 
         self.amplitude
-            .emit(crate::widget::precise::Signal::SetLabel(
-                "Amplitude (V)".to_string(),
-            ));
-        self.amplitude
             .emit(crate::widget::precise::Signal::SetDigits(2));
         self.amplitude
             .emit(crate::widget::precise::Signal::SetAdjustement(
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
-        self.offset.emit(crate::widget::precise::Signal::SetLabel(
-            "Offset (V)".to_string(),
-        ));
         self.offset
             .emit(crate::widget::precise::Signal::SetDigits(2));
         self.offset
@@ -155,10 +152,6 @@ impl relm::Widget for Widget {
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
-        self.frequency
-            .emit(crate::widget::precise::Signal::SetLabel(
-                "Frequency (Hz)".to_string(),
-            ));
         self.frequency
             .emit(crate::widget::precise::Signal::SetAdjustement(
                 gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
@@ -168,10 +161,6 @@ impl relm::Widget for Widget {
             .emit(crate::widget::precise::Signal::SetNoShowAll(true));
         self.duty_cycle
             .emit(crate::widget::precise::Signal::SetVisible(false));
-        self.duty_cycle
-            .emit(crate::widget::precise::Signal::SetLabel(
-                "Duty cycle (%)".to_string(),
-            ));
         self.duty_cycle
             .emit(crate::widget::precise::Signal::SetDigits(2));
         self.duty_cycle
