@@ -1,6 +1,6 @@
 mod output;
 
-use gtk::{BoxExt, OrientableExt};
+use gtk::prelude::*;
 use output::Model as OutputModel;
 use output::Signal::{Amplitude, DutyCycle, Form, Frequency, Offset, Start, Stop};
 use output::Widget as OutputWidget;

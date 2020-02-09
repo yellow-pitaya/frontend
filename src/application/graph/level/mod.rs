@@ -1,7 +1,7 @@
 pub mod placeholder;
 
 use crate::color::Colorable;
-use gtk::{GestureDragExt, WidgetExt};
+use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {

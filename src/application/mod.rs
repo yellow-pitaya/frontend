@@ -3,10 +3,7 @@ mod generator;
 mod graph;
 mod trigger;
 
-use gtk::{
-    prelude::NotebookExtManual, BoxExt, ContainerExt, GtkWindowExt, NotebookExt, StatusbarExt,
-    WidgetExt,
-};
+use gtk::prelude::*;
 use relm::ContainerWidget;
 
 macro_rules! redraw {

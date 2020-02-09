@@ -1,9 +1,9 @@
 mod input;
 
-use gtk::{ContainerExt, ToggleButtonExt};
 use input::Model as InputModel;
 use input::Signal as InputSignal;
 use input::Widget as InputWidget;
+use gtk::prelude::*;
 use relm::ContainerWidget;
 
 #[derive(relm_derive::Msg, Clone)]

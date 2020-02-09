@@ -7,7 +7,7 @@ pub use self::edge::Edge;
 pub use self::mode::Mode;
 
 use crate::color::Colorable;
-use gtk::{BoxExt, ButtonExt, WidgetExt};
+use gtk::prelude::*;
 use relm::ContainerWidget;
 
 #[derive(relm_derive::Msg, Clone)]

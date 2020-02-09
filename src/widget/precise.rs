@@ -1,7 +1,4 @@
-use gtk::{
-    self, AdjustmentExt, BoxExt, ContainerExt, FrameExt, OrientableExt, RangeExt, ScaleExt,
-    SpinButtonExt, SpinButtonSignals, ToggleButtonExt, WidgetExt,
-};
+use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {

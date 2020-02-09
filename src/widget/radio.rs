@@ -1,4 +1,4 @@
-use gtk::{ContainerExt, RadioButtonExt, ToggleButtonExt};
+use gtk::prelude::*;
 
 #[derive(Clone)]
 pub enum Signal<T: std::clone::Clone + std::cmp::PartialEq> {

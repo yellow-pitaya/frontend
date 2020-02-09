@@ -1,7 +1,7 @@
 pub mod level;
 
 use crate::color::Colorable;
-use gtk::{BoxExt, OrientableExt, WidgetExt};
+use gtk::prelude::*;
 use level::placeholder::Widget as Placeholder;
 use level::Signal::Level as LevelSignal;
 use level::Widget as LevelWidget;

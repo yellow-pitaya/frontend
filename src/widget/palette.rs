@@ -1,4 +1,4 @@
-use gtk::{ButtonExt, ContainerExt, OrientableExt, ToggleButtonExt, WidgetExt};
+use gtk::prelude::*;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Signal {
@@ -58,8 +58,6 @@ impl Palette {
 
 impl crate::color::Colorable for Palette {
     fn set_color(&self, color: crate::color::Color) {
-        use gtk::StyleContextExt;
-
         let context = self.border.get_style_context();
 
         context.add_class(&format!("color-{}", color.name));
