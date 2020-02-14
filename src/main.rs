@@ -1,3 +1,5 @@
+#[warn(rust_2018_idioms)]
+
 mod application;
 mod color;
 mod scales;
