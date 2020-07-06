@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 cairo-rs = "0.8"
 env_logger = "0.7"
-glib = "0.9"
+glib = "0.10"
 gdk = "0.12"
 log = "0.4"
 redpitaya-scpi = "0.27"
