@@ -5,16 +5,16 @@ authors = ["Sanpi <sanpi@homecomputing.fr>"]
 edition = "2018"
 
 [dependencies]
-cairo-rs = "0.8"
+cairo-rs = "0.9"
 env_logger = "0.7"
-glib = "0.9"
-gdk = "0.12"
+glib = "0.10"
+gdk = "0.13"
 log = "0.4"
 redpitaya-scpi = "0.27"
-relm = "0.19"
-relm-derive = "0.19"
+relm = "0.20"
+relm-derive = "0.20"
 structopt = "0.3"
 
 [dependencies.gtk]
-version = "0.8"
+version = "0.9"
 features = ["v3_16"]

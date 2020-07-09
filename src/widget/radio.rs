@@ -67,7 +67,7 @@ where
         let mut group_member = None;
 
         for option in model.options.iter() {
-            let button = gtk::RadioButton::new_with_label(&format!("{}", option));
+            let button = gtk::RadioButton::with_label(&format!("{}", option));
             button.join_group(group_member.as_ref());
             flow_box.add(&button);
 
