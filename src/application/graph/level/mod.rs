@@ -7,7 +7,6 @@ use gtk::prelude::*;
 pub enum Msg {
     Click(f64, f64),
     Draw,
-    Invalidate,
     Move(f64, f64),
     Release,
     SourceStart(String),
@@ -37,7 +36,7 @@ pub enum Orientation {
 
 #[derive(Clone)]
 pub struct Widget {
-    stream: relm::EventStream<<Self as relm::Update>::Msg>,
+    stream: relm::StreamHandle<<Self as relm::Update>::Msg>,
     model: Model,
     gesture_drag: gtk::GestureDrag,
     drawing_area: gtk::DrawingArea,
@@ -58,26 +57,21 @@ impl Widget {
 
         self.model.levels.get_mut(&name).unwrap().enable = true;
 
-        self.invalidate();
+        self.draw();
     }
 
     fn stop(&mut self, name: String) {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.enable = false;
-            self.invalidate();
+            self.draw();
         }
     }
 
     fn set_level(&mut self, name: String, offset: i32) {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.offset = offset;
-            self.invalidate();
+            self.draw();
         }
-    }
-
-    fn invalidate(&self) {
-        self.drawing_area
-            .queue_draw_area(0, 0, self.get_width(), self.get_height());
     }
 
     fn get_width(&self) -> i32 {
@@ -95,7 +89,7 @@ impl Widget {
         context.paint();
     }
 
-    fn draw_levels(&self) {
+    fn draw(&self) {
         let width = self.get_width();
         let height = self.get_height();
 
@@ -220,8 +214,7 @@ impl relm::Update for Widget {
         match event {
             Msg::Click(x, y) => self.on_click(x as i32, y as i32),
             Msg::Move(x, y) => self.on_mouse_move(x as i32, y as i32),
-            Msg::Draw => self.draw_levels(),
-            Msg::Invalidate => self.invalidate(),
+            Msg::Draw => self.draw(),
             Msg::SourceStart(source) => self.start(source),
             Msg::SourceStop(source) => self.stop(source),
             Msg::Release => self.on_release(),

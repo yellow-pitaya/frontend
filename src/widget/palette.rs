@@ -17,10 +17,10 @@ impl relm::Widget for Palette {
 
         match event {
             Msg::Expand => {
-                self.parent.set_no_show_all(false);
-                self.parent.show_all();
+                self.widgets.parent.set_no_show_all(false);
+                self.widgets.parent.show_all();
             }
-            Msg::Fold => self.parent.hide(),
+            Msg::Fold => self.widgets.parent.hide(),
             Msg::SetColor(color) => self.set_color(color),
             Msg::SetLabel(label) => self.set_label(&label),
         };
@@ -53,13 +53,13 @@ impl relm::Widget for Palette {
 
 impl Palette {
     pub fn set_label(&self, label: &str) {
-        self.toggle.set_label(label);
+        self.widgets.toggle.set_label(label);
     }
 }
 
 impl crate::color::Colorable for Palette {
     fn set_color(&self, color: crate::color::Color) {
-        let context = self.border.get_style_context();
+        let context = self.widgets.border.get_style_context();
 
         context.add_class(&format!("{}", color));
     }

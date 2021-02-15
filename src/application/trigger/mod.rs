@@ -29,7 +29,7 @@ pub enum Msg {
 
 #[derive(Clone)]
 pub struct Model {
-    stream: relm::EventStream<Msg>,
+    stream: relm::StreamHandle<Msg>,
     trigger: redpitaya_scpi::trigger::Trigger,
     channel: Option<Channel>,
     edge: Option<Edge>,
@@ -65,9 +65,9 @@ impl relm::Widget for Widget {
                 self.model.mode = mode;
 
                 match mode {
-                    Mode::Auto => self.single_button.set_visible(false),
-                    Mode::Normal => self.single_button.set_visible(false),
-                    Mode::Single => self.single_button.set_visible(true),
+                    Mode::Auto => self.widgets.single_button.set_visible(false),
+                    Mode::Normal => self.widgets.single_button.set_visible(false),
+                    Mode::Single => self.widgets.single_button.set_visible(true),
                 };
             }
             Msg::Channel(channel) => {

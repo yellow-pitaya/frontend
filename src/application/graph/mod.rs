@@ -8,7 +8,6 @@ use level::Widget as LevelWidget;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Msg {
-    Invalidate,
     Draw,
     Level(String, i32),
     Redraw(Box<cairo::Context>, Box<crate::application::Model>),
@@ -54,31 +53,15 @@ impl Widget {
             context.stroke();
         }
 
-        self.level_left.emit(level::Msg::Invalidate);
-        self.level_right.emit(level::Msg::Invalidate);
-    }
-
-    fn get_width(&self) -> f64 {
-        self.drawing_area.get_allocated_width() as f64
-    }
-
-    fn get_height(&self) -> f64 {
-        self.drawing_area.get_allocated_height() as f64
+        self.components.level_left.emit(level::Msg::Draw);
+        self.components.level_right.emit(level::Msg::Draw);
     }
 
     fn set_image(&self, image: &cairo::ImageSurface) {
-        let context = crate::create_context(&self.drawing_area);
+        let context = crate::create_context(&self.widgets.drawing_area);
 
         context.set_source_surface(image, 0.0, 0.0);
         context.paint();
-    }
-
-    fn invalidate(&self) {
-        self.drawing_area
-            .queue_draw_area(0, 0, self.get_width() as i32, self.get_height() as i32);
-
-        self.level_left.emit(level::Msg::Invalidate);
-        self.level_right.emit(level::Msg::Invalidate);
     }
 }
 
@@ -88,16 +71,15 @@ impl relm::Widget for Widget {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::Invalidate => self.invalidate(),
             Msg::SourceStart(orientation, source) => match orientation {
-                level::Orientation::Left => self.level_left.emit(level::Msg::SourceStart(source)),
-                level::Orientation::Right => self.level_right.emit(level::Msg::SourceStart(source)),
-                level::Orientation::Top => self.level_top.emit(level::Msg::SourceStart(source)),
+                level::Orientation::Left => self.components.level_left.emit(level::Msg::SourceStart(source)),
+                level::Orientation::Right => self.components.level_right.emit(level::Msg::SourceStart(source)),
+                level::Orientation::Top => self.components.level_top.emit(level::Msg::SourceStart(source)),
             },
             Msg::SourceStop(orientation, source) => match orientation {
-                level::Orientation::Left => self.level_left.emit(level::Msg::SourceStop(source)),
-                level::Orientation::Right => self.level_right.emit(level::Msg::SourceStop(source)),
-                level::Orientation::Top => self.level_top.emit(level::Msg::SourceStop(source)),
+                level::Orientation::Left => self.components.level_left.emit(level::Msg::SourceStop(source)),
+                level::Orientation::Right => self.components.level_right.emit(level::Msg::SourceStop(source)),
+                level::Orientation::Top => self.components.level_top.emit(level::Msg::SourceStop(source)),
             },
             Msg::Redraw(ref context, ref model) => self.draw(context, model),
             Msg::SetImage(ref image) => self.set_image(image),

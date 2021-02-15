@@ -58,7 +58,7 @@ impl relm::Widget for Widget {
             Msg::Redraw(ref context, ref model) => self.draw(context, model),
             Msg::Form(form) => {
                 let is_pwm = form == redpitaya_scpi::generator::Form::PWM;
-                self.duty_cycle
+                self.components.duty_cycle
                     .emit(crate::widget::precise::Msg::SetVisible(is_pwm));
                 self.model.generator.set_form(self.model.source, form);
             }
@@ -123,75 +123,71 @@ impl relm::Widget for Widget {
 
     fn init_view(&mut self) {
         // @FIXME
-        self.palette.emit(crate::widget::palette::Msg::Fold);
+        self.components.palette.emit(crate::widget::palette::Msg::Fold);
 
-        self.palette
+        self.components.palette
             .emit(crate::widget::palette::Msg::SetLabel(format!(
                 "{}",
                 self.model.source
             )));
-        self.palette.emit(crate::widget::palette::Msg::SetColor(
+        self.components.palette.emit(crate::widget::palette::Msg::SetColor(
             self.model.source.into(),
         ));
 
-        self.amplitude
+        self.components.amplitude
             .emit(crate::widget::precise::Msg::SetDigits(2));
-        self.amplitude
+        self.components.amplitude
             .emit(crate::widget::precise::Msg::SetAdjustement(
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
-        self.offset.emit(crate::widget::precise::Msg::SetDigits(2));
-        self.offset
+        self.components.offset.emit(crate::widget::precise::Msg::SetDigits(2));
+        self.components.offset
             .emit(crate::widget::precise::Msg::SetAdjustement(
                 gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
-        self.frequency
+        self.components.frequency
             .emit(crate::widget::precise::Msg::SetAdjustement(
                 gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
             ));
 
-        self.duty_cycle
+        self.components.duty_cycle
             .emit(crate::widget::precise::Msg::SetNoShowAll(true));
-        self.duty_cycle
+        self.components.duty_cycle
             .emit(crate::widget::precise::Msg::SetVisible(false));
-        self.duty_cycle
+        self.components.duty_cycle
             .emit(crate::widget::precise::Msg::SetDigits(2));
-        self.duty_cycle
+        self.components.duty_cycle
             .emit(crate::widget::precise::Msg::SetAdjustement(
                 gtk::Adjustment::new(0.0, 0.0, 1.0, 0.1, 1.0, 0.0),
             ));
 
         match self.model.generator.get_form(self.model.source) {
-            Ok(form) => self.form.emit(crate::widget::radio::Msg::Set(form)),
+            Ok(form) => self.components.form.emit(crate::widget::radio::Msg::Set(form)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_amplitude(self.model.source) {
-            Ok(amplitude) => self
-                .amplitude
+            Ok(amplitude) => self.components.amplitude
                 .emit(crate::widget::precise::Msg::SetValue(amplitude as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_offset(self.model.source) {
-            Ok(offset) => self
-                .offset
+            Ok(offset) => self.components.offset
                 .emit(crate::widget::precise::Msg::SetValue(offset as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_duty_cycle(self.model.source) {
-            Ok(duty_cycle) => self
-                .duty_cycle
+            Ok(duty_cycle) => self.components.duty_cycle
                 .emit(crate::widget::precise::Msg::SetValue(duty_cycle as f64)),
             Err(err) => log::error!("{}", err),
         };
 
         match self.model.generator.get_frequency(self.model.source) {
-            Ok(frequency) => self
-                .frequency
+            Ok(frequency) => self.components.frequency
                 .emit(crate::widget::precise::Msg::SetValue(frequency as f64)),
             Err(err) => log::error!("{}", err),
         };

@@ -19,12 +19,12 @@ impl relm::Widget for PreciseScale {
     fn update(&mut self, event: Msg) {
         match event {
             Msg::Expand => {
-                self.scale.set_draw_value(false);
-                self.spin.show();
+                self.widgets.scale.set_draw_value(false);
+                self.widgets.spin.show();
             }
             Msg::Fold => {
-                self.scale.set_draw_value(true);
-                self.spin.hide();
+                self.widgets.scale.set_draw_value(true);
+                self.widgets.spin.hide();
             }
             Msg::SetValue(value) => self.set_value(value),
             Msg::SetVisible(visible) => self.set_no_show_all(visible),
@@ -36,8 +36,8 @@ impl relm::Widget for PreciseScale {
     }
 
     fn init_view(&mut self) {
-        self.spin.hide();
-        self.scale.add_mark(0.0, gtk::PositionType::Top, None);
+        self.widgets.spin.hide();
+        self.widgets.scale.add_mark(0.0, gtk::PositionType::Top, None);
     }
 
     view! {
@@ -79,22 +79,22 @@ impl relm::Widget for PreciseScale {
 
 impl PreciseScale {
     pub fn set_adjustment(&self, adjustment: gtk::Adjustment) {
-        self.scale.set_adjustment(&adjustment);
+        self.widgets.scale.set_adjustment(&adjustment);
 
         adjustment.set_step_increment(adjustment.get_step_increment() / 10.0);
         adjustment.set_page_increment(adjustment.get_page_increment() / 10.0);
-        self.spin.set_adjustment(&adjustment);
+        self.widgets.spin.set_adjustment(&adjustment);
     }
 
     fn set_value(&self, value: f64) {
-        self.scale.set_value(value);
+        self.widgets.scale.set_value(value);
     }
 
     pub fn set_digits(&self, digits: u32) {
-        self.spin.set_digits(digits);
+        self.widgets.spin.set_digits(digits);
     }
 
     pub fn set_no_show_all(&self, no_show_all: bool) {
-        self.frame.set_no_show_all(no_show_all);
+        self.widgets.frame.set_no_show_all(no_show_all);
     }
 }

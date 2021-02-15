@@ -102,11 +102,11 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
-        self.in1
+        self.components.in1
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
-        self.in2
+        self.components.in2
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
     }
@@ -116,8 +116,8 @@ impl Widget {
         source: redpitaya_scpi::acquire::Source,
     ) -> &relm::Component<input::Widget> {
         match source {
-            redpitaya_scpi::acquire::Source::IN1 => &self.in1,
-            redpitaya_scpi::acquire::Source::IN2 => &self.in2,
+            redpitaya_scpi::acquire::Source::IN1 => &self.components.in1,
+            redpitaya_scpi::acquire::Source::IN2 => &self.components.in2,
         }
     }
 }

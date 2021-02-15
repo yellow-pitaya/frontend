@@ -65,11 +65,11 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
         context.save();
-        self.out1
+        self.components.out1
             .emit(output::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
         context.save();
-        self.out2
+        self.components.out2
             .emit(output::Msg::Redraw(context.clone(), model.clone()));
         context.restore();
     }

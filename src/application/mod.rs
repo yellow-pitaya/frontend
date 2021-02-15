@@ -17,27 +17,28 @@ macro_rules! redraw {
     ($self:ident, $widget:ident, $image:ident) => {
         let context = cairo::Context::new(&$image);
 
-        $self.transform(
-            $self.model.scales,
-            &context,
-            $image.get_width() as f64,
-            $image.get_height() as f64,
-        );
-        context.set_line_width(0.01);
+        if $image.get_width() > 0 && $image.get_height() > 0 {
+            $self.transform(
+                $self.model.scales,
+                &context,
+                $image.get_width() as f64,
+                $image.get_height() as f64,
+            );
+            context.set_line_width(0.01);
 
-        $self.$widget.emit($widget::Msg::Redraw(
-            Box::new(context.clone()),
-            Box::new($self.model.clone()),
-        ));
+            $self.components.$widget.emit($widget::Msg::Redraw(
+                Box::new(context.clone()),
+                Box::new($self.model.clone()),
+            ));
+        }
     };
 }
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Msg {
     AcquireRate(redpitaya_scpi::acquire::SamplingRate),
-    GraphDraw,
+    Draw,
     Level(String, i32),
-    NeedDraw,
     Resize(i32, i32),
     TriggerAuto,
     TriggerNormal,
@@ -47,7 +48,7 @@ pub enum Msg {
 
 #[derive(Clone)]
 pub struct Model {
-    stream: relm::EventStream<Msg>,
+    stream: relm::StreamHandle<Msg>,
     rate: redpitaya_scpi::acquire::SamplingRate,
     redpitaya: redpitaya_scpi::Redpitaya,
     scales: crate::Scales,
@@ -101,32 +102,31 @@ impl relm::Widget for Widget {
 
     fn update(&mut self, event: Msg) {
         match event {
+            Msg::Draw => self.draw(),
             Msg::AcquireRate(rate) => {
                 self.model.rate = rate;
                 self.model.scales.from_sampling_rate(rate);
-                self.graph.emit(graph::Msg::Invalidate);
+                self.update_status();
             }
 
-            Msg::NeedDraw => self.graph.emit(graph::Msg::Invalidate),
-            Msg::GraphDraw => self.draw(),
             Msg::Level(channel, level) => {
                 self.model.levels.insert(channel, level);
             }
             Msg::Resize(width, height) => {
                 self.model.scales.window.width = width;
                 self.model.scales.window.height = height;
-                self.model.stream.emit(Msg::NeedDraw)
+                self.draw();
             }
 
             Msg::TriggerAuto | Msg::TriggerSingle => {
-                self.acquire.emit(acquire::Msg::SetData(
+                self.components.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
                     self.model
                         .redpitaya
                         .data
                         .read_all(redpitaya_scpi::acquire::Source::IN1),
                 ));
-                self.acquire.emit(acquire::Msg::SetData(
+                self.components.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
                     self.model
                         .redpitaya
@@ -135,14 +135,14 @@ impl relm::Widget for Widget {
                 ));
             }
             Msg::TriggerNormal => {
-                self.acquire.emit(acquire::Msg::SetData(
+                self.components.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN1,
                     self.model
                         .redpitaya
                         .data
                         .read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384),
                 ));
-                self.acquire.emit(acquire::Msg::SetData(
+                self.components.acquire.emit(acquire::Msg::SetData(
                     redpitaya_scpi::acquire::Source::IN2,
                     self.model
                         .redpitaya
@@ -168,9 +168,8 @@ impl relm::Widget for Widget {
     view! {
         #[name="window"]
         gtk::Window {
-            //type: gtk::WindowType::Toplevel,
-            title: "Yellow Pitaya",
-            destroy(_) => Msg::Quit,
+            title: env!("CARGO_PKG_NAME"),
+            delete_event(_, _) => (Msg::Quit, gtk::Inhibit(false)),
 
             #[name="main_box"]
             gtk::Box {
@@ -187,7 +186,7 @@ impl relm::Widget for Widget {
 
                     #[name="graph"]
                     GraphWidget {
-                        Draw => Msg::GraphDraw,
+                        Draw => Msg::Draw,
                         Level(ref channel, offset) => Msg::Level(channel.clone(), offset),
                         Resize(w, h) => Msg::Resize(w, h),
                     },
@@ -235,11 +234,6 @@ impl relm::Widget for Widget {
 
                             #[name="generator"]
                             GeneratorWidget(self.model.redpitaya.generator.clone()) {
-                                Amplitude(_, _) => Msg::NeedDraw,
-                                DutyCycle(_, _) => Msg::NeedDraw,
-                                Frequency(_, _) => Msg::NeedDraw,
-                                Offset(_, _) => Msg::NeedDraw,
-                                Form(_, _) => Msg::NeedDraw,
                                 Start(source) => graph@graph::Msg::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
                                 Stop(source) => graph@graph::Msg::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
                             },
@@ -291,7 +285,7 @@ impl relm::Widget for Widget {
             .data
             .set_units(redpitaya_scpi::data::Unit::VOLTS);
 
-        self.window.show_all();
+        self.widgets.window.show_all();
 
         self.model.redpitaya.acquire.start();
 
@@ -309,8 +303,8 @@ impl Widget {
             self.model.scales.h_div()
         );
 
-        self.status_bar
-            .push(self.status_bar.get_context_id("sampling-rate"), &status);
+        self.widgets.status_bar
+            .push(self.widgets.status_bar.get_context_id("sampling-rate"), &status);
     }
 
     fn draw(&mut self) {
@@ -328,7 +322,7 @@ impl Widget {
         redraw!(self, generator, image);
         redraw!(self, acquire, image);
 
-        self.graph.emit(graph::Msg::SetImage(image));
+        self.components.graph.emit(graph::Msg::SetImage(image));
     }
 
     fn transform(&self, scales: crate::Scales, context: &cairo::Context, width: f64, height: f64) {

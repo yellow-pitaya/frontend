@@ -59,12 +59,12 @@ impl relm::Widget for Widget {
     }
 
     fn init_view(&mut self) {
-        self.palette
+        self.components.palette
             .emit(crate::widget::palette::Msg::SetLabel(format!(
                 "{}",
                 self.model.source
             )));
-        self.palette.emit(crate::widget::palette::Msg::SetColor(
+        self.components.palette.emit(crate::widget::palette::Msg::SetColor(
             self.model.source.into(),
         ));
     }
