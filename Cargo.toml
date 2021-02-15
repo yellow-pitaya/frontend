@@ -11,7 +11,7 @@ glib = "0.10"
 gdk = "0.13"
 log = "0.4"
 redpitaya-scpi = "0.27"
-relm = "0.20"
+relm = "0.21"
 relm-derive = "0.20"
 structopt = "0.3"
 
