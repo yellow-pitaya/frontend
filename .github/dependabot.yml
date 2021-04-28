@@ -1,0 +1,17 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: relm
+    versions:
+    - 0.21.0
+  - dependency-name: relm-derive
+    versions:
+    - 0.21.0
+  - dependency-name: env_logger
+    versions:
+    - 0.8.1
