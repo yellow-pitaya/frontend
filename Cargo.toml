@@ -5,7 +5,7 @@ authors = ["Sanpi <sanpi@homecomputing.fr>"]
 edition = "2018"
 
 [dependencies]
-cairo-rs = "0.9"
+cairo-rs = "0.14"
 env_logger = "0.8"
 glib = "0.10"
 gdk = "0.13"
