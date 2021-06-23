@@ -16,5 +16,5 @@ relm-derive = "0.21"
 structopt = "0.3"
 
 [dependencies.gtk]
-version = "0.9"
+version = "0.14"
 features = ["v3_16"]
