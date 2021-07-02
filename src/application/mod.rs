@@ -15,14 +15,14 @@ use trigger::Widget as TriggerWidget;
 
 macro_rules! redraw {
     ($self:ident, $widget:ident, $image:ident) => {
-        let context = cairo::Context::new(&$image);
+        let context = cairo::Context::new(&$image)?;
 
-        if $image.get_width() > 0 && $image.get_height() > 0 {
+        if $image.width() > 0 && $image.height() > 0 {
             $self.transform(
                 $self.model.scales,
                 &context,
-                $image.get_width() as f64,
-                $image.get_height() as f64,
+                $image.width() as f64,
+                $image.height() as f64,
             );
             context.set_line_width(0.01);
 
@@ -102,7 +102,7 @@ impl relm::Widget for Widget {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::Draw => self.draw(),
+            Msg::Draw => self.draw().unwrap(),
             Msg::AcquireRate(rate) => {
                 self.model.rate = rate;
                 self.model.scales.from_sampling_rate(rate);
@@ -115,7 +115,7 @@ impl relm::Widget for Widget {
             Msg::Resize(width, height) => {
                 self.model.scales.window.width = width;
                 self.model.scales.window.height = height;
-                self.draw();
+                self.draw().unwrap();
             }
 
             Msg::TriggerAuto | Msg::TriggerSingle => {
@@ -304,18 +304,17 @@ impl Widget {
         );
 
         self.widgets.status_bar
-            .push(self.widgets.status_bar.get_context_id("sampling-rate"), &status);
+            .push(self.widgets.status_bar.context_id("sampling-rate"), &status);
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self) -> Result<(), cairo::Error> {
         self.update_status();
 
         let image = cairo::ImageSurface::create(
             cairo::Format::ARgb32,
             self.model.scales.window.width,
             self.model.scales.window.height,
-        )
-        .unwrap();
+        )?;
 
         redraw!(self, graph, image);
         redraw!(self, trigger, image);
@@ -323,6 +322,8 @@ impl Widget {
         redraw!(self, acquire, image);
 
         self.components.graph.emit(graph::Msg::SetImage(image));
+
+        Ok(())
     }
 
     fn transform(&self, scales: crate::Scales, context: &cairo::Context, width: f64, height: f64) {

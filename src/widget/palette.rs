@@ -34,7 +34,7 @@ impl relm::Widget for Palette {
                 #[name="toggle"]
                 gtk::ToggleButton {
                     border_width: 1,
-                    toggled(widget) => if widget.get_active() {
+                    toggled(widget) => if widget.is_active() {
                         Msg::Expand
                     } else {
                         Msg::Fold
@@ -59,7 +59,7 @@ impl Palette {
 
 impl crate::color::Colorable for Palette {
     fn set_color(&self, color: crate::color::Color) {
-        let context = self.widgets.border.get_style_context();
+        let context = self.widgets.border.style_context();
 
         context.add_class(&format!("{}", color));
     }

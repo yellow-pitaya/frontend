@@ -42,7 +42,7 @@ impl relm::Widget for Widget {
             }
             Msg::Rate(rate) => self.model.set_decimation(rate.into()),
             Msg::SetData(source, data) => self.get_input(source).emit(input::Msg::SetData(data)),
-            Msg::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
             _ => (),
         };
     }
@@ -73,7 +73,7 @@ impl relm::Widget for Widget {
             gtk::CheckButton {
                 label: "Average",
                 active: self.model.is_average_enabled(),
-                toggled(w) => Msg::Average(w.get_active()),
+                toggled(w) => Msg::Average(w.is_active()),
             },
             #[name="in1"]
             InputWidget(input::Model::new(
@@ -100,15 +100,15 @@ impl relm::Widget for Widget {
 }
 
 impl Widget {
-    fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) {
-        context.save();
+    fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) -> Result<(), cairo::Error> {
+        context.save()?;
         self.components.in1
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
-        context.restore();
-        context.save();
+        context.restore()?;
+        context.save()?;
         self.components.in2
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
-        context.restore();
+        context.restore()
     }
 
     fn get_input(

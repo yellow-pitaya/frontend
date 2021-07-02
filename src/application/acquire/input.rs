@@ -51,7 +51,7 @@ impl relm::Widget for Widget {
         match event {
             Msg::Attenuation(attenuation) => self.model.attenuation = attenuation,
             Msg::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
-            Msg::Redraw(context, model) => self.draw(&context, &model),
+            Msg::Redraw(context, model) => self.draw(&context, &model).unwrap(),
             Msg::SetData(data) => self.model.data = data,
             Msg::Start => self.model.started = true,
             Msg::Stop => self.model.started = false,
@@ -111,9 +111,9 @@ impl Widget {
         self.model.started
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
         if !self.is_started() {
-            return;
+            return Ok(());
         }
 
         context.set_color(self.model.source.into());
@@ -122,14 +122,14 @@ impl Widget {
 
         context.move_to(model.scales.h.0, 0.0);
         context.line_to(model.scales.h.1, 0.0);
-        context.stroke();
+        context.stroke()?;
 
-        self.draw_data(&context, model.scales, self.model.attenuation);
+        self.draw_data(&context, model.scales, self.model.attenuation)
     }
 
-    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) {
+    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) -> Result<(), cairo::Error> {
         if self.model.data.is_empty() {
-            return;
+            return Ok(());
         }
 
         context.set_line_width(0.05);
@@ -141,6 +141,6 @@ impl Widget {
             context.line_to(x, y * attenuation as f64);
             context.move_to(x, y * attenuation as f64);
         }
-        context.stroke();
+        context.stroke()
     }
 }

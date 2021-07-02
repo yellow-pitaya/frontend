@@ -84,7 +84,7 @@ impl relm::Widget for Widget {
                     self.model.trigger.enable(source);
                 }
             }
-            Msg::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
             _ => (),
         }
     }
@@ -161,7 +161,7 @@ impl Widget {
         }
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
         if self.model.mode == Mode::Normal || self.model.mode == Mode::Single {
             let width = model.scales.get_width();
             let height = model.scales.get_height();
@@ -173,12 +173,14 @@ impl Widget {
             context.set_line_width(width / 1000.0);
             context.move_to(delay, model.scales.v.0);
             context.line_to(delay, model.scales.v.1);
-            context.stroke();
+            context.stroke()?;
 
             context.set_line_width(height / 1000.0);
             context.move_to(model.scales.h.0, trigger);
             context.line_to(model.scales.h.1, trigger);
-            context.stroke();
+            context.stroke()?;
         }
+
+        Ok(())
     }
 }

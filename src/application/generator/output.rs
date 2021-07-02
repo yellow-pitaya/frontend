@@ -55,7 +55,7 @@ impl relm::Widget for Widget {
                 .set_duty_cycle(self.model.source, value),
             Msg::Start => self.model.generator.start(self.model.source),
             Msg::Stop => self.model.generator.stop(self.model.source),
-            Msg::Redraw(ref context, ref model) => self.draw(context, model),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
             Msg::Form(form) => {
                 let is_pwm = form == redpitaya_scpi::generator::Form::PWM;
                 self.components.duty_cycle
@@ -199,7 +199,7 @@ impl Widget {
         self.model.generator.is_started(self.model.source)
     }
 
-    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales) {
+    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales) -> Result<(), cairo::Error> {
         context.set_line_width(0.05);
 
         if let Ok(form) = self.model.generator.get_form(self.model.source) {
@@ -255,8 +255,10 @@ impl Widget {
                 context.move_to(x.into(), y.into());
             }
 
-            context.stroke();
+            context.stroke()?;
         }
+
+        Ok(())
     }
 
     fn sine(&self, x: f32, amplitude: f32, frequency: f32) -> f32 {
@@ -296,9 +298,9 @@ impl Widget {
         }
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
         if !self.is_started() {
-            return;
+            return Ok(());
         }
 
         context.set_color(self.model.source.into());
@@ -307,8 +309,8 @@ impl Widget {
 
         context.move_to(model.scales.h.0, 0.0);
         context.line_to(model.scales.h.1, 0.0);
-        context.stroke();
+        context.stroke()?;
 
-        self.draw_data(&context, model.scales);
+        self.draw_data(&context, model.scales)
     }
 }

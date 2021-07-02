@@ -49,7 +49,7 @@ impl relm::Widget for PreciseScale {
                 spacing: 5,
                 #[name="toggle"]
                 gtk::CheckButton {
-                    toggled(w) => if w.get_active() {
+                    toggled(w) => if w.is_active() {
                         Msg::Expand
                     } else {
                         Msg::Fold
@@ -69,7 +69,7 @@ impl relm::Widget for PreciseScale {
                     #[name="spin"]
                     gtk::SpinButton {
                         no_show_all: true,
-                        value_changed(w) => Msg::Changed(w.get_value()),
+                        value_changed(w) => Msg::Changed(w.value()),
                     },
                 },
             },
@@ -81,8 +81,8 @@ impl PreciseScale {
     pub fn set_adjustment(&self, adjustment: gtk::Adjustment) {
         self.widgets.scale.set_adjustment(&adjustment);
 
-        adjustment.set_step_increment(adjustment.get_step_increment() / 10.0);
-        adjustment.set_page_increment(adjustment.get_page_increment() / 10.0);
+        adjustment.set_step_increment(adjustment.step_increment() / 10.0);
+        adjustment.set_page_increment(adjustment.page_increment() / 10.0);
         self.widgets.spin.set_adjustment(&adjustment);
     }
 

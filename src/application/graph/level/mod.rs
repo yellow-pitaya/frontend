@@ -44,7 +44,7 @@ pub struct Widget {
 
 // https://github.com/antoyo/relm/issues/42
 impl Widget {
-    fn start(&mut self, name: String) {
+    fn start(&mut self, name: String) -> Result<(), cairo::Error> {
         if self.model.levels.get(&name).is_none() {
             self.model.levels.insert(
                 name.clone(),
@@ -57,48 +57,52 @@ impl Widget {
 
         self.model.levels.get_mut(&name).unwrap().enable = true;
 
-        self.draw();
+        self.draw()
     }
 
-    fn stop(&mut self, name: String) {
+    fn stop(&mut self, name: String) -> Result<(), cairo::Error> {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.enable = false;
-            self.draw();
+            self.draw()?;
         }
+
+        Ok(())
     }
 
-    fn set_level(&mut self, name: String, offset: i32) {
+    fn set_level(&mut self, name: String, offset: i32) -> Result<(), cairo::Error> {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.offset = offset;
-            self.draw();
+            self.draw()?;
         }
+
+        Ok(())
     }
 
     fn get_width(&self) -> i32 {
-        self.drawing_area.get_allocated_width()
+        self.drawing_area.allocated_width()
     }
 
     fn get_height(&self) -> i32 {
-        self.drawing_area.get_allocated_height()
+        self.drawing_area.allocated_height()
     }
 
-    fn set_image(&self, image: &cairo::ImageSurface) {
-        let context = crate::create_context(&self.drawing_area);
+    fn set_image(&self, image: &cairo::ImageSurface) -> Result<(), cairo::Error> {
+        let context = crate::create_context(&self.drawing_area)?;
 
-        context.set_source_surface(image, 0.0, 0.0);
-        context.paint();
+        context.set_source_surface(image, 0.0, 0.0)?;
+        context.paint()
     }
 
-    fn draw(&self) {
+    fn draw(&self) -> Result<(), cairo::Error> {
         let width = self.get_width();
         let height = self.get_height();
 
         let image = cairo::ImageSurface::create(cairo::Format::ARgb32, width, height).unwrap();
-        let context = cairo::Context::new(&image);
+        let context = cairo::Context::new(&image)?;
 
         context.set_color(crate::color::BACKGROUND);
         context.rectangle(0.0, 0.0, width as f64, height as f64);
-        context.fill();
+        context.fill()?;
 
         for (name, level) in &self.model.levels {
             if !level.enable {
@@ -132,10 +136,12 @@ impl Widget {
             }
 
             context.close_path();
-            context.fill();
+            context.fill()?;
         }
 
-        self.set_image(&image);
+        self.set_image(&image)?;
+
+        Ok(())
     }
 
     fn on_click(&mut self, x: i32, y: i32) {
@@ -161,17 +167,19 @@ impl Widget {
         None
     }
 
-    fn on_mouse_move(&mut self, x: i32, y: i32) {
-        if let Some((start_x, start_y)) = self.gesture_drag.get_start_point() {
+    fn on_mouse_move(&mut self, x: i32, y: i32) -> Result<(), cairo::Error> {
+        if let Some((start_x, start_y)) = self.gesture_drag.start_point() {
             let offset = match self.model.orientation {
                 Orientation::Left | Orientation::Right => start_y as i32 + y,
                 Orientation::Top => start_x as i32 + x,
             };
 
             if let Some(name) = self.model.current.clone() {
-                self.set_level(name, offset);
+                self.set_level(name, offset)?;
             }
         }
+
+        Ok(())
     }
 
     fn on_release(&mut self) {
@@ -213,10 +221,10 @@ impl relm::Update for Widget {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Click(x, y) => self.on_click(x as i32, y as i32),
-            Msg::Move(x, y) => self.on_mouse_move(x as i32, y as i32),
-            Msg::Draw => self.draw(),
-            Msg::SourceStart(source) => self.start(source),
-            Msg::SourceStop(source) => self.stop(source),
+            Msg::Move(x, y) => self.on_mouse_move(x as i32, y as i32).unwrap(),
+            Msg::Draw => self.draw().unwrap(),
+            Msg::SourceStart(source) => self.start(source).unwrap(),
+            Msg::SourceStop(source) => self.stop(source).unwrap(),
             Msg::Release => self.on_release(),
             Msg::Level(_, _) => (),
         }

@@ -24,10 +24,10 @@ fn main() {
     application::Widget::run(redpitaya).unwrap();
 }
 
-fn create_context(widget: &gtk::DrawingArea) -> cairo::Context {
+fn create_context(widget: &gtk::DrawingArea) -> Result<cairo::Context, cairo::Error> {
     let mut draw_handler = relm::DrawHandler::new().expect("draw handler");
 
     draw_handler.init(widget);
 
-    draw_handler.get_context().clone()
+    draw_handler.get_context().map(|x| x.clone())
 }

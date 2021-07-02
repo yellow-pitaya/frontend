@@ -76,7 +76,7 @@ where
                 let option = option.clone();
 
                 button.connect_toggled(move |f| {
-                    if f.get_active() {
+                    if f.is_active() {
                         stream.emit(Msg::Change(option.clone()));
                     }
                 });

@@ -18,18 +18,18 @@ pub enum Msg {
 }
 
 impl Widget {
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) {
+    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
 
         context.set_color(crate::color::BACKGROUND);
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
-        context.fill();
+        context.fill()?;
 
         context.set_color(crate::color::MAIN_SCALE);
 
         context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
-        context.stroke();
+        context.stroke()?;
 
         for i in 0..11 {
             if i % 5 == 0 {
@@ -43,25 +43,27 @@ impl Widget {
             context.set_line_width(width / 1000.0);
             context.move_to(model.scales.h.0 + x, model.scales.v.0);
             context.line_to(model.scales.h.0 + x, model.scales.v.1);
-            context.stroke();
+            context.stroke()?;
 
             let y = height / 10.0 * (i as f64);
 
             context.set_line_width(height / 1000.0);
             context.move_to(model.scales.h.0, model.scales.v.0 + y);
             context.line_to(model.scales.h.1, model.scales.v.0 + y);
-            context.stroke();
+            context.stroke()?;
         }
 
         self.components.level_left.emit(level::Msg::Draw);
         self.components.level_right.emit(level::Msg::Draw);
+
+        Ok(())
     }
 
-    fn set_image(&self, image: &cairo::ImageSurface) {
-        let context = crate::create_context(&self.widgets.drawing_area);
+    fn set_image(&self, image: &cairo::ImageSurface) -> Result<(), cairo::Error> {
+        let context = crate::create_context(&self.widgets.drawing_area)?;
 
-        context.set_source_surface(image, 0.0, 0.0);
-        context.paint();
+        context.set_source_surface(image, 0.0, 0.0)?;
+        context.paint()
     }
 }
 
@@ -81,8 +83,8 @@ impl relm::Widget for Widget {
                 level::Orientation::Right => self.components.level_right.emit(level::Msg::SourceStop(source)),
                 level::Orientation::Top => self.components.level_top.emit(level::Msg::SourceStop(source)),
             },
-            Msg::Redraw(ref context, ref model) => self.draw(context, model),
-            Msg::SetImage(ref image) => self.set_image(image),
+            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
+            Msg::SetImage(ref image) => self.set_image(image).unwrap(),
             _ => (),
         }
     }

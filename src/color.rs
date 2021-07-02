@@ -123,7 +123,7 @@ pub const TRIGGER: Color = Color {
 
 impl Color {
     pub fn init() {
-        use gtk::CssProviderExt;
+        use gtk::prelude::CssProviderExt;
 
         let colors = [
             BACKGROUND,
@@ -148,7 +148,7 @@ impl Color {
             .expect("Failed to load CSS");
 
         gtk::StyleContext::add_provider_for_screen(
-            &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
+            &gdk::Screen::default().expect("Error initializing gtk css provider."),
             &provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );

@@ -1,5 +1,5 @@
 use crate::color::Colorable;
-use gtk::WidgetExt;
+use gtk::prelude::WidgetExt;
 
 #[derive(relm_derive::Msg, Clone)]
 pub enum Msg {
@@ -13,10 +13,10 @@ impl relm::Widget for Widget {
     fn update(&mut self, event: Msg) {
         match event {
             Msg::Draw => {
-                let context = crate::create_context(&self.widgets.drawing_area);
+                let context = crate::create_context(&self.widgets.drawing_area).unwrap();
                 context.set_color(crate::color::BACKGROUND);
                 context.rectangle(0.0, 0.0, 20.0, 20.0);
-                context.fill();
+                context.fill().unwrap();
             }
         }
     }
