@@ -1,4 +1,4 @@
-# Yellow Pitaya [![.github/workflows/ci.yml](https://github.com/yellow-pitaya/frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/yellow-pitaya/frontend/actions/workflows/ci.yml) [![build status](https://gitlab.com/yellow-pitaya/frontend/badges/master/build.svg)](https://gitlab.com/yellow-pitaya/frontend/commits/master)
+# Yellow Pitaya [![.github/workflows/ci.yml](https://github.com/yellow-pitaya/frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/yellow-pitaya/frontend/actions/workflows/ci.yml) [![pipeline status](https://gitlab.com/yellow-pitaya/frontend/badges/main/pipeline.svg)](https://gitlab.com/yellow-pitaya/frontend/-/commits/main)
 
 This is a desktop interface for [redpitaya](https://redpitaya.com/).
 
