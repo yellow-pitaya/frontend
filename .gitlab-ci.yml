@@ -1,4 +1,4 @@
-image: "scorpil/rust:stable"
+image: "rust:latest"
 
 stages:
     - lint
