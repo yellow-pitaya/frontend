@@ -159,7 +159,7 @@ pub trait Colorable {
     fn set_color(&self, color: Color);
 }
 
-impl Colorable for cairo::Context {
+impl Colorable for gtk::cairo::Context {
     fn set_color(&self, color: Color) {
         self.set_source_rgba(color.r, color.g, color.b, color.a);
     }

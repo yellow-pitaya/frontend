@@ -44,7 +44,7 @@ pub struct Widget {
 
 // https://github.com/antoyo/relm/issues/42
 impl Widget {
-    fn start(&mut self, name: String) -> Result<(), cairo::Error> {
+    fn start(&mut self, name: String) -> Result<(), gtk::cairo::Error> {
         if self.model.levels.get(&name).is_none() {
             self.model.levels.insert(
                 name.clone(),
@@ -60,7 +60,7 @@ impl Widget {
         self.draw()
     }
 
-    fn stop(&mut self, name: String) -> Result<(), cairo::Error> {
+    fn stop(&mut self, name: String) -> Result<(), gtk::cairo::Error> {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.enable = false;
             self.draw()?;
@@ -69,7 +69,7 @@ impl Widget {
         Ok(())
     }
 
-    fn set_level(&mut self, name: String, offset: i32) -> Result<(), cairo::Error> {
+    fn set_level(&mut self, name: String, offset: i32) -> Result<(), gtk::cairo::Error> {
         if let Some(mut level) = self.model.levels.get_mut(&name) {
             level.offset = offset;
             self.draw()?;
@@ -86,19 +86,19 @@ impl Widget {
         self.drawing_area.allocated_height()
     }
 
-    fn set_image(&self, image: &cairo::ImageSurface) -> Result<(), cairo::Error> {
+    fn set_image(&self, image: &gtk::cairo::ImageSurface) -> Result<(), gtk::cairo::Error> {
         let context = crate::create_context(&self.drawing_area)?;
 
         context.set_source_surface(image, 0.0, 0.0)?;
         context.paint()
     }
 
-    fn draw(&self) -> Result<(), cairo::Error> {
+    fn draw(&self) -> Result<(), gtk::cairo::Error> {
         let width = self.get_width();
         let height = self.get_height();
 
-        let image = cairo::ImageSurface::create(cairo::Format::ARgb32, width, height).unwrap();
-        let context = cairo::Context::new(&image)?;
+        let image = gtk::cairo::ImageSurface::create(gtk::cairo::Format::ARgb32, width, height).unwrap();
+        let context = gtk::cairo::Context::new(&image)?;
 
         context.set_color(crate::color::BACKGROUND);
         context.rectangle(0.0, 0.0, width as f64, height as f64);
@@ -167,7 +167,7 @@ impl Widget {
         None
     }
 
-    fn on_mouse_move(&mut self, x: i32, y: i32) -> Result<(), cairo::Error> {
+    fn on_mouse_move(&mut self, x: i32, y: i32) -> Result<(), gtk::cairo::Error> {
         if let Some((start_x, start_y)) = self.gesture_drag.start_point() {
             let offset = match self.model.orientation {
                 Orientation::Left | Orientation::Right => start_y as i32 + y,

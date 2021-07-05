@@ -15,7 +15,7 @@ use trigger::Widget as TriggerWidget;
 
 macro_rules! redraw {
     ($self:ident, $widget:ident, $image:ident) => {
-        let context = cairo::Context::new(&$image)?;
+        let context = gtk::cairo::Context::new(&$image)?;
 
         if $image.width() > 0 && $image.height() > 0 {
             $self.transform(
@@ -307,11 +307,11 @@ impl Widget {
             .push(self.widgets.status_bar.context_id("sampling-rate"), &status);
     }
 
-    fn draw(&mut self) -> Result<(), cairo::Error> {
+    fn draw(&mut self) -> Result<(), gtk::cairo::Error> {
         self.update_status();
 
-        let image = cairo::ImageSurface::create(
-            cairo::Format::ARgb32,
+        let image = gtk::cairo::ImageSurface::create(
+            gtk::cairo::Format::ARgb32,
             self.model.scales.window.width,
             self.model.scales.window.height,
         )?;
@@ -326,8 +326,8 @@ impl Widget {
         Ok(())
     }
 
-    fn transform(&self, scales: crate::Scales, context: &cairo::Context, width: f64, height: f64) {
-        context.set_matrix(cairo::Matrix {
+    fn transform(&self, scales: crate::Scales, context: &gtk::cairo::Context, width: f64, height: f64) {
+        context.set_matrix(gtk::cairo::Matrix {
             xx: width / scales.get_width(),
             xy: 0.0,
             yy: -height / scales.get_height(),

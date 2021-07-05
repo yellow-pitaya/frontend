@@ -19,7 +19,7 @@ pub enum Msg {
     SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
     Start(redpitaya_scpi::acquire::Source),
     Stop(redpitaya_scpi::acquire::Source),
-    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
 }
 
 #[relm_derive::widget(clone)]
@@ -100,7 +100,7 @@ impl relm::Widget for Widget {
 }
 
 impl Widget {
-    fn draw(&self, context: &Box<cairo::Context>, model: &Box<crate::application::Model>) -> Result<(), cairo::Error> {
+    fn draw(&self, context: &Box<gtk::cairo::Context>, model: &Box<crate::application::Model>) -> Result<(), gtk::cairo::Error> {
         context.save()?;
         self.components.in1
             .emit(input::Msg::Redraw(context.clone(), model.clone()));

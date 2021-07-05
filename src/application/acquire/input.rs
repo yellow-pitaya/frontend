@@ -14,7 +14,7 @@ pub enum Msg {
     SetData(Vec<f64>),
     Start,
     Stop,
-    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
 }
 
 #[derive(Clone)]
@@ -111,7 +111,7 @@ impl Widget {
         self.model.started
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
+    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
         if !self.is_started() {
             return Ok(());
         }
@@ -127,7 +127,7 @@ impl Widget {
         self.draw_data(&context, model.scales, self.model.attenuation)
     }
 
-    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales, attenuation: u8) -> Result<(), cairo::Error> {
+    fn draw_data(&self, context: &gtk::cairo::Context, scales: crate::Scales, attenuation: u8) -> Result<(), gtk::cairo::Error> {
         if self.model.data.is_empty() {
             return Ok(());
         }

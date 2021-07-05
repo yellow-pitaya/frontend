@@ -24,7 +24,7 @@ pub enum Msg {
     Source(redpitaya_scpi::trigger::Source),
     Edge(Edge),
     InternalTick,
-    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
 }
 
 #[derive(Clone)]
@@ -161,7 +161,7 @@ impl Widget {
         }
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
+    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
         if self.model.mode == Mode::Normal || self.model.mode == Mode::Single {
             let width = model.scales.get_width();
             let height = model.scales.get_height();

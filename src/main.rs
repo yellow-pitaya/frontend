@@ -24,7 +24,7 @@ fn main() {
     application::Widget::run(redpitaya).unwrap();
 }
 
-fn create_context(widget: &gtk::DrawingArea) -> Result<cairo::Context, cairo::Error> {
+fn create_context(widget: &gtk::DrawingArea) -> Result<gtk::cairo::Context, gtk::cairo::Error> {
     let mut draw_handler = relm::DrawHandler::new().expect("draw handler");
 
     draw_handler.init(widget);

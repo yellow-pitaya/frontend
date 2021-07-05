@@ -10,15 +10,15 @@ use level::Widget as LevelWidget;
 pub enum Msg {
     Draw,
     Level(String, i32),
-    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
     Resize(i32, i32),
-    SetImage(cairo::ImageSurface),
+    SetImage(gtk::cairo::ImageSurface),
     SourceStart(level::Orientation, String),
     SourceStop(level::Orientation, String),
 }
 
 impl Widget {
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
+    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
 
@@ -59,7 +59,7 @@ impl Widget {
         Ok(())
     }
 
-    fn set_image(&self, image: &cairo::ImageSurface) -> Result<(), cairo::Error> {
+    fn set_image(&self, image: &gtk::cairo::ImageSurface) -> Result<(), gtk::cairo::Error> {
         let context = crate::create_context(&self.widgets.drawing_area)?;
 
         context.set_source_surface(image, 0.0, 0.0)?;

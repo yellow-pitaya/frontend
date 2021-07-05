@@ -15,7 +15,7 @@ pub enum Msg {
     Frequency(u32),
     Offset(f32),
     Form(redpitaya_scpi::generator::Form),
-    Redraw(Box<cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
     Start,
     Stop,
 }
@@ -199,7 +199,7 @@ impl Widget {
         self.model.generator.is_started(self.model.source)
     }
 
-    fn draw_data(&self, context: &cairo::Context, scales: crate::Scales) -> Result<(), cairo::Error> {
+    fn draw_data(&self, context: &gtk::cairo::Context, scales: crate::Scales) -> Result<(), gtk::cairo::Error> {
         context.set_line_width(0.05);
 
         if let Ok(form) = self.model.generator.get_form(self.model.source) {
@@ -298,7 +298,7 @@ impl Widget {
         }
     }
 
-    fn draw(&self, context: &cairo::Context, model: &crate::application::Model) -> Result<(), cairo::Error> {
+    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
         if !self.is_started() {
             return Ok(());
         }
