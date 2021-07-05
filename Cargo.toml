@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 cairo-rs = "0.14"
 env_logger = "0.8"
-glib = "0.14"
 gdk = "0.14"
 gtk = "0.14"
 log = "0.4"
