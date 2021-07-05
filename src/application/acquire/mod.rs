@@ -42,7 +42,7 @@ impl relm::Widget for Widget {
             }
             Msg::Rate(rate) => self.model.set_decimation(rate.into()),
             Msg::SetData(source, data) => self.get_input(source).emit(input::Msg::SetData(data)),
-            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
+            Msg::Redraw(context, model) => self.draw(context, model).unwrap(),
             _ => (),
         };
     }
@@ -102,8 +102,8 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(
         &self,
-        context: &Box<gtk::cairo::Context>,
-        model: &Box<crate::application::Model>,
+        context: Box<gtk::cairo::Context>,
+        model: Box<crate::application::Model>,
     ) -> Result<(), gtk::cairo::Error> {
         context.save()?;
         self.components
@@ -113,7 +113,7 @@ impl Widget {
         context.save()?;
         self.components
             .in2
-            .emit(input::Msg::Redraw(context.clone(), model.clone()));
+            .emit(input::Msg::Redraw(context.clone(), model));
         context.restore()
     }
 

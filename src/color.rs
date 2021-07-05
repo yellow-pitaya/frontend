@@ -7,27 +7,27 @@ pub struct Color {
     a: f64,
 }
 
-impl std::convert::Into<Color> for redpitaya_scpi::generator::Source {
-    fn into(self) -> Color {
-        match self {
+impl From<redpitaya_scpi::generator::Source> for Color {
+    fn from(source: redpitaya_scpi::generator::Source) -> Self {
+        match source {
             redpitaya_scpi::generator::Source::OUT1 => OUT1,
             redpitaya_scpi::generator::Source::OUT2 => OUT2,
         }
     }
 }
 
-impl std::convert::Into<Color> for redpitaya_scpi::acquire::Source {
-    fn into(self) -> Color {
-        match self {
+impl From<redpitaya_scpi::acquire::Source> for Color {
+    fn from(source: redpitaya_scpi::acquire::Source) -> Self {
+        match source {
             redpitaya_scpi::acquire::Source::IN1 => IN1,
             redpitaya_scpi::acquire::Source::IN2 => IN2,
         }
     }
 }
 
-impl std::convert::Into<Color> for String {
-    fn into(self) -> Color {
-        match self.as_str() {
+impl From<String> for Color {
+    fn from(s: String) -> Color {
+        match s.as_str() {
             "IN 1" => IN1,
             "IN 2" => IN2,
             "OUT 1" => OUT1,

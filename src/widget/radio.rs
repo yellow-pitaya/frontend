@@ -40,9 +40,8 @@ impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> 
     }
 
     fn update(&mut self, event: Self::Msg) {
-        match event {
-            Msg::Set(value) => self.set_current(value),
-            _ => (),
+        if let Msg::Set(value) = event {
+            self.set_current(value);
         }
     }
 }

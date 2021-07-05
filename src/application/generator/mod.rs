@@ -28,9 +28,8 @@ impl relm::Widget for Widget {
     }
 
     fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
-            _ => (),
+        if let Msg::Redraw(context, model) = event {
+            self.draw(context, model).unwrap();
         }
     }
 
@@ -65,8 +64,8 @@ impl relm::Widget for Widget {
 impl Widget {
     fn draw(
         &self,
-        context: &Box<gtk::cairo::Context>,
-        model: &Box<crate::application::Model>,
+        context: Box<gtk::cairo::Context>,
+        model: Box<crate::application::Model>,
     ) -> Result<(), gtk::cairo::Error> {
         context.save()?;
         self.components
@@ -76,7 +75,7 @@ impl Widget {
         context.save()?;
         self.components
             .out2
-            .emit(output::Msg::Redraw(context.clone(), model.clone()));
+            .emit(output::Msg::Redraw(context.clone(), model));
         context.restore()
     }
 }
