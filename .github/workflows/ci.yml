@@ -1,6 +1,22 @@
 on: [pull_request, push]
 
 jobs:
+  lint_fmt:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+      - name: Check formating
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
   tests:
     name: Tests
     strategy:
