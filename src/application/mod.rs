@@ -303,7 +303,8 @@ impl Widget {
             self.model.scales.h_div()
         );
 
-        self.widgets.status_bar
+        self.widgets
+            .status_bar
             .push(self.widgets.status_bar.context_id("sampling-rate"), &status);
     }
 
@@ -326,7 +327,13 @@ impl Widget {
         Ok(())
     }
 
-    fn transform(&self, scales: crate::Scales, context: &gtk::cairo::Context, width: f64, height: f64) {
+    fn transform(
+        &self,
+        scales: crate::Scales,
+        context: &gtk::cairo::Context,
+        width: f64,
+        height: f64,
+    ) {
         context.set_matrix(gtk::cairo::Matrix {
             xx: width / scales.get_width(),
             xy: 0.0,

@@ -37,7 +37,9 @@ impl relm::Widget for PreciseScale {
 
     fn init_view(&mut self) {
         self.widgets.spin.hide();
-        self.widgets.scale.add_mark(0.0, gtk::PositionType::Top, None);
+        self.widgets
+            .scale
+            .add_mark(0.0, gtk::PositionType::Top, None);
     }
 
     view! {

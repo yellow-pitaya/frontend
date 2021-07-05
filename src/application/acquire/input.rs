@@ -59,14 +59,17 @@ impl relm::Widget for Widget {
     }
 
     fn init_view(&mut self) {
-        self.components.palette
+        self.components
+            .palette
             .emit(crate::widget::palette::Msg::SetLabel(format!(
                 "{}",
                 self.model.source
             )));
-        self.components.palette.emit(crate::widget::palette::Msg::SetColor(
-            self.model.source.into(),
-        ));
+        self.components
+            .palette
+            .emit(crate::widget::palette::Msg::SetColor(
+                self.model.source.into(),
+            ));
     }
 
     view! {
@@ -111,7 +114,11 @@ impl Widget {
         self.model.started
     }
 
-    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
+    fn draw(
+        &self,
+        context: &gtk::cairo::Context,
+        model: &crate::application::Model,
+    ) -> Result<(), gtk::cairo::Error> {
         if !self.is_started() {
             return Ok(());
         }
@@ -127,7 +134,12 @@ impl Widget {
         self.draw_data(&context, model.scales, self.model.attenuation)
     }
 
-    fn draw_data(&self, context: &gtk::cairo::Context, scales: crate::Scales, attenuation: u8) -> Result<(), gtk::cairo::Error> {
+    fn draw_data(
+        &self,
+        context: &gtk::cairo::Context,
+        scales: crate::Scales,
+        attenuation: u8,
+    ) -> Result<(), gtk::cairo::Error> {
         if self.model.data.is_empty() {
             return Ok(());
         }

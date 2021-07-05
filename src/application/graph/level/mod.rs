@@ -97,7 +97,8 @@ impl Widget {
         let width = self.get_width();
         let height = self.get_height();
 
-        let image = gtk::cairo::ImageSurface::create(gtk::cairo::Format::ARgb32, width, height).unwrap();
+        let image =
+            gtk::cairo::ImageSurface::create(gtk::cairo::Format::ARgb32, width, height).unwrap();
         let context = gtk::cairo::Context::new(&image)?;
 
         context.set_color(crate::color::BACKGROUND);

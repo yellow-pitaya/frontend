@@ -161,7 +161,11 @@ impl Widget {
         }
     }
 
-    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
+    fn draw(
+        &self,
+        context: &gtk::cairo::Context,
+        model: &crate::application::Model,
+    ) -> Result<(), gtk::cairo::Error> {
         if self.model.mode == Mode::Normal || self.model.mode == Mode::Single {
             let width = model.scales.get_width();
             let height = model.scales.get_height();

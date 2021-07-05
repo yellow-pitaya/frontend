@@ -100,13 +100,19 @@ impl relm::Widget for Widget {
 }
 
 impl Widget {
-    fn draw(&self, context: &Box<gtk::cairo::Context>, model: &Box<crate::application::Model>) -> Result<(), gtk::cairo::Error> {
+    fn draw(
+        &self,
+        context: &Box<gtk::cairo::Context>,
+        model: &Box<crate::application::Model>,
+    ) -> Result<(), gtk::cairo::Error> {
         context.save()?;
-        self.components.in1
+        self.components
+            .in1
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
         context.restore()?;
         context.save()?;
-        self.components.in2
+        self.components
+            .in2
             .emit(input::Msg::Redraw(context.clone(), model.clone()));
         context.restore()
     }

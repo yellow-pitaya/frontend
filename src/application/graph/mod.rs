@@ -18,7 +18,11 @@ pub enum Msg {
 }
 
 impl Widget {
-    fn draw(&self, context: &gtk::cairo::Context, model: &crate::application::Model) -> Result<(), gtk::cairo::Error> {
+    fn draw(
+        &self,
+        context: &gtk::cairo::Context,
+        model: &crate::application::Model,
+    ) -> Result<(), gtk::cairo::Error> {
         let width = model.scales.get_width();
         let height = model.scales.get_height();
 
@@ -74,14 +78,32 @@ impl relm::Widget for Widget {
     fn update(&mut self, event: Msg) {
         match event {
             Msg::SourceStart(orientation, source) => match orientation {
-                level::Orientation::Left => self.components.level_left.emit(level::Msg::SourceStart(source)),
-                level::Orientation::Right => self.components.level_right.emit(level::Msg::SourceStart(source)),
-                level::Orientation::Top => self.components.level_top.emit(level::Msg::SourceStart(source)),
+                level::Orientation::Left => self
+                    .components
+                    .level_left
+                    .emit(level::Msg::SourceStart(source)),
+                level::Orientation::Right => self
+                    .components
+                    .level_right
+                    .emit(level::Msg::SourceStart(source)),
+                level::Orientation::Top => self
+                    .components
+                    .level_top
+                    .emit(level::Msg::SourceStart(source)),
             },
             Msg::SourceStop(orientation, source) => match orientation {
-                level::Orientation::Left => self.components.level_left.emit(level::Msg::SourceStop(source)),
-                level::Orientation::Right => self.components.level_right.emit(level::Msg::SourceStop(source)),
-                level::Orientation::Top => self.components.level_top.emit(level::Msg::SourceStop(source)),
+                level::Orientation::Left => self
+                    .components
+                    .level_left
+                    .emit(level::Msg::SourceStop(source)),
+                level::Orientation::Right => self
+                    .components
+                    .level_right
+                    .emit(level::Msg::SourceStop(source)),
+                level::Orientation::Top => self
+                    .components
+                    .level_top
+                    .emit(level::Msg::SourceStop(source)),
             },
             Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
             Msg::SetImage(ref image) => self.set_image(image).unwrap(),
