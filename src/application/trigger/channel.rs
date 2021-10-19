@@ -2,7 +2,7 @@
 pub enum Channel {
     CH1,
     CH2,
-    EXT,
+    Ext,
 }
 
 impl std::fmt::Display for Channel {
@@ -10,7 +10,7 @@ impl std::fmt::Display for Channel {
         let display = match *self {
             Self::CH1 => "CH1",
             Self::CH2 => "CH2",
-            Self::EXT => "EXT",
+            Self::Ext => "EXT",
         };
 
         write!(f, "{}", display)

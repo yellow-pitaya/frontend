@@ -96,7 +96,7 @@ impl relm::Widget for Widget {
             spacing: 10,
 
             ChannelWidget(crate::widget::radio::Model {
-                options: vec![Channel::CH1, Channel::CH2, Channel::EXT],
+                options: vec![Channel::CH1, Channel::CH2, Channel::Ext],
                 current: Some(Channel::CH1),
             }) {
                 label: Some("Source"),
@@ -148,11 +148,11 @@ impl Widget {
             && self.model.edge == Some(Edge::Negative)
         {
             Some(redpitaya_scpi::trigger::Source::CH2_NE)
-        } else if self.model.channel == Some(Channel::EXT)
+        } else if self.model.channel == Some(Channel::Ext)
             && self.model.edge == Some(Edge::Positive)
         {
             Some(redpitaya_scpi::trigger::Source::EXT_PE)
-        } else if self.model.channel == Some(Channel::EXT)
+        } else if self.model.channel == Some(Channel::Ext)
             && self.model.edge == Some(Edge::Negative)
         {
             Some(redpitaya_scpi::trigger::Source::EXT_NE)

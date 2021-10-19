@@ -131,7 +131,7 @@ impl Widget {
         context.line_to(model.scales.h.1, 0.0);
         context.stroke()?;
 
-        self.draw_data(&context, model.scales, self.model.attenuation)
+        self.draw_data(context, model.scales, self.model.attenuation)
     }
 
     fn draw_data(
