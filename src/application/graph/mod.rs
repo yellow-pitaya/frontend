@@ -179,7 +179,7 @@ impl relm::Widget for Widget {
                     LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
                 },
             },
-            size_allocate(_, allocation) => Msg::Resize(allocation.width, allocation.height),
+            size_allocate(_, allocation) => Msg::Resize(allocation.width(), allocation.height()),
         },
     }
 }
