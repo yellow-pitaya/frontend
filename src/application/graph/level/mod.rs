@@ -27,7 +27,7 @@ pub struct Model {
     levels: std::collections::HashMap<String, Level>,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Orientation {
     Left,
     Right,

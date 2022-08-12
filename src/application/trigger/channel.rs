@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Channel {
     CH1,
     CH2,
