@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 env_logger = "0.9"
-gtk = "0.15"
+gtk = "0.16"
 log = "0.4"
 redpitaya-scpi = "0.27"
 relm = "0.23"
