@@ -5,11 +5,11 @@ mod color;
 mod scales;
 mod widget;
 
+use clap::Parser;
 use relm::Widget;
 use scales::Scales;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Opt {
     addr: String,
 }
@@ -17,7 +17,7 @@ struct Opt {
 fn main() {
     env_logger::init();
 
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     let redpitaya = redpitaya_scpi::Redpitaya::new(opt.addr);
 
