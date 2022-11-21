@@ -10,7 +10,7 @@ gtk = "0.15"
 log = "0.4"
 redpitaya-scpi = "0.27"
 relm = "0.23"
-relm-derive = "0.23"
+relm-derive = "0.24"
 
 [dependencies.clap]
 version = "4.0"
