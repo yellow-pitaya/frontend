@@ -334,13 +334,13 @@ impl Widget {
         width: f64,
         height: f64,
     ) {
-        context.set_matrix(gtk::cairo::Matrix {
-            xx: width / scales.get_width(),
-            xy: 0.0,
-            yy: -height / scales.get_height(),
-            yx: 0.0,
-            x0: scales.h.1 * width / scales.get_width(),
-            y0: scales.v.1 * height / scales.get_height(),
-        });
+        context.set_matrix(gtk::cairo::Matrix::new(
+            width / scales.get_width(),
+            0.0,
+            0.0,
+            -height / scales.get_height(),
+            scales.h.1 * width / scales.get_width(),
+            scales.v.1 * height / scales.get_height(),
+        ));
     }
 }
