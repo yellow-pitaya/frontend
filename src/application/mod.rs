@@ -3,64 +3,68 @@ mod generator;
 mod graph;
 mod trigger;
 
-use acquire::Msg::{Rate, Start as AcquireStart, Stop as AcquireStop};
-use acquire::Widget as AcquireWidget;
-use generator::Msg::*;
-use generator::Widget as GeneratorWidget;
-use graph::Msg::*;
-use graph::Widget as GraphWidget;
 use gtk::prelude::*;
-use trigger::Msg::*;
-use trigger::Widget as TriggerWidget;
+use relm4::ComponentController as _;
 
 macro_rules! redraw {
-    ($self:ident, $widget:ident, $image:ident) => {
+    ($self:ident, $widget:ident, $image:ident) => {{
         let context = gtk::cairo::Context::new(&$image)?;
 
         if $image.width() > 0 && $image.height() > 0 {
             $self.transform(
-                $self.model.scales,
+                $self.data.scales,
                 &context,
                 $image.width() as f64,
                 $image.height() as f64,
             );
             context.set_line_width(0.01);
 
-            $self.components.$widget.emit($widget::Msg::Redraw(
+            $self.$widget.emit($widget::InputMsg::Redraw(
                 Box::new(context.clone()),
-                Box::new($self.model.clone()),
+                Box::new($self.data.clone()),
             ));
         }
-    };
+    }};
 }
 
-#[derive(relm_derive::Msg, Clone)]
+#[derive(Debug)]
 pub enum Msg {
-    AcquireRate(redpitaya_scpi::acquire::SamplingRate),
+    Acquire(acquire::OutputMsg),
+    Generator(generator::OutputMsg),
+    Graph(graph::OutputMsg),
+    Trigger(trigger::OutputMsg),
     Draw,
-    Level(String, i32),
-    Resize(i32, i32),
-    TriggerAuto,
-    TriggerNormal,
-    TriggerSingle,
     Quit,
 }
 
-#[derive(Clone)]
 pub struct Model {
-    stream: relm::StreamHandle<Msg>,
+    data: Data,
+    graph: relm4::Controller<graph::Model>,
+    acquire: relm4::Controller<acquire::Model>,
+    generator: relm4::Controller<generator::Model>,
+    trigger: relm4::Controller<trigger::Model>,
+}
+
+#[derive(Clone)]
+struct Data {
     rate: redpitaya_scpi::acquire::SamplingRate,
     redpitaya: redpitaya_scpi::Redpitaya,
     scales: crate::Scales,
     levels: std::collections::HashMap<String, i32>,
 }
 
-impl Model {
+impl std::fmt::Debug for Data {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Data {
     fn offset<D>(&self, channel: D) -> f64
     where
         D: std::fmt::Display,
     {
-        let channel = format!("{}", channel);
+        let channel = format!("{channel}");
 
         match self.levels.get(&channel) {
             Some(level) => {
@@ -75,254 +79,279 @@ impl Model {
     }
 }
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Widget {
-    fn model(relm: &relm::Relm<Self>, redpitaya: redpitaya_scpi::Redpitaya) -> Model {
+#[relm4::component(pub)]
+impl relm4::Component for Model {
+    type CommandOutput = ();
+    type Init = redpitaya_scpi::Redpitaya;
+    type Input = Msg;
+    type Output = ();
+
+    fn init(
+        init: Self::Init,
+        root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        crate::Color::init();
+
         let mut scales = crate::Scales {
             h: (0.0, 0.0),
             v: (-5.0, 5.0),
-            n_samples: redpitaya.data.buffer_size().unwrap(),
+            n_samples: init.data.buffer_size().unwrap(),
             window: crate::scales::Rect {
                 width: 0,
                 height: 0,
             },
         };
 
-        let rate = redpitaya.acquire.get_decimation().unwrap().into();
-        scales.from_sampling_rate(rate);
+        let rate = init.acquire.get_decimation().unwrap().into();
+        scales.with_sampling_rate(rate);
 
-        Model {
-            stream: relm.stream().clone(),
-            rate,
-            redpitaya,
-            scales,
-            levels: std::collections::HashMap::new(),
-        }
+        let acquire = acquire::Model::builder()
+            .launch(init.acquire.clone())
+            .forward(sender.input_sender(), Msg::Acquire);
+
+        let generator = generator::Model::builder()
+            .launch(init.generator.clone())
+            .forward(sender.input_sender(), Msg::Generator);
+
+        let graph = graph::Model::builder()
+            .launch(())
+            .forward(sender.input_sender(), Msg::Graph);
+
+        let trigger = trigger::Model::builder()
+            .launch(init.trigger.clone())
+            .forward(sender.input_sender(), Msg::Trigger);
+
+        let mut model = Self {
+            data: Data {
+                rate,
+                redpitaya: init,
+                scales,
+                levels: std::collections::HashMap::new(),
+            },
+            acquire,
+            generator,
+            graph,
+            trigger,
+        };
+
+        let widgets = view_output!();
+
+        model
+            .data
+            .redpitaya
+            .data
+            .set_units(redpitaya_scpi::data::Unit::VOLTS);
+
+        model.data.redpitaya.acquire.start();
+
+        relm4::ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Draw => self.draw().unwrap(),
-            Msg::AcquireRate(rate) => {
-                self.model.rate = rate;
-                self.model.scales.from_sampling_rate(rate);
-                self.update_status();
-            }
+    fn update_with_view(
+        &mut self,
+        widgets: &mut Self::Widgets,
+        msg: Self::Input,
+        sender: relm4::ComponentSender<Self>,
+        _: &Self::Root,
+    ) {
+        match msg {
+            Msg::Draw => self.draw(widgets).unwrap(),
+            Msg::Acquire(msg) => match msg {
+                acquire::OutputMsg::Rate(rate) => {
+                    self.data.rate = rate;
+                    self.data.scales.with_sampling_rate(rate);
+                    self.update_status(widgets);
+                }
+                acquire::OutputMsg::Start(source) => self.graph.emit(graph::InputMsg::SourceStart(
+                    graph::level::Orientation::Left,
+                    source.to_string(),
+                )),
+                acquire::OutputMsg::Stop(source) => self.graph.emit(graph::InputMsg::SourceStop(
+                    graph::level::Orientation::Left,
+                    source.to_string(),
+                )),
+            },
+            Msg::Graph(msg) => match msg {
+                graph::OutputMsg::Level(channel, level) => {
+                    self.data.levels.insert(channel, level);
+                }
+                graph::OutputMsg::Resize(width, height) => {
+                    self.data.scales.window.width = width;
+                    self.data.scales.window.height = height;
+                    sender.input(Msg::Draw);
+                }
+            },
+            Msg::Generator(msg) => match msg {
+                generator::OutputMsg::Start(source) => {
+                    self.graph.emit(graph::InputMsg::SourceStart(
+                        graph::level::Orientation::Left,
+                        source.to_string(),
+                    ))
+                }
+                generator::OutputMsg::Stop(source) => self.graph.emit(graph::InputMsg::SourceStop(
+                    graph::level::Orientation::Left,
+                    source.to_string(),
+                )),
+            },
+            Msg::Trigger(msg) => match msg {
+                trigger::OutputMsg::Auto => {
+                    self.graph.emit(graph::InputMsg::SourceStop(
+                        graph::level::Orientation::Right,
+                        "TRIG".to_string(),
+                    ));
+                    self.graph.emit(graph::InputMsg::SourceStop(
+                        graph::level::Orientation::Top,
+                        "DELAY".to_string(),
+                    ));
 
-            Msg::Level(channel, level) => {
-                self.model.levels.insert(channel, level);
-            }
-            Msg::Resize(width, height) => {
-                self.model.scales.window.width = width;
-                self.model.scales.window.height = height;
-                self.draw().unwrap();
-            }
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN1,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_all(redpitaya_scpi::acquire::Source::IN1),
+                    ));
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN2,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_all(redpitaya_scpi::acquire::Source::IN2),
+                    ));
+                }
+                trigger::OutputMsg::Normal => {
+                    self.graph.emit(graph::InputMsg::SourceStart(
+                        graph::level::Orientation::Right,
+                        "TRIG".to_string(),
+                    ));
+                    self.graph.emit(graph::InputMsg::SourceStart(
+                        graph::level::Orientation::Top,
+                        "DELAY".to_string(),
+                    ));
 
-            Msg::TriggerAuto | Msg::TriggerSingle => {
-                self.components.acquire.emit(acquire::Msg::SetData(
-                    redpitaya_scpi::acquire::Source::IN1,
-                    self.model
-                        .redpitaya
-                        .data
-                        .read_all(redpitaya_scpi::acquire::Source::IN1),
-                ));
-                self.components.acquire.emit(acquire::Msg::SetData(
-                    redpitaya_scpi::acquire::Source::IN2,
-                    self.model
-                        .redpitaya
-                        .data
-                        .read_all(redpitaya_scpi::acquire::Source::IN2),
-                ));
-            }
-            Msg::TriggerNormal => {
-                self.components.acquire.emit(acquire::Msg::SetData(
-                    redpitaya_scpi::acquire::Source::IN1,
-                    self.model
-                        .redpitaya
-                        .data
-                        .read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384),
-                ));
-                self.components.acquire.emit(acquire::Msg::SetData(
-                    redpitaya_scpi::acquire::Source::IN2,
-                    self.model
-                        .redpitaya
-                        .data
-                        .read_oldest(redpitaya_scpi::acquire::Source::IN2, 16_384),
-                ));
-            }
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN1,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_oldest(redpitaya_scpi::acquire::Source::IN1, 16_384),
+                    ));
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN2,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_oldest(redpitaya_scpi::acquire::Source::IN2, 16_384),
+                    ));
+                }
+                trigger::OutputMsg::Single => {
+                    self.graph.emit(graph::InputMsg::SourceStart(
+                        graph::level::Orientation::Right,
+                        "TRIG".to_string(),
+                    ));
+                    self.graph.emit(graph::InputMsg::SourceStart(
+                        graph::level::Orientation::Top,
+                        "DELAY".to_string(),
+                    ));
+
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN1,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_all(redpitaya_scpi::acquire::Source::IN1),
+                    ));
+                    self.acquire.emit(acquire::InputMsg::SetData(
+                        redpitaya_scpi::acquire::Source::IN2,
+                        self.data
+                            .redpitaya
+                            .data
+                            .read_all(redpitaya_scpi::acquire::Source::IN2),
+                    ));
+                }
+            },
             Msg::Quit => {
-                self.model.redpitaya.acquire.stop();
-                self.model
+                self.data.redpitaya.acquire.stop();
+                self.data
                     .redpitaya
                     .generator
                     .stop(redpitaya_scpi::generator::Source::OUT1);
-                self.model
+                self.data
                     .redpitaya
                     .generator
                     .stop(redpitaya_scpi::generator::Source::OUT2);
-                gtk::main_quit();
+                relm4::main_application().quit();
             }
         };
     }
 
     view! {
-        #[name="window"]
+        #[name = "window"]
         gtk::Window {
-            title: env!("CARGO_PKG_NAME"),
-            delete_event(_, _) => (Msg::Quit, gtk::Inhibit(false)),
+            set_title: Some(env!("CARGO_PKG_NAME")),
+            connect_close_request[sender] => move |_| {
+                sender.input(Msg::Quit);
+                gtk::glib::Propagation::Stop
+            },
 
-            #[name="main_box"]
+            #[name = "main_box"]
             gtk::Box {
-                orientation: gtk::Orientation::Horizontal,
-                spacing: 0,
+                set_orientation: gtk::Orientation::Horizontal,
+                set_spacing: 0,
 
-                gtk::EventBox {
-                    child: {
-                        pack_type: gtk::PackType::Start,
-                        expand: true,
-                        fill: true,
-                        padding: 0,
-                    },
-
-                    #[name="graph"]
-                    GraphWidget {
-                        Draw => Msg::Draw,
-                        Level(ref channel, offset) => Msg::Level(channel.clone(), offset),
-                        Resize(w, h) => Msg::Resize(w, h),
-                    },
-                },
+                append: model.graph.widget(),
 
                 gtk::Box {
-                    orientation: gtk::Orientation::Vertical,
-                    spacing: 0,
-                    child: {
-                        pack_type: gtk::PackType::Start,
-                        expand: false,
-                        fill: false,
-                        padding: 0,
-                    },
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 0,
 
                     gtk::Notebook {
-                        child: {
-                            pack_type: gtk::PackType::Start,
-                            expand: true,
-                            fill: true,
-                            padding: 0,
-                        },
-                        scrollable: true,
+                        set_scrollable: true,
+                        set_vexpand: true,
 
-                        gtk::Box {
-                            orientation: gtk::Orientation::Vertical,
-                            spacing: 0,
-                            border_width: 10,
-                            child: {
-                                tab_label: Some("Acquire"),
-                            },
-
-                            #[name="acquire"]
-                            AcquireWidget(self.model.redpitaya.acquire.clone()) {
-                                Rate(rate) => Msg::AcquireRate(rate),
-                                AcquireStart(source) => graph@graph::Msg::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
-                                AcquireStop(source) => graph@graph::Msg::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
-                            },
-                        },
-
-                        gtk::ScrolledWindow {
-                            child: {
-                                tab_label: Some("Generator"),
-                            },
-
-                            #[name="generator"]
-                            GeneratorWidget(self.model.redpitaya.generator.clone()) {
-                                Start(source) => graph@graph::Msg::SourceStart(graph::level::Orientation::Left, format!("{}", source)),
-                                Stop(source) => graph@graph::Msg::SourceStop(graph::level::Orientation::Left, format!("{}", source)),
-                            },
-                        },
-
-                        gtk::Box {
-                            orientation: gtk::Orientation::Vertical,
-                            spacing: 0,
-                            border_width: 10,
-                            child: {
-                                tab_label: Some("Trigger"),
-                            },
-
-                            #[name="trigger"]
-                            TriggerWidget(self.model.redpitaya.trigger.clone()) {
-                                Auto => Msg::TriggerAuto,
-                                Normal => Msg::TriggerNormal,
-                                Single => Msg::TriggerSingle,
-
-                                Auto => graph@graph::Msg::SourceStop(graph::level::Orientation::Right, "TRIG".to_string()),
-                                Normal => graph@graph::Msg::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
-                                Single => graph@graph::Msg::SourceStart(graph::level::Orientation::Right, "TRIG".to_string()),
-
-                                Auto => graph@graph::Msg::SourceStop(graph::level::Orientation::Top, "DELAY".to_string()),
-                                Normal => graph@graph::Msg::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
-                                Single => graph@graph::Msg::SourceStart(graph::level::Orientation::Top, "DELAY".to_string()),
-                            },
-                        },
+                        append_page: (model.acquire.widget(), Some(&gtk::Label::new(Some("Acquire")))),
+                        append_page: (model.generator.widget(), Some(&gtk::Label::new(Some("Generator")))),
+                        append_page: (model.trigger.widget(), Some(&gtk::Label::new(Some("Trigger")))),
                     },
-                    #[name="status_bar"]
+                    #[name = "status_bar"]
                     gtk::Statusbar {
-                        child: {
-                            pack_type: gtk::PackType::Start,
-                            expand: false,
-                            fill: true,
-                            padding: 0,
-                        },
                     },
                 },
             },
         },
     }
-
-    fn init_view(&mut self) {
-        crate::color::Color::init();
-
-        self.model
-            .redpitaya
-            .data
-            .set_units(redpitaya_scpi::data::Unit::VOLTS);
-
-        self.widgets.window.show_all();
-
-        self.model.redpitaya.acquire.start();
-
-        // @FIXME
-        // self.trigger.widget().single_button.set_visible(false);
-    }
 }
 
-impl Widget {
-    fn update_status(&self) {
+impl Model {
+    fn update_status(&self, widgets: &ModelWidgets) {
         let status = format!(
             "{} - {} V/div - {} µs/div",
-            self.model.rate,
-            self.model.scales.v_div(),
-            self.model.scales.h_div()
+            self.data.rate,
+            self.data.scales.v_div(),
+            self.data.scales.h_div()
         );
 
-        self.widgets
+        widgets
             .status_bar
-            .push(self.widgets.status_bar.context_id("sampling-rate"), &status);
+            .push(widgets.status_bar.context_id("sampling-rate"), &status);
     }
 
-    fn draw(&mut self) -> Result<(), gtk::cairo::Error> {
-        self.update_status();
+    fn draw(&mut self, widgets: &ModelWidgets) -> Result<(), gtk::cairo::Error> {
+        self.update_status(widgets);
 
         let image = gtk::cairo::ImageSurface::create(
             gtk::cairo::Format::ARgb32,
-            self.model.scales.window.width,
-            self.model.scales.window.height,
+            self.data.scales.window.width,
+            self.data.scales.window.height,
         )?;
 
         redraw!(self, graph, image);
-        redraw!(self, trigger, image);
-        redraw!(self, generator, image);
         redraw!(self, acquire, image);
+        redraw!(self, generator, image);
+        redraw!(self, trigger, image);
 
-        self.components.graph.emit(graph::Msg::SetImage(image));
+        self.graph.emit(graph::InputMsg::SetImage(image));
 
         Ok(())
     }
@@ -335,12 +364,12 @@ impl Widget {
         height: f64,
     ) {
         context.set_matrix(gtk::cairo::Matrix::new(
-            width / scales.get_width(),
+            width / scales.width(),
             0.0,
             0.0,
-            -height / scales.get_height(),
-            scales.h.1 * width / scales.get_width(),
-            scales.v.1 * height / scales.get_height(),
+            -height / scales.height(),
+            scales.h.1 * width / scales.width(),
+            scales.v.1 * height / scales.height(),
         ));
     }
 }

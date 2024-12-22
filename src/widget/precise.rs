@@ -1,102 +1,120 @@
 use gtk::prelude::*;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
+#[derive(Debug)]
+pub enum InputMsg {
     Expand,
     Fold,
-    Changed(f64),
-    SetValue(f64),
-    SetVisible(bool),
-    SetDigits(u32),
-    SetAdjustement(gtk::Adjustment),
-    SetNoShowAll(bool),
 }
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for PreciseScale {
-    fn model(_: ()) {}
+#[derive(Debug)]
+pub enum OutputMsg {
+    Change(f64),
+}
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Expand => {
-                self.widgets.scale.set_draw_value(false);
-                self.widgets.spin.show();
+pub struct Options {
+    pub label: &'static str,
+    pub value: f64,
+    pub digits: u32,
+    pub adjustment: gtk::Adjustment,
+}
+
+pub struct Model {
+    options: Options,
+}
+
+#[relm4::component(pub)]
+impl relm4::Component for Model {
+    type CommandOutput = ();
+    type Init = Options;
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        let model = Self { options: init };
+
+        let widgets = view_output!();
+
+        let adjustment = model.options.adjustment.clone();
+        adjustment.set_step_increment(adjustment.step_increment() / 10.0);
+        adjustment.set_page_increment(adjustment.page_increment() / 10.0);
+        widgets.spin.set_adjustment(&adjustment);
+
+        relm4::ComponentParts { model, widgets }
+    }
+
+    fn update_with_view(
+        &mut self,
+        widgets: &mut ModelWidgets,
+        msg: Self::Input,
+        _: relm4::ComponentSender<Self>,
+        _: &Self::Root,
+    ) {
+        match msg {
+            InputMsg::Expand => {
+                widgets.scale.set_draw_value(false);
+                widgets.spin.show();
             }
-            Msg::Fold => {
-                self.widgets.scale.set_draw_value(true);
-                self.widgets.spin.hide();
+            InputMsg::Fold => {
+                widgets.scale.set_draw_value(true);
+                widgets.spin.hide();
             }
-            Msg::SetValue(value) => self.set_value(value),
-            Msg::SetVisible(visible) => self.set_no_show_all(visible),
-            Msg::SetDigits(digits) => self.set_digits(digits),
-            Msg::SetAdjustement(adjustment) => self.set_adjustment(adjustment),
-            Msg::SetNoShowAll(no_show_all) => self.set_no_show_all(no_show_all),
-            _ => (),
         };
     }
 
-    fn init_view(&mut self) {
-        self.widgets.spin.hide();
-        self.widgets
-            .scale
-            .add_mark(0.0, gtk::PositionType::Top, None);
-    }
-
     view! {
-        #[name="frame"]
+        #[name = "frame"]
         gtk::Frame {
+            set_label: Some(model.options.label),
+            set_hexpand: false,
+
             gtk::Box {
-                orientation: gtk::Orientation::Horizontal,
-                border_width: 5,
-                spacing: 5,
-                #[name="toggle"]
+                set_orientation: gtk::Orientation::Horizontal,
+                //set_border_width: 5,
+                set_spacing: 5,
+
+                #[name = "toggle"]
                 gtk::CheckButton {
-                    toggled(w) => if w.is_active() {
-                        Msg::Expand
+                    connect_toggled[sender] => move |this| if this.is_active() {
+                        sender.input(InputMsg::Expand);
                     } else {
-                        Msg::Fold
+                        sender.input(InputMsg::Fold);
                     }
                 },
                 gtk::Box {
-                    child: {
-                        expand: true,
-                        fill: true,
-                    },
-                    orientation: gtk::Orientation::Vertical,
-                    #[name="scale"]
+                    set_hexpand: true,
+                    set_orientation: gtk::Orientation::Vertical,
+
+                    #[name = "scale"]
                     gtk::Scale {
-                        value_pos: gtk::PositionType::Bottom,
-                        change_value(_, _, value) => (Msg::Changed(value), gtk::Inhibit(false)),
+                        add_mark: (0., gtk::PositionType::Top, None),
+                        set_adjustment: &model.options.adjustment,
+                        set_draw_value: true,
+                        #[watch]
+                        set_value: model.options.value,
+                        set_value_pos: gtk::PositionType::Bottom,
+
+                        connect_change_value[sender] => move |_, _, value| {
+                            sender.output(OutputMsg::Change(value)).ok();
+                            gtk::glib::Propagation::Proceed
+                        },
                     },
-                    #[name="spin"]
+                    #[name = "spin"]
                     gtk::SpinButton {
-                        no_show_all: true,
-                        value_changed(w) => Msg::Changed(w.value()),
+                        set_digits: model.options.digits,
+                        #[watch]
+                        set_value: model.options.value,
+                        set_visible: false,
+
+                        connect_value_changed[sender] => move |this| {
+                            sender.output(OutputMsg::Change(this.value())).ok();
+                        },
                     },
                 },
             },
         },
-    }
-}
-
-impl PreciseScale {
-    pub fn set_adjustment(&self, adjustment: gtk::Adjustment) {
-        self.widgets.scale.set_adjustment(&adjustment);
-
-        adjustment.set_step_increment(adjustment.step_increment() / 10.0);
-        adjustment.set_page_increment(adjustment.page_increment() / 10.0);
-        self.widgets.spin.set_adjustment(&adjustment);
-    }
-
-    fn set_value(&self, value: f64) {
-        self.widgets.scale.set_value(value);
-    }
-
-    pub fn set_digits(&self, digits: u32) {
-        self.widgets.spin.set_digits(digits);
-    }
-
-    pub fn set_no_show_all(&self, no_show_all: bool) {
-        self.widgets.frame.set_no_show_all(no_show_all);
     }
 }

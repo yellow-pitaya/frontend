@@ -1,81 +1,92 @@
 mod output;
 
 use gtk::prelude::*;
-use output::Msg::*;
-use output::Widget as OutputWidget;
+use relm4::ComponentController as _;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
-    Amplitude(redpitaya_scpi::generator::Source, f32),
-    DutyCycle(redpitaya_scpi::generator::Source, f32),
-    Frequency(redpitaya_scpi::generator::Source, u32),
-    Offset(redpitaya_scpi::generator::Source, f32),
-    Form(
-        redpitaya_scpi::generator::Source,
-        redpitaya_scpi::generator::Form,
-    ),
-    Start(redpitaya_scpi::generator::Source),
-    Stop(redpitaya_scpi::generator::Source),
-    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
+#[derive(Debug)]
+pub enum InputMsg {
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Data>),
 }
 
-#[relm_derive::widget(clone)]
-impl relm::Widget for Widget {
-    fn model(
-        generator: redpitaya_scpi::generator::Generator,
-    ) -> redpitaya_scpi::generator::Generator {
-        generator
+#[derive(Debug)]
+pub enum OutputMsg {
+    Start(redpitaya_scpi::generator::Source),
+    Stop(redpitaya_scpi::generator::Source),
+}
+
+pub struct Model {
+    out1: relm4::Controller<output::Model>,
+    out2: relm4::Controller<output::Model>,
+}
+
+#[relm4::component(pub)]
+impl relm4::SimpleComponent for Model {
+    type Init = redpitaya_scpi::generator::Generator;
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        _root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        use relm4::Component as _;
+
+        let out1 = output::Model::builder()
+            .launch((init.clone(), redpitaya_scpi::generator::Source::OUT1))
+            .forward(sender.output_sender(), |output| match output {
+                output::OutputMsg::Start => {
+                    OutputMsg::Start(redpitaya_scpi::generator::Source::OUT1)
+                }
+                output::OutputMsg::Stop => OutputMsg::Stop(redpitaya_scpi::generator::Source::OUT1),
+            });
+
+        let out2 = output::Model::builder()
+            .launch((init, redpitaya_scpi::generator::Source::OUT2))
+            .forward(sender.output_sender(), |output| match output {
+                output::OutputMsg::Start => {
+                    OutputMsg::Start(redpitaya_scpi::generator::Source::OUT2)
+                }
+                output::OutputMsg::Stop => OutputMsg::Stop(redpitaya_scpi::generator::Source::OUT2),
+            });
+
+        let model = Self { out1, out2 };
+
+        let widgets = view_output!();
+
+        relm4::ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, event: Msg) {
-        if let Msg::Redraw(context, model) = event {
-            self.draw(context, model).unwrap();
-        }
+    fn update(&mut self, msg: Self::Input, _: relm4::ComponentSender<Self>) {
+        let InputMsg::Redraw(context, model) = msg;
+
+        self.draw(context, model).unwrap();
     }
 
     view! {
         gtk::Box {
-            orientation: gtk::Orientation::Vertical,
-            spacing: 10,
-            #[name="out1"]
-            OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT1)) {
-                Amplitude(amplitude) => Msg::Amplitude(redpitaya_scpi::generator::Source::OUT1, amplitude),
-                DutyCycle(duty_cycle) => Msg::DutyCycle(redpitaya_scpi::generator::Source::OUT1, duty_cycle),
-                Frequency(frequency) => Msg::Frequency(redpitaya_scpi::generator::Source::OUT1, frequency),
-                Offset(offset) => Msg::Offset(redpitaya_scpi::generator::Source::OUT1, offset),
-                Form(form) => Msg::Form(redpitaya_scpi::generator::Source::OUT1, form),
-                Start => Msg::Start(redpitaya_scpi::generator::Source::OUT1),
-                Stop => Msg::Stop(redpitaya_scpi::generator::Source::OUT1),
-            },
-            #[name="out2"]
-            OutputWidget(output::Model::new(self.model, redpitaya_scpi::generator::Source::OUT2)) {
-                Amplitude(amplitude) => Msg::Amplitude(redpitaya_scpi::generator::Source::OUT2, amplitude),
-                DutyCycle(duty_cycle) => Msg::DutyCycle(redpitaya_scpi::generator::Source::OUT2, duty_cycle),
-                Frequency(frequency) => Msg::Frequency(redpitaya_scpi::generator::Source::OUT2, frequency),
-                Offset(offset) => Msg::Offset(redpitaya_scpi::generator::Source::OUT2, offset),
-                Form(form) => Msg::Form(redpitaya_scpi::generator::Source::OUT2, form),
-                Start => Msg::Start(redpitaya_scpi::generator::Source::OUT2),
-                Stop => Msg::Stop(redpitaya_scpi::generator::Source::OUT2),
-            },
-        },
+            set_orientation: gtk::Orientation::Vertical,
+            set_spacing: 10,
+
+            append: model.out1.widget(),
+            append: model.out2.widget(),
+        }
     }
 }
 
-impl Widget {
+impl Model {
     fn draw(
         &self,
         context: Box<gtk::cairo::Context>,
-        model: Box<crate::application::Model>,
+        model: Box<crate::application::Data>,
     ) -> Result<(), gtk::cairo::Error> {
         context.save()?;
-        self.components
-            .out1
-            .emit(output::Msg::Redraw(context.clone(), model.clone()));
+        self.out1
+            .emit(output::InputMsg::Redraw(context.clone(), model.clone()));
         context.restore()?;
         context.save()?;
-        self.components
-            .out2
-            .emit(output::Msg::Redraw(context.clone(), model));
+        self.out2
+            .emit(output::InputMsg::Redraw(context.clone(), model));
         context.restore()
     }
 }

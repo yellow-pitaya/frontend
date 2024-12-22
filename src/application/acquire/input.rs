@@ -1,137 +1,164 @@
-use crate::color::Colorable;
-use crate::widget::palette::Msg::*;
-use crate::widget::radio::Msg::*;
-use crate::widget::Palette;
 use gtk::prelude::*;
 
-type GainWidget = crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>;
-type AttenuationWidget = crate::widget::RadioGroup<u8>;
+use crate::color::Colorable;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
+#[derive(Debug)]
+pub enum InputMsg {
     Attenuation(u8),
     Gain(redpitaya_scpi::acquire::Gain),
     SetData(Vec<f64>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Data>),
     Start,
     Stop,
-    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
 }
 
-#[derive(Clone)]
+#[derive(Debug)]
+pub enum OutputMsg {
+    Start,
+    Stop,
+}
+
 pub struct Model {
     acquire: redpitaya_scpi::acquire::Acquire,
+    attenuation_radio: relm4::Controller<crate::widget::RadioGroup<u8>>,
     attenuation: u8,
     data: Vec<f64>,
+    gain: relm4::Controller<crate::widget::RadioGroup<redpitaya_scpi::acquire::Gain>>,
+    palette: relm4::Controller<crate::widget::Palette>,
     source: redpitaya_scpi::acquire::Source,
     started: bool,
 }
 
-impl Model {
-    pub fn new(
-        acquire: &redpitaya_scpi::acquire::Acquire,
-        source: redpitaya_scpi::acquire::Source,
-    ) -> Self {
-        Self {
-            acquire: acquire.clone(),
+#[relm4::component(pub)]
+impl relm4::SimpleComponent for Model {
+    type Init = (
+        redpitaya_scpi::acquire::Acquire,
+        redpitaya_scpi::acquire::Source,
+    );
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        _root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        use relm4::Component as _;
+        use relm4::ComponentController as _;
+        use relm4::RelmContainerExt as _;
+
+        let palette = crate::widget::Palette::builder()
+            .launch((init.1.to_string(), init.1.into()))
+            .forward(sender.input_sender(), |output| match output {
+                crate::widget::palette::OutputMsg::Expand => InputMsg::Start,
+                crate::widget::palette::OutputMsg::Fold => InputMsg::Stop,
+            });
+
+        let gain = crate::widget::RadioGroup::builder()
+            .launch(crate::widget::radio::Options {
+                options: vec![
+                    redpitaya_scpi::acquire::Gain::LV,
+                    redpitaya_scpi::acquire::Gain::HV,
+                ],
+                current: init.0.get_gain(init.1).ok(),
+                label: "Gain",
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::radio::OutputMsg::Change(gain) = output;
+                InputMsg::Gain(gain)
+            });
+
+        let attenuation_radio = crate::widget::RadioGroup::builder()
+            .launch(crate::widget::radio::Options {
+                options: vec![1, 10, 100],
+                current: Some(1),
+                label: "Probe attenuation",
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::radio::OutputMsg::Change(attenuation) = output;
+                InputMsg::Attenuation(attenuation)
+            });
+
+        let model = Self {
+            acquire: init.0,
             attenuation: 1,
+            attenuation_radio,
             data: Vec::new(),
+            gain,
             started: false,
-            source,
-        }
-    }
-}
+            source: init.1,
+            palette,
+        };
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Widget {
-    fn model(_: &relm::Relm<Self>, model: Model) -> Model {
-        model
+        let widgets = view_output!();
+
+        model.palette.widgets().container_add(&widgets.child);
+
+        relm4::ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Attenuation(attenuation) => self.model.attenuation = attenuation,
-            Msg::Gain(gain) => self.model.acquire.set_gain(self.model.source, gain),
-            Msg::Redraw(context, model) => self.draw(&context, &model).unwrap(),
-            Msg::SetData(data) => self.model.data = data,
-            Msg::Start => self.model.started = true,
-            Msg::Stop => self.model.started = false,
+    fn update(&mut self, msg: Self::Input, sender: relm4::ComponentSender<Self>) {
+        use InputMsg::*;
+
+        match msg {
+            Attenuation(attenuation) => self.attenuation = attenuation,
+            Gain(gain) => self.acquire.set_gain(self.source, gain),
+            Redraw(context, model) => self.draw(&context, &model).unwrap(),
+            SetData(data) => self.data = data,
+            Start => {
+                self.started = true;
+                sender.output(OutputMsg::Start).ok();
+            }
+            Stop => {
+                self.started = false;
+                sender.output(OutputMsg::Stop).ok();
+            }
         };
     }
 
-    fn init_view(&mut self) {
-        self.components
-            .palette
-            .emit(crate::widget::palette::Msg::SetLabel(format!(
-                "{}",
-                self.model.source
-            )));
-        self.components
-            .palette
-            .emit(crate::widget::palette::Msg::SetColor(
-                self.model.source.into(),
-            ));
-    }
-
     view! {
-        #[name="page"]
+        #[name = "page"]
+        #[root]
         gtk::Box {
-            orientation: gtk::Orientation::Vertical,
-            spacing: 10,
-            #[name="palette"]
-            Palette {
-                Expand => Msg::Start,
-                Fold => Msg::Stop,
+            set_orientation: gtk::Orientation::Vertical,
+            set_spacing: 10,
 
-                gtk::Box {
-                    orientation: gtk::Orientation::Vertical,
-                    spacing: 10,
+            append: model.palette.widget(),
+        },
+        #[name = "child"]
+        gtk::Box {
+            set_orientation: gtk::Orientation::Vertical,
+            set_spacing: 10,
 
-                    GainWidget(crate::widget::radio::Model {
-                        options: vec![
-                            redpitaya_scpi::acquire::Gain::LV,
-                            redpitaya_scpi::acquire::Gain::HV,
-                        ],
-                        current: self.model.acquire.get_gain(self.model.source).ok(),
-                    }) {
-                        label: Some("Gain"),
-                        Change(gain) => Msg::Gain(gain),
-                    },
-                    AttenuationWidget(crate::widget::radio::Model {
-                        options: vec![1, 10, 100],
-                        current: Some(1),
-                    }) {
-                        label: Some("Probe attenuation"),
-                        Change(attenuation) => Msg::Attenuation(attenuation),
-                    },
-                },
-            },
+            append: model.gain.widget(),
+            append: model.attenuation_radio.widget(),
         },
     }
 }
 
-impl Widget {
+impl Model {
     fn is_started(&self) -> bool {
-        self.model.started
+        self.started
     }
 
     fn draw(
         &self,
         context: &gtk::cairo::Context,
-        model: &crate::application::Model,
+        data: &crate::application::Data,
     ) -> Result<(), gtk::cairo::Error> {
         if !self.is_started() {
             return Ok(());
         }
 
-        context.set_color(self.model.source.into());
+        context.set_color(self.source.into());
 
-        context.translate(0.0, model.offset(self.model.source));
+        context.translate(0.0, data.offset(self.source));
 
-        context.move_to(model.scales.h.0, 0.0);
-        context.line_to(model.scales.h.1, 0.0);
+        context.move_to(data.scales.h.0, 0.0);
+        context.line_to(data.scales.h.1, 0.0);
         context.stroke()?;
 
-        self.draw_data(context, model.scales, self.model.attenuation)
+        self.draw_data(context, data.scales, self.attenuation)
     }
 
     fn draw_data(
@@ -140,7 +167,7 @@ impl Widget {
         scales: crate::Scales,
         attenuation: u8,
     ) -> Result<(), gtk::cairo::Error> {
-        if self.model.data.is_empty() {
+        if self.data.is_empty() {
             return Ok(());
         }
 
@@ -148,7 +175,7 @@ impl Widget {
 
         for sample in 0..scales.n_samples {
             let x = scales.sample_to_ms(sample);
-            let y = self.model.data[sample as usize];
+            let y = self.data[sample as usize];
 
             context.line_to(x, y * attenuation as f64);
             context.move_to(x, y * attenuation as f64);

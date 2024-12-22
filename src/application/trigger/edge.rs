@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Edge {
     Positive,
     Negative,
@@ -6,11 +6,11 @@ pub enum Edge {
 
 impl std::fmt::Display for Edge {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let display = match *self {
+        let s = match *self {
             Self::Positive => "Positive",
             Self::Negative => "Negative",
         };
 
-        write!(f, "{}", display)
+        f.write_str(s)
     }
 }

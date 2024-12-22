@@ -6,7 +6,7 @@ mod scales;
 mod widget;
 
 use clap::Parser;
-use relm::Widget;
+use color::Color;
 use scales::Scales;
 
 #[derive(Parser)]
@@ -21,13 +21,6 @@ fn main() {
 
     let redpitaya = redpitaya_scpi::Redpitaya::new(opt.addr);
 
-    application::Widget::run(redpitaya).unwrap();
-}
-
-fn create_context(widget: &gtk::DrawingArea) -> Result<gtk::cairo::Context, gtk::cairo::Error> {
-    let mut draw_handler = relm::DrawHandler::new().expect("draw handler");
-
-    draw_handler.init(widget);
-
-    draw_handler.get_context().map(|x| x.clone())
+    let app = relm4::RelmApp::new("com.yellow-pitaya.frontend").with_args(Vec::new());
+    app.run::<application::Model>(redpitaya);
 }

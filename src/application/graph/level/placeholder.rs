@@ -1,34 +1,42 @@
-use crate::color::Colorable;
-use gtk::prelude::WidgetExt;
+use crate::color::Colorable as _;
+use gtk::prelude::*;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
-    Draw,
+pub struct Model {
+    handler: relm4::abstractions::DrawHandler,
 }
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Widget {
-    fn model(_: ()) {}
+pub struct Widgets {}
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Draw => {
-                let context = crate::create_context(&self.widgets.drawing_area).unwrap();
-                context.set_color(crate::color::BACKGROUND);
-                context.rectangle(0.0, 0.0, 20.0, 20.0);
-                context.fill().unwrap();
-            }
-        }
+impl relm4::SimpleComponent for Model {
+    type Init = ();
+    type Input = ();
+    type Output = ();
+    type Root = gtk::DrawingArea;
+    type Widgets = Widgets;
+
+    fn init_root() -> Self::Root {
+        gtk::DrawingArea::default()
     }
 
-    view! {
-        #[name="drawing_area"]
-        gtk::DrawingArea {
-            draw(_, context) => (Msg::Draw, gtk::Inhibit(false)),
-        },
-    }
+    fn init(
+        _: Self::Init,
+        root: Self::Root,
+        _sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        let model = Self {
+            handler: relm4::abstractions::DrawHandler::new_with_drawing_area(root),
+        };
 
-    fn init_view(&mut self) {
-        self.widgets.drawing_area.set_size_request(20, 20);
+        let widgets = Widgets {};
+
+        let drawing_area = model.handler.drawing_area();
+        drawing_area.set_draw_func(|_, context, _, _| {
+            context.set_color(crate::color::BACKGROUND);
+            context.rectangle(0.0, 0.0, 20.0, 20.0);
+            context.fill().unwrap();
+        });
+        drawing_area.set_size_request(20, 20);
+
+        relm4::ComponentParts { model, widgets }
     }
 }

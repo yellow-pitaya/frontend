@@ -1,101 +1,85 @@
 use gtk::prelude::*;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg<T: std::clone::Clone + std::cmp::PartialEq> {
+#[derive(Debug)]
+pub enum OutputMsg<T: std::fmt::Debug> {
     Change(T),
-    Set(T),
 }
 
-#[derive(Clone)]
-pub struct Model<T> {
+pub struct Options<T> {
     pub options: Vec<T>,
     pub current: Option<T>,
+    pub label: &'static str,
 }
 
-#[derive(Clone)]
-pub struct RadioGroup<T> {
-    frame: gtk::Frame,
-    radio: Vec<(gtk::RadioButton, T)>,
-    phantom: std::marker::PhantomData<T>,
+pub struct Model<T> {
+    options: Options<T>,
+    radio: Vec<(gtk::CheckButton, T)>,
 }
 
-impl<T: std::clone::Clone + std::cmp::PartialEq> RadioGroup<T> {
-    pub fn set_current(&self, current: T) {
-        for &(ref radio, ref option) in self.radio.iter() {
-            if current == *option {
-                radio.set_active(true);
-                break;
-            }
-        }
-    }
-}
-
-impl<T: std::clone::Clone + std::cmp::PartialEq> relm::Update for RadioGroup<T> {
-    type Model = Model<T>;
-    type Msg = Msg<T>;
-    type ModelParam = Model<T>;
-
-    fn model(_: &relm::Relm<Self>, model: Self::ModelParam) -> Self::Model {
-        model
-    }
-
-    fn update(&mut self, event: Self::Msg) {
-        if let Msg::Set(value) = event {
-            self.set_current(value);
-        }
-    }
-}
-
-impl<T> relm::Widget for RadioGroup<T>
-where
-    T: std::clone::Clone + std::fmt::Display + std::cmp::PartialEq + 'static,
+#[relm4::component(pub)]
+impl<
+        T: std::fmt::Debug + std::cmp::PartialEq + std::clone::Clone + std::fmt::Display + 'static,
+    > relm4::SimpleComponent for Model<T>
 {
-    type Root = gtk::Frame;
+    type Init = Options<T>;
+    type Input = ();
+    type Output = OutputMsg<T>;
 
-    fn root(&self) -> Self::Root {
-        self.frame.clone()
-    }
-
-    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
-        let frame = gtk::Frame::new(None);
-
-        let flow_box = gtk::FlowBox::new();
-        frame.add(&flow_box);
-
+    fn init(
+        init: Self::Init,
+        root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
         let mut radio = Vec::new();
         let mut group_member = None;
 
-        for option in model.options.iter() {
-            let button = gtk::RadioButton::with_label(&format!("{}", option));
-            button.join_group(group_member.as_ref());
-            flow_box.add(&button);
+        for option in init.options.iter() {
+            let button = gtk::CheckButton::with_label(&format!("{option}"));
+            button.set_group(group_member.as_ref());
 
-            {
-                let stream = relm.stream().clone();
-                let option = option.clone();
+            button.connect_toggled(gtk::glib::clone!(
+                #[strong]
+                sender,
+                #[strong]
+                option,
+                move |f| if f.is_active() {
+                    sender.output(OutputMsg::Change(option.clone())).ok();
+                }
+            ));
 
-                button.connect_toggled(move |f| {
-                    if f.is_active() {
-                        stream.emit(Msg::Change(option.clone()));
-                    }
-                });
-            }
-
-            if model.current == Some(option.clone()) {
+            if init.current == Some(option.clone()) {
                 button.set_active(true);
             }
 
-            if group_member == None {
+            if group_member.is_none() {
                 group_member = Some(button.clone());
             }
 
             radio.push((button, option.clone()));
         }
 
-        RadioGroup {
-            frame,
+        let model = Self {
+            options: init,
             radio,
-            phantom: std::marker::PhantomData,
+        };
+
+        let widgets = view_output!();
+
+        for (widget, _) in &model.radio {
+            widgets.flow_box.append(widget);
+        }
+
+        relm4::ComponentParts { model, widgets }
+    }
+
+    view! {
+        gtk::Frame {
+            #[watch]
+            set_label: Some(model.options.label),
+
+            #[name = "flow_box"]
+            gtk::FlowBox {
+            }
         }
     }
 }

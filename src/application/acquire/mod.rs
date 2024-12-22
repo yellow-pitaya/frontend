@@ -1,58 +1,45 @@
 mod input;
 
-use crate::widget::radio::Msg::*;
 use gtk::prelude::*;
-use input::Msg::*;
-use input::Widget as InputWidget;
+use relm4::ComponentController as _;
 
-type RateWidget = crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>;
-
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
-    Attenuation(redpitaya_scpi::acquire::Source, u8),
-    Average(bool),
-    Gain(
-        redpitaya_scpi::acquire::Source,
-        redpitaya_scpi::acquire::Gain,
-    ),
-    Rate(redpitaya_scpi::acquire::SamplingRate),
-    SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
-    Start(redpitaya_scpi::acquire::Source),
-    Stop(redpitaya_scpi::acquire::Source),
-    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
+pub struct Model {
+    in1: relm4::Controller<input::Model>,
+    in2: relm4::Controller<input::Model>,
+    rate: relm4::Controller<crate::widget::RadioGroup<redpitaya_scpi::acquire::SamplingRate>>,
+    rp: redpitaya_scpi::acquire::Acquire,
 }
 
-#[relm_derive::widget(clone)]
-impl relm::Widget for Widget {
-    fn model(
-        _: &relm::Relm<Self>,
-        model: redpitaya_scpi::acquire::Acquire,
-    ) -> redpitaya_scpi::acquire::Acquire {
-        model
-    }
+#[derive(Debug)]
+pub enum InputMsg {
+    Average(bool),
+    SetData(redpitaya_scpi::acquire::Source, Vec<f64>),
+    Rate(redpitaya_scpi::acquire::SamplingRate),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Data>),
+}
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Average(enable) => {
-                if enable {
-                    self.model.enable_average();
-                } else {
-                    self.model.disable_average();
-                }
-            }
-            Msg::Rate(rate) => self.model.set_decimation(rate.into()),
-            Msg::SetData(source, data) => self.get_input(source).emit(input::Msg::SetData(data)),
-            Msg::Redraw(context, model) => self.draw(context, model).unwrap(),
-            _ => (),
-        };
-    }
+#[derive(Debug)]
+pub enum OutputMsg {
+    Rate(redpitaya_scpi::acquire::SamplingRate),
+    Start(redpitaya_scpi::acquire::Source),
+    Stop(redpitaya_scpi::acquire::Source),
+}
 
-    view! {
-        gtk::Box {
-            orientation: gtk::Orientation::Vertical,
-            spacing: 10,
-            #[name="rate"]
-            RateWidget(crate::widget::radio::Model {
+#[relm4::component(pub)]
+impl relm4::SimpleComponent for Model {
+    type Init = redpitaya_scpi::acquire::Acquire;
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        _root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        use relm4::Component as _;
+
+        let rate = crate::widget::RadioGroup::builder()
+            .launch(crate::widget::radio::Options {
                 options: vec![
                     redpitaya_scpi::acquire::SamplingRate::RATE_1_9kHz,
                     redpitaya_scpi::acquire::SamplingRate::RATE_15_2kHz,
@@ -61,69 +48,102 @@ impl relm::Widget for Widget {
                     redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
                     redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
                 ],
-                current: match self.model.get_decimation() {
-                    Ok(decimation) => Some(decimation.into()),
-                    Err(_) => None,
-                },
-            }) {
-                label: Some("Sampling Rate"),
-                Change(rate) => Msg::Rate(rate),
-            },
-            #[name="average"]
+                current: init.get_decimation().map(Into::into).ok(),
+                label: "Samping Rate",
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::radio::OutputMsg::Change(rate) = output;
+                InputMsg::Rate(rate)
+            });
+
+        let in1 = input::Model::builder()
+            .launch((init.clone(), redpitaya_scpi::acquire::Source::IN1))
+            .forward(sender.output_sender(), |output| match output {
+                input::OutputMsg::Start => OutputMsg::Start(redpitaya_scpi::acquire::Source::IN1),
+                input::OutputMsg::Stop => OutputMsg::Stop(redpitaya_scpi::acquire::Source::IN1),
+            });
+
+        let in2 = input::Model::builder()
+            .launch((init.clone(), redpitaya_scpi::acquire::Source::IN2))
+            .forward(sender.output_sender(), |output| match output {
+                input::OutputMsg::Start => OutputMsg::Start(redpitaya_scpi::acquire::Source::IN2),
+                input::OutputMsg::Stop => OutputMsg::Stop(redpitaya_scpi::acquire::Source::IN2),
+            });
+
+        let model = Self {
+            rp: init,
+            in1,
+            in2,
+            rate,
+        };
+
+        let widgets = view_output!();
+
+        relm4::ComponentParts { model, widgets }
+    }
+
+    fn update(&mut self, msg: Self::Input, sender: relm4::ComponentSender<Self>) {
+        match msg {
+            InputMsg::Average(enable) => {
+                if enable {
+                    self.rp.enable_average();
+                } else {
+                    self.rp.disable_average();
+                }
+            }
+            InputMsg::Rate(rate) => {
+                self.rp.set_decimation(rate.into());
+                sender.output(OutputMsg::Rate(rate)).ok();
+            }
+            InputMsg::SetData(source, data) => {
+                self.input(source).emit(input::InputMsg::SetData(data))
+            }
+            InputMsg::Redraw(context, model) => self.draw(context, model).unwrap(),
+        };
+    }
+
+    view! {
+        gtk::Box {
+            set_orientation: gtk::Orientation::Vertical,
+            set_spacing: 10,
+
+            append: model.rate.widget(),
+            #[name = "average"]
             gtk::CheckButton {
-                label: "Average",
-                active: self.model.is_average_enabled(),
-                toggled(w) => Msg::Average(w.is_active()),
+                set_label: Some("Average"),
+                #[watch]
+                set_active: model.rp.is_average_enabled(),
+
+                connect_toggled[sender] => move |this| {
+                    sender.input(InputMsg::Average(this.is_active()));
+                }
             },
-            #[name="in1"]
-            InputWidget(input::Model::new(
-                    self.model,
-                    redpitaya_scpi::acquire::Source::IN1,
-            )) {
-                Attenuation(attenuation) => Msg::Attenuation(redpitaya_scpi::acquire::Source::IN1, attenuation),
-                Gain(gain) => Msg::Gain(redpitaya_scpi::acquire::Source::IN1, gain),
-                Start => Msg::Start(redpitaya_scpi::acquire::Source::IN1),
-                Stop => Msg::Stop(redpitaya_scpi::acquire::Source::IN1),
-            },
-            #[name="in2"]
-            InputWidget(input::Model::new(
-                    self.model,
-                    redpitaya_scpi::acquire::Source::IN2,
-            )) {
-                Attenuation(attenuation) => Msg::Attenuation(redpitaya_scpi::acquire::Source::IN2, attenuation),
-                Gain(gain) => Msg::Gain(redpitaya_scpi::acquire::Source::IN2, gain),
-                Start => Msg::Start(redpitaya_scpi::acquire::Source::IN2),
-                Stop => Msg::Stop(redpitaya_scpi::acquire::Source::IN2),
-            },
+            append: model.in1.widget(),
+            append: model.in2.widget(),
         }
     }
 }
 
-impl Widget {
+impl Model {
     fn draw(
         &self,
         context: Box<gtk::cairo::Context>,
-        model: Box<crate::application::Model>,
+        model: Box<crate::application::Data>,
     ) -> Result<(), gtk::cairo::Error> {
         context.save()?;
-        self.components
-            .in1
-            .emit(input::Msg::Redraw(context.clone(), model.clone()));
+        self.in1
+            .emit(input::InputMsg::Redraw(context.clone(), model.clone()));
         context.restore()?;
         context.save()?;
-        self.components
-            .in2
-            .emit(input::Msg::Redraw(context.clone(), model));
+        self.in2
+            .emit(input::InputMsg::Redraw(context.clone(), model));
         context.restore()
     }
 
-    fn get_input(
-        &self,
-        source: redpitaya_scpi::acquire::Source,
-    ) -> &relm::Component<input::Widget> {
+    fn input(&self, source: redpitaya_scpi::acquire::Source) -> &relm4::Controller<input::Model> {
         match source {
-            redpitaya_scpi::acquire::Source::IN1 => &self.components.in1,
-            redpitaya_scpi::acquire::Source::IN2 => &self.components.in2,
+            redpitaya_scpi::acquire::Source::IN1 => &self.in1,
+            redpitaya_scpi::acquire::Source::IN2 => &self.in2,
         }
     }
 }

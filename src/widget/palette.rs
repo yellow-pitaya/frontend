@@ -1,66 +1,100 @@
 use gtk::prelude::*;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
+#[derive(Debug)]
+pub enum InputMsg {
     Expand,
     Fold,
-    SetColor(crate::color::Color),
-    SetLabel(String),
 }
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Palette {
-    fn model(_: ()) {}
+#[derive(Debug)]
+pub enum OutputMsg {
+    Expand,
+    Fold,
+}
 
-    fn update(&mut self, event: Msg) {
-        use crate::color::Colorable;
+#[derive(Debug)]
+pub struct Model {}
 
-        match event {
-            Msg::Expand => {
-                self.widgets.parent.set_no_show_all(false);
-                self.widgets.parent.show_all();
+impl relm4::ContainerChild for ModelWidgets {
+    type Child = gtk::Widget;
+}
+
+impl relm4::RelmContainerExt for ModelWidgets {
+    fn container_add(&self, widget: &impl AsRef<Self::Child>) {
+        self.parent.append(widget.as_ref());
+    }
+}
+
+#[relm4::component(pub)]
+impl relm4::Component for Model {
+    type CommandOutput = ();
+    type Init = (String, crate::Color);
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        let model = Self {};
+
+        let widgets = view_output!();
+        widgets.parent.set_visible(false);
+
+        let context = widgets.border.style_context();
+        context.add_class(&init.1.to_string());
+
+        relm4::ComponentParts { model, widgets }
+    }
+
+    fn update_with_view(
+        &mut self,
+        widgets: &mut ModelWidgets,
+        msg: Self::Input,
+        sender: relm4::ComponentSender<Self>,
+        _: &Self::Root,
+    ) {
+        match msg {
+            InputMsg::Expand => {
+                widgets.parent.set_visible(true);
+                sender.output(OutputMsg::Expand).ok();
             }
-            Msg::Fold => self.widgets.parent.hide(),
-            Msg::SetColor(color) => self.set_color(color),
-            Msg::SetLabel(label) => self.set_label(&label),
-        };
+            InputMsg::Fold => {
+                widgets.parent.set_visible(false);
+                sender.output(OutputMsg::Fold).ok();
+            }
+        }
     }
 
     view! {
         gtk::Box {
-            orientation: gtk::Orientation::Vertical,
-            #[name="border"]
-            gtk::EventBox {
-                #[name="toggle"]
+            set_orientation: gtk::Orientation::Vertical,
+
+            #[name = "border"]
+            gtk::Box {
+                set_hexpand: false,
+
+                #[name = "toggle"]
                 gtk::ToggleButton {
-                    border_width: 1,
-                    toggled(widget) => if widget.is_active() {
-                        Msg::Expand
+                    set_hexpand: true,
+                    set_label: &init.0,
+                    set_margin_bottom: 1,
+                    set_margin_end: 1,
+                    set_margin_start: 1,
+                    set_margin_top: 1,
+
+                    connect_toggled => move |this| if this.is_active() {
+                        sender.input(InputMsg::Expand);
                     } else {
-                        Msg::Fold
+                        sender.input(InputMsg::Fold);
                     }
                 },
             },
-            #[name="parent"]
-            #[container]
+            #[name = "parent"]
             gtk::Box {
-                orientation: gtk::Orientation::Vertical,
-                no_show_all: true,
+                set_orientation: gtk::Orientation::Vertical,
             },
         },
-    }
-}
-
-impl Palette {
-    pub fn set_label(&self, label: &str) {
-        self.widgets.toggle.set_label(label);
-    }
-}
-
-impl crate::color::Colorable for Palette {
-    fn set_color(&self, color: crate::color::Color) {
-        let context = self.widgets.border.style_context();
-
-        context.add_class(&format!("{}", color));
     }
 }

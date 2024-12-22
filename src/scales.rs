@@ -13,15 +13,15 @@ pub struct Scales {
 }
 
 impl Scales {
-    pub fn get_width(&self) -> f64 {
+    pub fn width(&self) -> f64 {
         self.h.1 - self.h.0
     }
 
-    pub fn get_height(&self) -> f64 {
+    pub fn height(&self) -> f64 {
         self.v.1 - self.v.0
     }
 
-    pub fn from_sampling_rate(&mut self, rate: redpitaya_scpi::acquire::SamplingRate) {
+    pub fn with_sampling_rate(&mut self, rate: redpitaya_scpi::acquire::SamplingRate) {
         let duration = rate.get_buffer_duration();
         let h =
             (duration.as_secs() * 1_000_000 + duration.subsec_nanos() as u64 / 1_000) as f64 / 2.0;
@@ -43,10 +43,10 @@ impl Scales {
     }
 
     pub fn x_to_offset(&self, x: i32) -> f64 {
-        x as f64 / self.window.width as f64 * self.get_width() + self.h.0
+        x as f64 / self.window.width as f64 * self.width() + self.h.0
     }
 
     pub fn y_to_offset(&self, y: i32) -> f64 {
-        y as f64 / -self.window.height as f64 * self.get_height() + self.v.1
+        y as f64 / -self.window.height as f64 * self.height() + self.v.1
     }
 }

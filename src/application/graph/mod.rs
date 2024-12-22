@@ -1,38 +1,163 @@
 pub mod level;
 
-use crate::color::Colorable;
+use crate::color::Colorable as _;
 use gtk::prelude::*;
-use level::placeholder::Widget as Placeholder;
-use level::Msg::Level as LevelMsg;
-use level::Widget as LevelWidget;
+use relm4::ComponentController as _;
 
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
-    Draw,
-    Level(String, i32),
-    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
-    Resize(i32, i32),
+#[derive(Debug)]
+pub enum InputMsg {
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Data>),
     SetImage(gtk::cairo::ImageSurface),
     SourceStart(level::Orientation, String),
     SourceStop(level::Orientation, String),
 }
 
-impl Widget {
+#[derive(Debug)]
+pub enum OutputMsg {
+    Level(String, i32),
+    Resize(i32, i32),
+}
+
+pub struct Model {
+    level_left: relm4::Controller<level::Model>,
+    level_top: relm4::Controller<level::Model>,
+    level_right: relm4::Controller<level::Model>,
+    handler: relm4::abstractions::DrawHandler,
+    p1: relm4::Controller<level::placeholder::Model>,
+    p2: relm4::Controller<level::placeholder::Model>,
+}
+
+#[relm4::component(pub)]
+impl relm4::SimpleComponent for Model {
+    type Init = ();
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        _: Self::Init,
+        _root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        use relm4::Component as _;
+        use relm4::ComponentController as _;
+
+        let level_left = level::Model::builder()
+            .launch(level::Orientation::Left)
+            .forward(sender.output_sender(), |output| {
+                let level::OutputMsg::Level(ref name, offset) = output;
+                OutputMsg::Level(name.clone(), offset)
+            });
+
+        let level_top = level::Model::builder()
+            .launch(level::Orientation::Top)
+            .forward(sender.output_sender(), |output| {
+                let level::OutputMsg::Level(ref name, offset) = output;
+                OutputMsg::Level(name.clone(), offset)
+            });
+
+        let level_right = level::Model::builder()
+            .launch(level::Orientation::Right)
+            .forward(sender.output_sender(), |output| {
+                let level::OutputMsg::Level(ref name, offset) = output;
+                OutputMsg::Level(name.clone(), offset)
+            });
+
+        let p1 = level::placeholder::Model::builder().launch(()).detach();
+
+        let p2 = level::placeholder::Model::builder().launch(()).detach();
+
+        let model = Self {
+            level_left,
+            level_top,
+            level_right,
+            handler: relm4::abstractions::DrawHandler::new(),
+            p1,
+            p2,
+        };
+
+        let drawing_area = model.handler.drawing_area();
+        let widgets = view_output!();
+
+        relm4::ComponentParts { model, widgets }
+    }
+
+    fn update(&mut self, msg: Self::Input, _: relm4::ComponentSender<Self>) {
+        match msg {
+            InputMsg::SourceStart(orientation, source) => match orientation {
+                level::Orientation::Left => {
+                    self.level_left.emit(level::InputMsg::SourceStart(source))
+                }
+                level::Orientation::Right => {
+                    self.level_right.emit(level::InputMsg::SourceStart(source))
+                }
+                level::Orientation::Top => {
+                    self.level_top.emit(level::InputMsg::SourceStart(source))
+                }
+            },
+            InputMsg::SourceStop(orientation, source) => match orientation {
+                level::Orientation::Left => {
+                    self.level_left.emit(level::InputMsg::SourceStop(source))
+                }
+                level::Orientation::Right => {
+                    self.level_right.emit(level::InputMsg::SourceStop(source))
+                }
+                level::Orientation::Top => self.level_top.emit(level::InputMsg::SourceStop(source)),
+            },
+            InputMsg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
+            InputMsg::SetImage(image) => self.set_image(&image).unwrap(),
+        }
+    }
+
+    view! {
+        gtk::Box {
+            set_hexpand: true,
+            set_orientation: gtk::Orientation::Horizontal,
+            set_vexpand: true,
+
+            gtk::Box {
+                set_halign: gtk::Align::Fill,
+                set_orientation: gtk::Orientation::Vertical,
+
+                append: model.p1.widget(),
+                append: model.level_left.widget(),
+            },
+            gtk::Box {
+                set_halign: gtk::Align::Fill,
+                set_valign: gtk::Align::Fill,
+                set_hexpand: true,
+                set_orientation: gtk::Orientation::Vertical,
+                set_vexpand: true,
+
+                append: model.level_top.widget(),
+                append: drawing_area,
+            },
+            gtk::Box {
+                set_halign: gtk::Align::Fill,
+                set_orientation: gtk::Orientation::Vertical,
+
+                append: model.p2.widget(),
+                append: model.level_right.widget(),
+            },
+        }
+    }
+}
+
+impl Model {
     fn draw(
         &self,
         context: &gtk::cairo::Context,
-        model: &crate::application::Model,
+        data: &crate::application::Data,
     ) -> Result<(), gtk::cairo::Error> {
-        let width = model.scales.get_width();
-        let height = model.scales.get_height();
+        let width = data.scales.width();
+        let height = data.scales.height();
 
         context.set_color(crate::color::BACKGROUND);
-        context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
+        context.rectangle(data.scales.h.0, data.scales.v.0, width, height);
         context.fill()?;
 
         context.set_color(crate::color::MAIN_SCALE);
 
-        context.rectangle(model.scales.h.0, model.scales.v.0, width, height);
+        context.rectangle(data.scales.h.0, data.scales.v.0, width, height);
         context.stroke()?;
 
         for i in 0..11 {
@@ -45,141 +170,25 @@ impl Widget {
             let x = width / 10.0 * (i as f64);
 
             context.set_line_width(width / 1000.0);
-            context.move_to(model.scales.h.0 + x, model.scales.v.0);
-            context.line_to(model.scales.h.0 + x, model.scales.v.1);
+            context.move_to(data.scales.h.0 + x, data.scales.v.0);
+            context.line_to(data.scales.h.0 + x, data.scales.v.1);
             context.stroke()?;
 
             let y = height / 10.0 * (i as f64);
 
             context.set_line_width(height / 1000.0);
-            context.move_to(model.scales.h.0, model.scales.v.0 + y);
-            context.line_to(model.scales.h.1, model.scales.v.0 + y);
+            context.move_to(data.scales.h.0, data.scales.v.0 + y);
+            context.line_to(data.scales.h.1, data.scales.v.0 + y);
             context.stroke()?;
         }
-
-        self.components.level_left.emit(level::Msg::Draw);
-        self.components.level_right.emit(level::Msg::Draw);
 
         Ok(())
     }
 
-    fn set_image(&self, image: &gtk::cairo::ImageSurface) -> Result<(), gtk::cairo::Error> {
-        let context = crate::create_context(&self.widgets.drawing_area)?;
+    fn set_image(&mut self, image: &gtk::cairo::ImageSurface) -> Result<(), gtk::cairo::Error> {
+        let context = self.handler.get_context();
 
-        context.set_source_surface(image, 0.0, 0.0)?;
+        context.set_source_surface(image, 0., 0.)?;
         context.paint()
-    }
-}
-
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Widget {
-    fn model(_: ()) {}
-
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::SourceStart(orientation, source) => match orientation {
-                level::Orientation::Left => self
-                    .components
-                    .level_left
-                    .emit(level::Msg::SourceStart(source)),
-                level::Orientation::Right => self
-                    .components
-                    .level_right
-                    .emit(level::Msg::SourceStart(source)),
-                level::Orientation::Top => self
-                    .components
-                    .level_top
-                    .emit(level::Msg::SourceStart(source)),
-            },
-            Msg::SourceStop(orientation, source) => match orientation {
-                level::Orientation::Left => self
-                    .components
-                    .level_left
-                    .emit(level::Msg::SourceStop(source)),
-                level::Orientation::Right => self
-                    .components
-                    .level_right
-                    .emit(level::Msg::SourceStop(source)),
-                level::Orientation::Top => self
-                    .components
-                    .level_top
-                    .emit(level::Msg::SourceStop(source)),
-            },
-            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
-            Msg::SetImage(ref image) => self.set_image(image).unwrap(),
-            _ => (),
-        }
-    }
-
-    view! {
-        gtk::Box {
-            orientation: gtk::Orientation::Horizontal,
-            gtk::Box {
-                orientation: gtk::Orientation::Vertical,
-                child: {
-                    expand: false,
-                    fill: true,
-                },
-                Placeholder {
-                    child: {
-                        expand: false,
-                        fill: true,
-                    },
-                },
-                #[name="level_left"]
-                LevelWidget(level::Orientation::Left) {
-                    child: {
-                        expand: true,
-                        fill: true,
-                    },
-                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
-                },
-            },
-            gtk::Box {
-                orientation: gtk::Orientation::Vertical,
-                child: {
-                    expand: true,
-                    fill: true,
-                },
-                #[name="level_top"]
-                LevelWidget(level::Orientation::Top) {
-                    child: {
-                        expand: false,
-                        fill: true,
-                    },
-                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
-                },
-                #[name="drawing_area"]
-                gtk::DrawingArea {
-                    child: {
-                        expand: true,
-                        fill: true,
-                    },
-                    draw(_, _) => (Msg::Draw, gtk::Inhibit(false)),
-                },
-            },
-            gtk::Box {
-                orientation: gtk::Orientation::Vertical,
-                child: {
-                    expand: false,
-                    fill: true,
-                },
-                Placeholder {
-                    child: {
-                        expand: false,
-                        fill: true,
-                    },
-                },
-                #[name="level_right"]
-                LevelWidget(level::Orientation::Right) {
-                    child: {
-                        expand: true,
-                        fill: true,
-                    },
-                    LevelMsg(ref name, offset) => Msg::Level(name.clone(), offset),
-                },
-            },
-            size_allocate(_, allocation) => Msg::Resize(allocation.width(), allocation.height()),
-        },
     }
 }

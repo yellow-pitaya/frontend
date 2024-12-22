@@ -123,8 +123,6 @@ pub const TRIGGER: Color = Color {
 
 impl Color {
     pub fn init() {
-        use gtk::prelude::CssProviderExt;
-
         let colors = [
             BACKGROUND,
             MAIN_SCALE,
@@ -143,20 +141,24 @@ impl Color {
 
         let provider = gtk::CssProvider::new();
 
-        provider
-            .load_from_data(styles.as_bytes())
-            .expect("Failed to load CSS");
+        provider.load_from_data(&styles);
 
-        gtk::StyleContext::add_provider_for_screen(
-            &gtk::gdk::Screen::default().expect("Error initializing gtk css provider."),
+        gtk::style_context_add_provider_for_display(
+            &gtk::gdk::Display::default().unwrap(),
             &provider,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+            0,
         );
     }
 }
 
 pub trait Colorable {
     fn set_color(&self, color: Color);
+}
+
+impl Colorable for relm4::abstractions::DrawContext {
+    fn set_color(&self, color: Color) {
+        self.set_source_rgba(color.r, color.g, color.b, color.a);
+    }
 }
 
 impl Colorable for gtk::cairo::Context {

@@ -1,67 +1,175 @@
-use crate::color::Colorable;
-use crate::widget::palette::Msg::*;
-use crate::widget::precise::Msg::Changed;
-use crate::widget::radio::Msg::Change;
-use crate::widget::Palette;
-use crate::widget::PreciseScale;
+use crate::color::Colorable as _;
 use gtk::prelude::*;
+use relm4::ComponentController as _;
 
-type FormWidget = crate::widget::RadioGroup<redpitaya_scpi::generator::Form>;
-
-#[derive(relm_derive::Msg, Clone)]
-pub enum Msg {
+#[derive(Debug)]
+pub enum InputMsg {
     Amplitude(f32),
     DutyCycle(f32),
     Frequency(u32),
     Offset(f32),
     Form(redpitaya_scpi::generator::Form),
-    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Model>),
+    Redraw(Box<gtk::cairo::Context>, Box<crate::application::Data>),
     Start,
     Stop,
 }
 
-#[derive(Clone)]
+#[derive(Debug)]
+pub enum OutputMsg {
+    Start,
+    Stop,
+}
+
 pub struct Model {
+    amplitude: relm4::Controller<crate::widget::PreciseScale>,
+    duty_cycle: relm4::Controller<crate::widget::PreciseScale>,
+    form: relm4::Controller<crate::widget::RadioGroup<redpitaya_scpi::generator::Form>>,
+    frequency: relm4::Controller<crate::widget::PreciseScale>,
     generator: redpitaya_scpi::generator::Generator,
+    offset: relm4::Controller<crate::widget::PreciseScale>,
+    palette: relm4::Controller<crate::widget::Palette>,
     source: redpitaya_scpi::generator::Source,
 }
 
-impl Model {
-    pub fn new(
-        generator: &redpitaya_scpi::generator::Generator,
-        source: redpitaya_scpi::generator::Source,
-    ) -> Self {
-        Self {
-            generator: generator.clone(),
+#[relm4::component(pub)]
+impl relm4::SimpleComponent for Model {
+    type Init = (
+        redpitaya_scpi::generator::Generator,
+        redpitaya_scpi::generator::Source,
+    );
+    type Input = InputMsg;
+    type Output = OutputMsg;
+
+    fn init(
+        init: Self::Init,
+        _root: Self::Root,
+        sender: relm4::ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        use relm4::Component as _;
+
+        let (generator, source) = init;
+
+        let form = crate::widget::RadioGroup::builder()
+            .launch(crate::widget::radio::Options {
+                options: vec![
+                    redpitaya_scpi::generator::Form::SINE,
+                    redpitaya_scpi::generator::Form::SQUARE,
+                    redpitaya_scpi::generator::Form::TRIANGLE,
+                    redpitaya_scpi::generator::Form::SAWU,
+                    redpitaya_scpi::generator::Form::SAWD,
+                    redpitaya_scpi::generator::Form::PWM,
+                    redpitaya_scpi::generator::Form::DC,
+                    // @TODO redpitaya_scpi::generator::Form::ARBITRARY,
+                ],
+                current: generator.get_form(source).ok(),
+                label: "Form",
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::radio::OutputMsg::Change(form) = output;
+                InputMsg::Form(form)
+            });
+
+        let palette = crate::widget::Palette::builder()
+            .launch((source.to_string(), source.into()))
+            .forward(sender.input_sender(), |output| match output {
+                crate::widget::palette::OutputMsg::Expand => InputMsg::Start,
+                crate::widget::palette::OutputMsg::Fold => InputMsg::Stop,
+            });
+
+        let amplitude = crate::widget::PreciseScale::builder()
+            .launch(crate::widget::precise::Options {
+                label: "Amplitude (V)",
+                value: generator.get_amplitude(source).unwrap() as f64,
+                digits: 2,
+                adjustment: gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::precise::OutputMsg::Change(amplitude) = output;
+                InputMsg::Amplitude(amplitude as f32)
+            });
+
+        let offset = crate::widget::PreciseScale::builder()
+            .launch(crate::widget::precise::Options {
+                label: "Offest (V)",
+                value: generator.get_offset(source).unwrap() as f64,
+                digits: 2,
+                adjustment: gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::precise::OutputMsg::Change(offset) = output;
+                InputMsg::Offset(offset as f32)
+            });
+
+        let frequency = crate::widget::PreciseScale::builder()
+            .launch(crate::widget::precise::Options {
+                label: "Frequency (Hz)",
+                value: generator.get_frequency(source).unwrap() as f64,
+                digits: 0,
+                adjustment: gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::precise::OutputMsg::Change(frequency) = output;
+                InputMsg::Frequency(frequency as u32)
+            });
+
+        let duty_cycle = crate::widget::PreciseScale::builder()
+            .launch(crate::widget::precise::Options {
+                label: "Duty cycle (%)",
+                value: generator.get_duty_cycle(source).unwrap() as f64,
+                digits: 2,
+                adjustment: gtk::Adjustment::new(0.0, 0.0, 1.0, 0.1, 1.0, 0.0),
+            })
+            .forward(sender.input_sender(), |output| {
+                let crate::widget::precise::OutputMsg::Change(duty_cycle) = output;
+                InputMsg::DutyCycle(duty_cycle as f32)
+            });
+
+        let model = Self {
+            amplitude,
+            duty_cycle,
+            form,
+            frequency,
+            generator,
+            offset,
+            palette,
             source,
-        }
-    }
-}
+        };
 
-#[relm_derive::widget(Clone)]
-impl relm::Widget for Widget {
-    fn model(_: &relm::Relm<Self>, model: Model) -> Model {
-        model
+        let widgets = view_output!();
+
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        model.palette.widgets().container_add(&vbox);
+
+        vbox.append(model.form.widget());
+        vbox.append(model.amplitude.widget());
+        vbox.append(model.offset.widget());
+        vbox.append(model.frequency.widget());
+        vbox.append(model.duty_cycle.widget());
+
+        relm4::ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Amplitude(value) => self.model.generator.set_amplitude(self.model.source, value),
-            Msg::Offset(value) => self.model.generator.set_offset(self.model.source, value),
-            Msg::Frequency(value) => self.model.generator.set_frequency(self.model.source, value),
-            Msg::DutyCycle(value) => self
-                .model
-                .generator
-                .set_duty_cycle(self.model.source, value),
-            Msg::Start => self.model.generator.start(self.model.source),
-            Msg::Stop => self.model.generator.stop(self.model.source),
-            Msg::Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
-            Msg::Form(form) => {
+    fn update(&mut self, msg: Self::Input, sender: relm4::ComponentSender<Self>) {
+        use InputMsg::*;
+
+        match msg {
+            Amplitude(value) => self.generator.set_amplitude(self.source, value),
+            Offset(value) => self.generator.set_offset(self.source, value),
+            Frequency(value) => self.generator.set_frequency(self.source, value),
+            DutyCycle(value) => self.generator.set_duty_cycle(self.source, value),
+            Start => {
+                self.generator.start(self.source);
+                sender.output(OutputMsg::Start).ok();
+            }
+            Stop => {
+                self.generator.stop(self.source);
+                sender.output(OutputMsg::Stop).ok();
+            }
+            Redraw(ref context, ref model) => self.draw(context, model).unwrap(),
+            Form(form) => {
                 let is_pwm = form == redpitaya_scpi::generator::Form::PWM;
-                self.components
-                    .duty_cycle
-                    .emit(crate::widget::precise::Msg::SetVisible(is_pwm));
-                self.model.generator.set_form(self.model.source, form);
+                self.duty_cycle.widget().set_visible(is_pwm);
+                self.generator.set_form(self.source, form);
             }
         };
     }
@@ -69,161 +177,17 @@ impl relm::Widget for Widget {
     view! {
         #[name="page"]
         gtk::Box {
-            orientation: gtk::Orientation::Vertical,
-            spacing: 10,
-            #[name="palette"]
-            Palette {
-                Expand => Msg::Start,
-                Fold => Msg::Stop,
+            set_orientation: gtk::Orientation::Vertical,
+            set_spacing: 10,
 
-                gtk::Box {
-                    orientation: gtk::Orientation::Vertical,
-                    spacing: 10,
-
-                    #[name="form"]
-                    FormWidget(crate::widget::radio::Model {
-                        options: vec![
-                            redpitaya_scpi::generator::Form::SINE,
-                            redpitaya_scpi::generator::Form::SQUARE,
-                            redpitaya_scpi::generator::Form::TRIANGLE,
-                            redpitaya_scpi::generator::Form::SAWU,
-                            redpitaya_scpi::generator::Form::SAWD,
-                            redpitaya_scpi::generator::Form::PWM,
-                            redpitaya_scpi::generator::Form::DC,
-                            // @TODO redpitaya_scpi::generator::Form::ARBITRARY,
-                        ],
-                        current: None,
-                    }) {
-                        label: Some("Form"),
-                        Change(form) => Msg::Form(form),
-                    },
-                    #[name="amplitude"]
-                    PreciseScale {
-                        label: Some("Amplitude (V)"),
-                        Changed(amplitude) => Msg::Amplitude(amplitude as f32),
-                    },
-                    #[name="offset"]
-                    PreciseScale {
-                        label: Some("Offset (V)"),
-                        Changed(offset) => Msg::Offset(offset as f32),
-                    },
-                    #[name="frequency"]
-                    PreciseScale {
-                        label: Some("Frequency (Hz)"),
-                        Changed(frequency) => Msg::Frequency(frequency as u32),
-                    },
-                    #[name="duty_cycle"]
-                    PreciseScale {
-                        label: Some("Duty cycle (%)"),
-                        Changed(duty_cycle) => Msg::DutyCycle(duty_cycle as f32),
-                    },
-                },
-            },
+            append: model.palette.widget(),
         },
-    }
-
-    fn init_view(&mut self) {
-        // @FIXME
-        self.components
-            .palette
-            .emit(crate::widget::palette::Msg::Fold);
-
-        self.components
-            .palette
-            .emit(crate::widget::palette::Msg::SetLabel(format!(
-                "{}",
-                self.model.source
-            )));
-        self.components
-            .palette
-            .emit(crate::widget::palette::Msg::SetColor(
-                self.model.source.into(),
-            ));
-
-        self.components
-            .amplitude
-            .emit(crate::widget::precise::Msg::SetDigits(2));
-        self.components
-            .amplitude
-            .emit(crate::widget::precise::Msg::SetAdjustement(
-                gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
-            ));
-
-        self.components
-            .offset
-            .emit(crate::widget::precise::Msg::SetDigits(2));
-        self.components
-            .offset
-            .emit(crate::widget::precise::Msg::SetAdjustement(
-                gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
-            ));
-
-        self.components
-            .frequency
-            .emit(crate::widget::precise::Msg::SetAdjustement(
-                gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
-            ));
-
-        self.components
-            .duty_cycle
-            .emit(crate::widget::precise::Msg::SetNoShowAll(true));
-        self.components
-            .duty_cycle
-            .emit(crate::widget::precise::Msg::SetVisible(false));
-        self.components
-            .duty_cycle
-            .emit(crate::widget::precise::Msg::SetDigits(2));
-        self.components
-            .duty_cycle
-            .emit(crate::widget::precise::Msg::SetAdjustement(
-                gtk::Adjustment::new(0.0, 0.0, 1.0, 0.1, 1.0, 0.0),
-            ));
-
-        match self.model.generator.get_form(self.model.source) {
-            Ok(form) => self
-                .components
-                .form
-                .emit(crate::widget::radio::Msg::Set(form)),
-            Err(err) => log::error!("{}", err),
-        };
-
-        match self.model.generator.get_amplitude(self.model.source) {
-            Ok(amplitude) => self
-                .components
-                .amplitude
-                .emit(crate::widget::precise::Msg::SetValue(amplitude as f64)),
-            Err(err) => log::error!("{}", err),
-        };
-
-        match self.model.generator.get_offset(self.model.source) {
-            Ok(offset) => self
-                .components
-                .offset
-                .emit(crate::widget::precise::Msg::SetValue(offset as f64)),
-            Err(err) => log::error!("{}", err),
-        };
-
-        match self.model.generator.get_duty_cycle(self.model.source) {
-            Ok(duty_cycle) => self
-                .components
-                .duty_cycle
-                .emit(crate::widget::precise::Msg::SetValue(duty_cycle as f64)),
-            Err(err) => log::error!("{}", err),
-        };
-
-        match self.model.generator.get_frequency(self.model.source) {
-            Ok(frequency) => self
-                .components
-                .frequency
-                .emit(crate::widget::precise::Msg::SetValue(frequency as f64)),
-            Err(err) => log::error!("{}", err),
-        };
     }
 }
 
-impl Widget {
+impl Model {
     fn is_started(&self) -> bool {
-        self.model.generator.is_started(self.model.source)
+        self.generator.is_started(self.source)
     }
 
     fn draw_data(
@@ -233,27 +197,20 @@ impl Widget {
     ) -> Result<(), gtk::cairo::Error> {
         context.set_line_width(0.05);
 
-        if let Ok(form) = self.model.generator.get_form(self.model.source) {
+        if let Ok(form) = self.generator.get_form(self.source) {
             let amplitude = self
-                .model
                 .generator
-                .get_amplitude(self.model.source)
+                .get_amplitude(self.source)
                 .unwrap_or_default();
             let frequency = self
-                .model
                 .generator
-                .get_frequency(self.model.source)
+                .get_frequency(self.source)
                 .unwrap_or_default() as f32;
             let duty_cycle = self
-                .model
                 .generator
-                .get_duty_cycle(self.model.source)
+                .get_duty_cycle(self.source)
                 .unwrap_or_default();
-            let offset = self
-                .model
-                .generator
-                .get_offset(self.model.source)
-                .unwrap_or_default();
+            let offset = self.generator.get_offset(self.source).unwrap_or_default();
 
             for sample in (scales.h.0 as i32)..(scales.h.1 as i32) {
                 let x = scales.x_to_offset(sample) as f32;
@@ -274,13 +231,7 @@ impl Widget {
 
                 y += offset;
 
-                if y < -1.0 {
-                    y = -1.0;
-                }
-
-                if y > 1.0 {
-                    y = 1.0;
-                }
+                y = y.clamp(-1.0, 1.0);
 
                 context.line_to(x.into(), y.into());
                 context.move_to(x.into(), y.into());
@@ -332,20 +283,20 @@ impl Widget {
     fn draw(
         &self,
         context: &gtk::cairo::Context,
-        model: &crate::application::Model,
+        data: &crate::application::Data,
     ) -> Result<(), gtk::cairo::Error> {
         if !self.is_started() {
             return Ok(());
         }
 
-        context.set_color(self.model.source.into());
+        context.set_color(self.source.into());
 
-        context.translate(0.0, model.offset(self.model.source));
+        context.translate(0.0, data.offset(self.source));
 
-        context.move_to(model.scales.h.0, 0.0);
-        context.line_to(model.scales.h.1, 0.0);
+        context.move_to(data.scales.h.0, 0.0);
+        context.line_to(data.scales.h.1, 0.0);
         context.stroke()?;
 
-        self.draw_data(context, model.scales)
+        self.draw_data(context, data.scales)
     }
 }
