@@ -129,7 +129,16 @@ impl relm4::SimpleComponent for Model {
                 set_vexpand: true,
 
                 append: model.level_top.widget(),
-                append: drawing_area,
+
+                #[local_ref]
+                drawing_area -> gtk::DrawingArea {
+                    set_hexpand: true,
+                    set_vexpand: true,
+
+                    connect_resize[sender] => move |_, width, height| {
+                        sender.output(OutputMsg::Resize(width, height)).ok();
+                    },
+                },
             },
             gtk::Box {
                 set_halign: gtk::Align::Fill,

@@ -48,7 +48,7 @@ impl relm4::SimpleComponent for Model {
                     redpitaya_scpi::acquire::SamplingRate::RATE_15_6MHz,
                     redpitaya_scpi::acquire::SamplingRate::RATE_125MHz,
                 ],
-                current: init.get_decimation().map(Into::into).ok(),
+                current: init.decimation().map(Into::into).ok(),
                 label: "Samping Rate",
             })
             .forward(sender.input_sender(), |output| {

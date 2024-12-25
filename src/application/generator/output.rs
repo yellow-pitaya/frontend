@@ -61,7 +61,7 @@ impl relm4::SimpleComponent for Model {
                     redpitaya_scpi::generator::Form::DC,
                     // @TODO redpitaya_scpi::generator::Form::ARBITRARY,
                 ],
-                current: generator.get_form(source).ok(),
+                current: generator.form(source).ok(),
                 label: "Form",
             })
             .forward(sender.input_sender(), |output| {
@@ -79,7 +79,7 @@ impl relm4::SimpleComponent for Model {
         let amplitude = crate::widget::PreciseScale::builder()
             .launch(crate::widget::precise::Options {
                 label: "Amplitude (V)",
-                value: generator.get_amplitude(source).unwrap() as f64,
+                value: generator.amplitude(source).unwrap() as f64,
                 digits: 2,
                 adjustment: gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             })
@@ -91,7 +91,7 @@ impl relm4::SimpleComponent for Model {
         let offset = crate::widget::PreciseScale::builder()
             .launch(crate::widget::precise::Options {
                 label: "Offest (V)",
-                value: generator.get_offset(source).unwrap() as f64,
+                value: generator.offset(source).unwrap() as f64,
                 digits: 2,
                 adjustment: gtk::Adjustment::new(0.0, -1.0, 1.0, 0.1, 1.0, 0.0),
             })
@@ -103,7 +103,7 @@ impl relm4::SimpleComponent for Model {
         let frequency = crate::widget::PreciseScale::builder()
             .launch(crate::widget::precise::Options {
                 label: "Frequency (Hz)",
-                value: generator.get_frequency(source).unwrap() as f64,
+                value: generator.frequency(source).unwrap() as f64,
                 digits: 0,
                 adjustment: gtk::Adjustment::new(0.0, 0.0, 62_500_000.0, 1_000.0, 10_000.0, 0.0),
             })
@@ -115,7 +115,7 @@ impl relm4::SimpleComponent for Model {
         let duty_cycle = crate::widget::PreciseScale::builder()
             .launch(crate::widget::precise::Options {
                 label: "Duty cycle (%)",
-                value: generator.get_duty_cycle(source).unwrap() as f64,
+                value: generator.duty_cycle(source).unwrap() as f64,
                 digits: 2,
                 adjustment: gtk::Adjustment::new(0.0, 0.0, 1.0, 0.1, 1.0, 0.0),
             })
@@ -197,20 +197,11 @@ impl Model {
     ) -> Result<(), gtk::cairo::Error> {
         context.set_line_width(0.05);
 
-        if let Ok(form) = self.generator.get_form(self.source) {
-            let amplitude = self
-                .generator
-                .get_amplitude(self.source)
-                .unwrap_or_default();
-            let frequency = self
-                .generator
-                .get_frequency(self.source)
-                .unwrap_or_default() as f32;
-            let duty_cycle = self
-                .generator
-                .get_duty_cycle(self.source)
-                .unwrap_or_default();
-            let offset = self.generator.get_offset(self.source).unwrap_or_default();
+        if let Ok(form) = self.generator.form(self.source) {
+            let amplitude = self.generator.amplitude(self.source).unwrap_or_default();
+            let frequency = self.generator.frequency(self.source).unwrap_or_default() as f32;
+            let duty_cycle = self.generator.duty_cycle(self.source).unwrap_or_default();
+            let offset = self.generator.offset(self.source).unwrap_or_default();
 
             for sample in (scales.h.0 as i32)..(scales.h.1 as i32) {
                 let x = scales.x_to_offset(sample) as f32;

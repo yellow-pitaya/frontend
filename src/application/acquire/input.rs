@@ -60,7 +60,7 @@ impl relm4::SimpleComponent for Model {
                     redpitaya_scpi::acquire::Gain::LV,
                     redpitaya_scpi::acquire::Gain::HV,
                 ],
-                current: init.0.get_gain(init.1).ok(),
+                current: init.0.gain(init.1).ok(),
                 label: "Gain",
             })
             .forward(sender.input_sender(), |output| {

@@ -45,18 +45,12 @@ pub struct Model {
     trigger: relm4::Controller<trigger::Model>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Data {
     rate: redpitaya_scpi::acquire::SamplingRate,
     redpitaya: redpitaya_scpi::Redpitaya,
     scales: crate::Scales,
     levels: std::collections::HashMap<String, i32>,
-}
-
-impl std::fmt::Debug for Data {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
 }
 
 impl Data {
@@ -103,7 +97,7 @@ impl relm4::Component for Model {
             },
         };
 
-        let rate = init.acquire.get_decimation().unwrap().into();
+        let rate = init.acquire.decimation().unwrap().into();
         scales.with_sampling_rate(rate);
 
         let acquire = acquire::Model::builder()
@@ -347,9 +341,9 @@ impl Model {
         )?;
 
         redraw!(self, graph, image);
-        redraw!(self, acquire, image);
-        redraw!(self, generator, image);
         redraw!(self, trigger, image);
+        redraw!(self, generator, image);
+        redraw!(self, acquire, image);
 
         self.graph.emit(graph::InputMsg::SetImage(image));
 
