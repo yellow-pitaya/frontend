@@ -11,6 +11,7 @@ use scales::Scales;
 
 #[derive(Parser)]
 struct Opt {
+    #[clap(default_value = "127.0.0.1:5000")]
     addr: String,
 }
 
