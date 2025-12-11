@@ -17,9 +17,8 @@ pub struct Model<T> {
 }
 
 #[relm4::component(pub)]
-impl<
-        T: std::fmt::Debug + std::cmp::PartialEq + std::clone::Clone + std::fmt::Display + 'static,
-    > relm4::SimpleComponent for Model<T>
+impl<T: std::fmt::Debug + std::cmp::PartialEq + std::clone::Clone + std::fmt::Display + 'static>
+    relm4::SimpleComponent for Model<T>
 {
     type Init = Options<T>;
     type Input = ();
