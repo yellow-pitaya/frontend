@@ -16,7 +16,7 @@ struct Opt {
 }
 
 fn main() {
-    env_logger::init();
+    envir::init();
 
     let opt = Opt::parse();
 
