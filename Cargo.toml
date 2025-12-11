@@ -8,8 +8,8 @@ edition = "2024"
 env_logger = "0.10"
 log = "0.4"
 redpitaya-scpi = "0.27"
-relm4 = "0.9"
-relm4-components = "0.9"
+relm4 = "0.10"
+relm4-components = "0.10"
 
 [dependencies.clap]
 version = "4.0"
@@ -17,7 +17,7 @@ features = ["derive"]
 
 [dependencies.gtk]
 package = "gtk4"
-version = "0.9"
+version = "0.10"
 
 [dependencies.tokio]
 version = "1.42"
