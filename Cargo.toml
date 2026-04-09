@@ -8,7 +8,7 @@ edition = "2024"
 envir = "1.2"
 log = "0.4"
 redpitaya-scpi = "0.28"
-relm4 = "0.10"
+relm4 = "0.11"
 relm4-components = "0.10"
 
 [dependencies.clap]
